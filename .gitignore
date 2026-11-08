@@ -1,0 +1,114 @@
+# Visual Studio and user state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET and future Android module output
+[Bb]in/
+[Oo]bj/
+[Bb]uild/
+.gradle/
+.idea/
+.kotlin/
+.externalNativeBuild/
+.cxx/
+*.iml
+local.properties
+captures/
+*.apk
+*.aab
+*.hprof
+
+# Generated tests, caches and transient logs
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+*.log
+*.tmp
+*.temp
+~$*
+.DS_Store
+Thumbs.db
+
+# Local secret overlays; non-secret templates remain eligible
+.env
+.env.*
+!.env.example
+!.env.template
+.secrets/
+appsettings.Local.json
+appsettings.*.Local.json
+/PersonalFinance.Api/appsettings.Development.json
+/PersonalFinance.Api/secrets.json
+*.pfx
+*.p12
+*.key
+*.jks
+*.keystore
+
+# Database files and backups, not migration source or SQL scripts
+*.mdf
+*.ndf
+*.ldf
+*.bak
+*.trn
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Duplicate submission package and standalone local investigation
+/Submission-PersonalFinancePlatform/
+/tools/PersonalFinance.DatabaseVerification/.connection-only-probe/
+
+# Generated scratch packets; required saved report inputs are NOT ignored
+/artifacts/Policy-B1-*/
+
+# Stale template, not a supported API example
+/PersonalFinance.Api/PersonalFinance.Api.http
+
+# Exact local historical archives: preserved, not deleted or rewritten
+# Never replace this list with blanket docs/, tools/, tests/ or artifacts/ rules.
+/artifacts/CategoryUniquenessOperationalInspection/Operational-20261102-121837-312-33f214d8ae784d1f9e834876a1db9186.json
+/artifacts/CategoryUniquenessOperationalInspection/Operational-20261102-215027-872-d8e14afa43954536aa231d62a2e36357.json
+/artifacts/CategoryUniquenessOperationalInspection/Operational-20261102-220355-163-4641403dc4f945f2b2c47a317792d5c1.json
+/artifacts/CategoryUniquenessPreflight/CategoryPreflight-20261102-185526-325-053e7d02f93044b29e0d912cdc0d4fda.json
+/artifacts/ConnectionOnlyProbe/ConnectionOnly-20261102-132411-753-a5f7128496414ca0b309354033a92a69.json
+/artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-153422-001-75f04e20dc9b4f008eab7f012ca5fb53.json
+/artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-164841-853-ebf9e9577175462c8fa646aa23f694b9.json
+/artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-171502-227-ffdd645e5ee642c78dba93bd58a6be04.json
+/artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-171843-453-d757f4a2d4dc4a31a731ac2abbcca7ff.json
+/artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-181920-116-0fe0a20856e04e788138c1b902c19e76.json
+/artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-182006-476-d322628c2ee64567b8035e6b0e5c46f6.json
+/artifacts/SourceIntegrity-8B-5G-5C-B3-R1-3cc4de2119d34de5b83ea37de753c460.sha256.json
+/docs/CategoryUniqueness_BackupRecovery_ReadinessAssessment.md
+/docs/CategoryUniqueness_ConstraintExpression_Review.md
+/docs/CategoryUniqueness_DevelopmentMigration_ExecutionRunbook.md
+/docs/CategoryUniqueness_DevelopmentMigration_SafetyPlan.md
+/docs/CategoryUniqueness_GuardedPreflight_Implementation.md
+/docs/CategoryUniqueness_MetadataVisibility_Correction_Implementation.md
+/docs/CategoryUniqueness_MetadataVisibility_Failure_Review.md
+/docs/CategoryUniqueness_OperationalInspection_ArgumentException_Fix.md
+/docs/CategoryUniqueness_OperationalInspection_MicrosoftSqlClient_Implementation.md
+/docs/CategoryUniqueness_OperationalInspection_ReadOnly.md
+/docs/CategoryUniqueness_OperationalInspection_SQLConnection_Fix.md
+/docs/CategoryUniqueness_OperationalInspection_SQLDiagnostics_Enhancement.md
+/docs/CategoryUniqueness_PreparationStatus_20261102_2235.md
+/docs/CategoryUniqueness_RemainingOperationalReviews.md
+/docs/CategoryUniqueness_SQLConnection_ProbePreparation.md
+/docs/CategoryUniqueness_SQLConnection_TargetedInvestigation.md
+/docs/CategoryUniqueness_SQLDiagnostic_FieldCapture_Review.md
+/docs/CategoryUniqueness_SQLProvider_CompatibilityAssessment.md
+/docs/CategoryUniqueness_SupplementaryInspection_Preparation.md
+/docs/CategoryUniqueness_TargetedWriterInventory_20261102.md
+/docs/DevelopmentDatabaseVerification_ParserRepair.md
+/docs/DevelopmentDatabaseVerification_SchemaMappingRepair.md
+/docs/DevelopmentDatabaseVerification_SqlIdentityDiagnostics.md
+/docs/DevelopmentDatabaseVerification_TransactionBoundaries.md
+/docs/Initial_Project_Report_Personal_Finance_Platform_v3.1_Implementation_Ready.docx
+/docs/MonthlyBudgets_DevelopmentDatabaseVerification_Preparation.md

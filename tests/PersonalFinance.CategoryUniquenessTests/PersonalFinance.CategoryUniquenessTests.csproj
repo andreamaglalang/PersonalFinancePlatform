@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../PersonalFinance.Infrastructure/PersonalFinance.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.13" />
+    <Compile Include="../PersonalFinance.FinanceTests/CategoryComputedValueSimulation.cs" Link="CategoryComputedValueSimulation.cs" />
+    <Compile Include="../PersonalFinance.FinanceTests/SyntheticSqlError.cs" Link="SyntheticSqlError.cs" />
+  </ItemGroup>
+</Project>
