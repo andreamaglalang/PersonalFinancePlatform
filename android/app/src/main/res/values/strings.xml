@@ -56,4 +56,6 @@
     <string name="dashboard_refresh_failed">Refresh failed</string>
     <string name="dashboard_retained_summary">The previous complete summary is still shown. %1$s</string>
     <string name="dashboard_retry_refresh">Retry refresh</string>
+    <string name="navigation_dashboard">Dashboard</string>
+    <string name="navigation_transactions">Transactions</string>
 </resources>
