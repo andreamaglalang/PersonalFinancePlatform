@@ -1,6 +1,8 @@
 package com.elect3.mobdev.personalfinance.ui.app
 
 import android.content.res.Configuration
+import androidx.activity.OnBackPressedDispatcherOwner
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -28,6 +30,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 import com.elect3.mobdev.personalfinance.ui.dashboard.DashboardError
@@ -48,13 +52,63 @@ class OwliAppTest {
     private fun destination(id: Int) = compose.onNode(hasText(text(id), substring = false) and
         SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected))
 
+    // Fail clearly on environmental interruptions without depending on a Compose root.
+    private fun assertForeground(boundary: String) {
+        var foreground = false
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            foreground = ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(Stage.RESUMED).any { activity ->
+                    activity.hasWindowFocus() && !activity.isFinishing && !activity.isDestroyed
+                }
+        }
+        assertTrue("Activity must be RESUMED and focused: $boundary", foreground)
+    }
+
+    private fun selectTab(id: Int) {
+        assertForeground("Before selecting ${text(id)}")
+        destination(id).performClick()
+        destination(id).assertIsSelected()
+        assertForeground("After selecting ${text(id)}")
+    }
+
+    private fun readyList(name: String, selectedId: Int) {
+        assertForeground("Before returning $name list")
+        // Wait only for composition/layout, never for the expected restored index.
+        compose.waitUntil(timeoutMillis = 5_000) {
+            var ready = false
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                ready = positions[name]?.layoutInfo?.let {
+                    it.totalItemsCount == 60 && it.visibleItemsInfo.isNotEmpty() &&
+                        it.viewportSize.width > 0 && it.viewportSize.height > 0
+                } == true
+            }
+            ready
+        }
+        compose.onRoot().assertExists("Missing Compose hierarchy for $name")
+        destination(selectedId).assertIsSelected()
+        compose.onNodeWithTag("$name-list").assertIsDisplayed()
+        assertForeground("After returning $name list")
+    }
+
+    private fun assertScroll(name: String, index: Int, offset: Int) {
+        assertForeground("Before checking $name scroll restoration")
+        compose.runOnIdle {
+            val state = checkNotNull(positions[name]) { "No currently composed $name list" }
+            assertEquals("Scroll-state restoration failure: $name index", index, state.firstVisibleItemIndex)
+            assertEquals("Scroll-state restoration failure: $name offset", offset, state.firstVisibleItemScrollOffset)
+        }
+        assertForeground("After checking $name scroll restoration")
+    }
+
     @Composable
     private fun TestList(name: String) {
         val state = rememberLazyListState()
-        DisposableEffect(state) {
+        DisposableEffect(name, state) {
             positions[name] = state
             entries[name] = (entries[name] ?: 0) + 1
-            onDispose { }
+            onDispose {
+                if (positions[name] === state) positions.remove(name)
+            }
         }
         LazyColumn(Modifier.fillMaxSize().testTag("$name-list"), state = state) {
             items((0..59).toList(), key = { it }) {
@@ -92,6 +146,7 @@ class OwliAppTest {
 
     @Test fun switchingAndReselectionPreserveScrollWithoutReenteringActiveContent() {
         showLists()
+        readyList("dashboard", R.string.navigation_dashboard)
         compose.onNodeWithTag("dashboard-list").performScrollToIndex(25)
         var dashboardIndex = 0
         var dashboardOffset = 0
@@ -99,32 +154,77 @@ class OwliAppTest {
             dashboardIndex = positions.getValue("dashboard").firstVisibleItemIndex
             dashboardOffset = positions.getValue("dashboard").firstVisibleItemScrollOffset
         }
-        destination(R.string.navigation_dashboard).performClick()
+        selectTab(R.string.navigation_dashboard)
         compose.runOnIdle { assertEquals(1, entries.getValue("dashboard")) }
-        destination(R.string.navigation_transactions).performClick().assertIsSelected()
+        selectTab(R.string.navigation_transactions)
+        readyList("transactions", R.string.navigation_transactions)
         compose.onNodeWithTag("transactions-list").performScrollToIndex(35)
         var transactionIndex = 0
-        compose.runOnIdle { transactionIndex = positions.getValue("transactions").firstVisibleItemIndex }
-        destination(R.string.navigation_dashboard).performClick()
+        var transactionOffset = 0
         compose.runOnIdle {
-            assertEquals(dashboardIndex, positions.getValue("dashboard").firstVisibleItemIndex)
-            assertEquals(dashboardOffset, positions.getValue("dashboard").firstVisibleItemScrollOffset)
+            transactionIndex = positions.getValue("transactions").firstVisibleItemIndex
+            transactionOffset = positions.getValue("transactions").firstVisibleItemScrollOffset
         }
-        destination(R.string.navigation_transactions).performClick()
-        compose.runOnIdle { assertEquals(transactionIndex, positions.getValue("transactions").firstVisibleItemIndex) }
+        selectTab(R.string.navigation_dashboard)
+        readyList("dashboard", R.string.navigation_dashboard)
+        assertScroll("dashboard", dashboardIndex, dashboardOffset)
+        selectTab(R.string.navigation_transactions)
+        readyList("transactions", R.string.navigation_transactions)
+        assertScroll("transactions", transactionIndex, transactionOffset)
         compose.onNodeWithTag("dashboard-list").assertDoesNotExist()
     }
 
     @Test fun selectedDestinationAndScrollRestoreFromSavedState() {
         val restoration = StateRestorationTester(compose)
         restoration.setContent { PersonalFinanceTheme { OwliApp({ TestList("dashboard") }, { TestList("transactions") }) } }
-        destination(R.string.navigation_transactions).performClick()
+        readyList("dashboard", R.string.navigation_dashboard)
+        selectTab(R.string.navigation_transactions)
+        readyList("transactions", R.string.navigation_transactions)
         compose.onNodeWithTag("transactions-list").performScrollToIndex(30)
         var index = 0
-        compose.runOnIdle { index = positions.getValue("transactions").firstVisibleItemIndex }
+        var offset = 0
+        compose.runOnIdle {
+            index = positions.getValue("transactions").firstVisibleItemIndex
+            offset = positions.getValue("transactions").firstVisibleItemScrollOffset
+        }
+        assertForeground("Before saved-instance-state restoration")
         restoration.emulateSavedInstanceStateRestore()
-        destination(R.string.navigation_transactions).assertIsSelected()
-        compose.runOnIdle { assertEquals(index, positions.getValue("transactions").firstVisibleItemIndex) }
+        assertForeground("After saved-instance-state restoration")
+        readyList("transactions", R.string.navigation_transactions)
+        assertScroll("transactions", index, offset)
+    }
+
+    @Test fun backReturnsToDashboardAndTransactionsScrollRestores() {
+        lateinit var owner: OnBackPressedDispatcherOwner
+        compose.setContent {
+            owner = checkNotNull(LocalOnBackPressedDispatcherOwner.current)
+            PersonalFinanceTheme {
+                OwliApp({ TestList("dashboard") }, { TestList("transactions") })
+            }
+        }
+        readyList("dashboard", R.string.navigation_dashboard)
+        selectTab(R.string.navigation_transactions)
+        readyList("transactions", R.string.navigation_transactions)
+        compose.onNodeWithTag("transactions-list").performScrollToIndex(35)
+        var index = 0
+        var offset = 0
+        compose.runOnIdle {
+            index = positions.getValue("transactions").firstVisibleItemIndex
+            offset = positions.getValue("transactions").firstVisibleItemScrollOffset
+        }
+        // Repeated selection must not add another Transactions entry.
+        repeat(3) { selectTab(R.string.navigation_transactions) }
+        assertForeground("Before Back dispatch")
+        compose.runOnIdle { owner.onBackPressedDispatcher.onBackPressed() }
+        assertForeground("After Back dispatch")
+        readyList("dashboard", R.string.navigation_dashboard)
+        destination(R.string.navigation_dashboard).assertIsSelected()
+        destination(R.string.navigation_transactions).assertIsNotSelected()
+        compose.onNodeWithTag("dashboard-list").assertIsDisplayed()
+        compose.onNodeWithTag("transactions-list").assertDoesNotExist()
+        selectTab(R.string.navigation_transactions)
+        readyList("transactions", R.string.navigation_transactions)
+        assertScroll("transactions", index, offset)
     }
 
     private fun assertNarrowNavigation(scale: Float, night: Boolean) {
