@@ -1,0 +1,15 @@
+@model PersonalFinance.AdminMvc.ViewModels.CategoryCreateViewModel
+@{ ViewData["Title"] = "Create shared default category"; }
+<section class="card category-form">
+    <h1>Create shared default category</h1>
+    <p>This creates a shared category available to all users, not a personal category.</p>
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="All" class="notice validation-summary" role="alert"></div>
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required />
+        <label asp-for="Type"></label><select asp-for="Type"><option value="Income">Income</option><option value="Expense">Expense</option></select>
+        <label asp-for="ColorHEX"></label><input asp-for="ColorHEX" maxlength="7" placeholder="#14675A" aria-describedby="color-help" />
+        <p id="color-help" class="muted">Leave blank, or use # followed by six hexadecimal digits.</p>
+        <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
+        <div class="form-actions"><button type="submit">Create shared category</button><a asp-action="Index">Back to API-page browsing</a></div>
+    </form>
+</section>

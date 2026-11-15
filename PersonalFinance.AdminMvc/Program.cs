@@ -31,6 +31,18 @@ builder.Services.AddHttpClient<IAuthenticationApiClient, AuthenticationApiClient
 {
     AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
 }).RemoveAllLoggers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<ICategoryApiClient, CategoryApiClient>((provider, http) =>
+{
+    http.BaseAddress = new Uri(provider.GetRequiredService<IOptions<BackendApiOptions>>().Value.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(10);
+    http.MaxResponseContentBufferSize = 256 * 1024;
+    http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+}).RemoveAllLoggers();
+builder.Services.AddScoped<ICategoryManagementService, CategoryManagementService>();
 builder.Services.AddSingleton<AdminSessionStore>();
 builder.Services.AddScoped<AuthenticationCoordinator>();
 builder.Services.AddScoped<AdminCookieEvents>();

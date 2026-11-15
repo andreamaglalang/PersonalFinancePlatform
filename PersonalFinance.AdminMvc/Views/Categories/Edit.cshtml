@@ -1,0 +1,18 @@
+@model PersonalFinance.AdminMvc.ViewModels.CategoryEditViewModel
+@{ ViewData["Title"] = "Edit shared default category"; }
+<section class="card category-form">
+    <h1>Edit shared default category</h1>
+    <p>Changes affect this shared category for all users. Type stays unchanged: <strong>@Model.CurrentType</strong>.</p>
+    <p class="notice">Deactivation prevents new use where the API requires an active category. Existing financial records are retained. Reactivating makes the category available again.</p>
+    <form asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]" method="post">
+        <div asp-validation-summary="All" class="notice validation-summary" role="alert"></div>
+        <input asp-for="OriginalState" type="hidden" />
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required />
+        <label asp-for="ColorHEX"></label><input asp-for="ColorHEX" maxlength="7" placeholder="#14675A" aria-describedby="color-help" />
+        <p id="color-help" class="muted">Leave blank, or use # followed by six hexadecimal digits.</p>
+        <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
+        <label class="check-label"><input asp-for="ConfirmDeactivation" /> I confirm that changing an active shared category to inactive affects all users.</label>
+        <p class="muted">The original fields are checked again before saving. Another administrator may still change the category between that check and the update: the API does not support atomic version enforcement.</p>
+        <div class="form-actions"><button type="submit">Save shared category</button><a asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]">Reload current category</a><a asp-action="Index">Back to API-page browsing</a></div>
+    </form>
+</section>
