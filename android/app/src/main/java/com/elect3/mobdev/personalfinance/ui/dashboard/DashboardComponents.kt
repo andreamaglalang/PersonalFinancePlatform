@@ -12,6 +12,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.elect3.mobdev.personalfinance.R
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
 import com.elect3.mobdev.personalfinance.ui.transactions.formatPhpAmount
 import java.math.BigDecimal
 
@@ -51,6 +52,7 @@ internal fun DashboardMetric(label: String, amount: BigDecimal, color: Color, mo
 
 @Composable
 internal fun DashboardIncomeExpenses(income: BigDecimal, expenses: BigDecimal) {
+    val owliColors = LocalOwliColors.current
     val incomeLabel = stringResource(R.string.dashboard_income)
     val expenseLabel = stringResource(R.string.dashboard_expenses)
     val measurer = rememberTextMeasurer()
@@ -65,12 +67,12 @@ internal fun DashboardIncomeExpenses(income: BigDecimal, expenses: BigDecimal) {
         // Equal columns each need enough room for their full label and amount.
         if (maxOf(incomeWidth, expenseWidth).toLong() * 2 + gap <= constraints.maxWidth) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                DashboardMetric(incomeLabel, income, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-                DashboardMetric(expenseLabel, expenses, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                DashboardMetric(incomeLabel, income, owliColors.income, Modifier.weight(1f))
+                DashboardMetric(expenseLabel, expenses, owliColors.expense, Modifier.weight(1f))
             }
         } else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            DashboardMetric(incomeLabel, income, MaterialTheme.colorScheme.secondary)
-            DashboardMetric(expenseLabel, expenses, MaterialTheme.colorScheme.primary)
+            DashboardMetric(incomeLabel, income, owliColors.income)
+            DashboardMetric(expenseLabel, expenses, owliColors.expense)
         }
     }
 }

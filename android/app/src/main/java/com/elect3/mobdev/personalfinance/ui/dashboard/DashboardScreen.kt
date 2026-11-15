@@ -30,7 +30,7 @@ fun DashboardScreen(state: DashboardUiState, onRetry: () -> Unit, onRefresh: () 
             item(key = "header") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary)
+                        color = MaterialTheme.colorScheme.onBackground)
                     DashboardHeading(stringResource(R.string.dashboard_title))
                     Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
