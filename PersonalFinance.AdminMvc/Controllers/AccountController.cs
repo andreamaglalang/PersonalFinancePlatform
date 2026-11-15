@@ -12,15 +12,23 @@ namespace PersonalFinance.AdminMvc.Controllers;
 public sealed class AccountController(AuthenticationCoordinator coordinator) : Controller
 {
     [AllowAnonymous, HttpGet]
-    public IActionResult Login(string? returnUrl, bool unavailable = false) => View(new LoginViewModel
-    {
-        ReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null,
-        Message = unavailable ? "Authentication is temporarily unavailable. Please sign in again later." : null
-    });
+    public IActionResult Login(string? returnUrl, bool unavailable = false) =>
+        AuthenticatedLoginResult() ?? View(new LoginViewModel
+        {
+            ReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null,
+            Message = unavailable ? "Authentication is temporarily unavailable. Please sign in again later." : null
+        });
 
     [AllowAnonymous, HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login([FromForm] LoginViewModel model, CancellationToken ct)
     {
+        var authenticatedResult = AuthenticatedLoginResult();
+        if (authenticatedResult is not null)
+        {
+            model.Password = string.Empty;
+            ModelState.Clear();
+            return authenticatedResult;
+        }
         var request = new LoginRequest { Email = model.Email, Password = model.Password };
         model.Password = string.Empty;
         model.Message = null;
@@ -63,6 +71,17 @@ public sealed class AccountController(AuthenticationCoordinator coordinator) : C
             return View(model);
         }
         return model.ReturnUrl is not null ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Dashboard");
+    }
+
+    private IActionResult? AuthenticatedLoginResult()
+    {
+        // Cookie middleware validates the server-side session and backend Administrator role
+        // before either action, including AllowAnonymous actions. POST antiforgery runs first.
+        // Account switching requires the existing POST Logout followed by a fresh login.
+        if (User.Identity?.IsAuthenticated != true) return null;
+        return User.IsInRole("Administrator")
+            ? RedirectToAction("Index", "Dashboard")
+            : Forbid(AdminSessionStore.Scheme);
     }
 
     [HttpPost, ValidateAntiForgeryToken, LocalLogout]

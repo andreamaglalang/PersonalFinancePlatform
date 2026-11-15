@@ -1,7 +1,36 @@
-# OWLI Administrator MVC — MVC-2
+# OWLI Administrator MVC — MVC-3 Dashboard UI
 
 Independent .NET 10 server-rendered HTTPS client. There are no backend project references,
 database dependencies, fake authentication modes, or Dashboard statistics.
+
+## Dashboard scope and availability
+
+MVC-3 adds a responsive, presentation-only Administrator Dashboard. It shows the display
+name from the existing authenticated identity, an Administrator role label and static
+capability descriptions. A missing display name uses a generic administrator fallback.
+The name reflects the login identity; this UI does not fetch a fresh profile or make an
+additional `/api/auth/me` call. Dynamic identity text uses normal Razor encoding.
+
+The existing Administrator policy, backend session validation and anti-forgery-protected
+POST logout remain unchanged. Navigation links only to the implemented Dashboard and
+retains the existing logout form. Feature cards are informational, not navigation links.
+
+- Default categories: administrator backend operations exist; the MVC management page is planned.
+- User management: administrator API support is not available yet.
+- Reports: administrator reporting and export support are not available yet.
+- System monitoring: monitoring API support is not available yet; no health status is inferred.
+
+Global statistics are omitted because current finance endpoints expose user-owned records,
+not platform-wide administrative totals. There are no fabricated counts, financial totals,
+charts, simulated live status or recent activity feeds. Future global summaries, user
+management, reports, monitoring and audit activity require backend coordination with Andrea.
+The default-category management UI requires a separately approved implementation scope.
+
+This MVC-3 step received source inspection only. Build, Razor rendering, responsive visual
+checks and authentication regression verification must follow separately; no build or tests
+were run during this UI implementation.
+
+## Configuration and MVC-2 authentication
 
 Before a separately authorized startup, supply `BackendApi:BaseUrl` through the MVC
 configuration provider. It must be an approved absolute HTTPS origin with no path,

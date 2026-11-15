@@ -1,3 +1,7 @@
+@{
+    var isDashboard = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Dashboard", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,19 +11,21 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
     <header class="topbar">
         <a class="brand" asp-controller="Dashboard" asp-action="Index">OWLI <span>Administrator</span></a>
         @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator"))
         {
             <nav aria-label="Administrator navigation">
-                <a asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                <a asp-controller="Dashboard" asp-action="Index" class="nav-link"
+                   aria-current="@(isDashboard ? "page" : null)">Dashboard</a>
                 <form asp-controller="Account" asp-action="Logout" method="post">
                     <button type="submit" class="secondary">Sign out</button>
                 </form>
             </nav>
         }
     </header>
-    <main id="main">@RenderBody()</main>
+    <main id="main" tabindex="-1">@RenderBody()</main>
     <footer>OWLI — Your Wise Money Companion</footer>
 </body>
 </html>

@@ -1,10 +1,48 @@
+@model DashboardViewModel
 @{ ViewData["Title"] = "Administrator Dashboard"; }
-<section class="card">
+<section class="card dashboard-welcome" aria-labelledby="dashboard-title">
     <p class="eyebrow">OWLI administration</p>
-    <h1>Administrator Dashboard</h1>
-    <p>Welcome, @User.Identity?.Name.</p>
-    <div class="placeholder">
-        <h2>Dashboard integration is planned for MVC-3</h2>
-        <p>Dashboard data is not connected yet. This page confirms your protected administrator session.</p>
+    <h1 id="dashboard-title">Administrator Dashboard</h1>
+    <p class="welcome-name">Welcome, @Model.AdministratorDisplayName.</p>
+    <p class="role-label">Role: @Model.AdministratorRoleLabel</p>
+    <p class="muted">Your workspace for OWLI administration. Explore the planned capabilities and their current availability below.</p>
+</section>
+
+<section class="dashboard-features" aria-labelledby="features-title">
+    <div class="section-heading">
+        <h2 id="features-title">Administration capabilities</h2>
+        <p class="muted">Management pages will become available as their integrations are completed.</p>
     </div>
+    <div class="feature-grid">
+        <article class="card feature-card" aria-labelledby="categories-title">
+            <p class="availability-label">Management page planned</p>
+            <h3 id="categories-title">Default categories</h3>
+            <p>The backend supports administrator operations for shared default categories.</p>
+            <p class="muted">The MVC management page is planned and is not available yet.</p>
+        </article>
+        <article class="card feature-card" aria-labelledby="users-title">
+            <p class="availability-label">API support not available</p>
+            <h3 id="users-title">User management</h3>
+            <p>Administrator user-management API support is not available yet.</p>
+            <p class="muted">A management page requires coordinated backend integration.</p>
+        </article>
+        <article class="card feature-card" aria-labelledby="reports-title">
+            <p class="availability-label">Reporting not available</p>
+            <h3 id="reports-title">Reports</h3>
+            <p>Administrator reporting is not available yet.</p>
+            <p class="muted">Reports and exports require approved backend data sources.</p>
+        </article>
+        <article class="card feature-card" aria-labelledby="monitoring-title">
+            <p class="availability-label">API support not available</p>
+            <h3 id="monitoring-title">System monitoring</h3>
+            <p>System-monitoring API support is not available yet.</p>
+            <p class="muted">System health and service availability are not measured by this Dashboard.</p>
+        </article>
+    </div>
+</section>
+
+<section class="card dashboard-information" aria-labelledby="statistics-title">
+    <h2 id="statistics-title">About Dashboard data</h2>
+    <p>The current API does not provide global administrative statistics. User counts, financial totals, charts and recent administrative activity are not shown.</p>
+    <p class="muted">Personal finance endpoints return user-owned data and cannot represent platform-wide totals. Future statistics require dedicated administrator API support.</p>
 </section>
