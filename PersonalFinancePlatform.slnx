@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="PersonalFinance.AdminMvc/PersonalFinance.AdminMvc.csproj" />
   <Project Path="PersonalFinance.Api/PersonalFinance.Api.csproj" />
   <Project Path="PersonalFinance.Domain/PersonalFinance.Domain.csproj" />
   <Project Path="PersonalFinance.Infrastructure/PersonalFinance.Infrastructure.csproj" />

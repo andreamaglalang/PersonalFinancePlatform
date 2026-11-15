@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — OWLI Administrator</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" asp-controller="Dashboard" asp-action="Index">OWLI <span>Administrator</span></a>
+        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator"))
+        {
+            <nav aria-label="Administrator navigation">
+                <a asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="secondary">Sign out</button>
+                </form>
+            </nav>
+        }
+    </header>
+    <main id="main">@RenderBody()</main>
+    <footer>OWLI — Your Wise Money Companion</footer>
+</body>
+</html>

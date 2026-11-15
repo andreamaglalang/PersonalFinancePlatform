@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "PersonalFinance.AdminMvc": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:62978;http://localhost:62979"
+    }
+  }
+}
