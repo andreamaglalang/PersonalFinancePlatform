@@ -1,0 +1,35 @@
+@if (!ViewData.ModelState.IsValid)
+{
+    <div id="category-validation-summary" class="notice validation-summary" role="alert" aria-labelledby="category-validation-title" tabindex="0">
+        <h2 id="category-validation-title">Review the category details</h2>
+        <p>Your submission could not be confirmed. Follow a field link to review its error, or review the message below.</p>
+        <ul>
+        @foreach (var entry in ViewData.ModelState)
+        {
+            var fieldId = entry.Key switch
+            {
+                "Name" => "Name",
+                "Type" => "Type",
+                "ColorHEX" => "ColorHEX",
+                _ => null
+            };
+            @foreach (var error in entry.Value.Errors)
+            {
+                var message = string.IsNullOrEmpty(error.ErrorMessage)
+                    ? "The submitted category details could not be validated. Reload and review the form."
+                    : error.ErrorMessage;
+                <li>
+                    @if (fieldId is not null)
+                    {
+                        <a href="#@fieldId">@message</a>
+                    }
+                    else
+                    {
+                        @message
+                    }
+                </li>
+            }
+        }
+        </ul>
+    </div>
+}

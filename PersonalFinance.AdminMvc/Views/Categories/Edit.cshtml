@@ -5,10 +5,12 @@
     <p>Changes affect this shared category for all users. Type stays unchanged: <strong>@Model.CurrentType</strong>.</p>
     <p class="notice">Deactivation prevents new use where the API requires an active category. Existing financial records are retained. Reactivating makes the category available again.</p>
     <form asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]" method="post">
-        <div asp-validation-summary="All" class="notice validation-summary" role="alert"></div>
+        <partial name="_ValidationSummary" />
         <input asp-for="OriginalState" type="hidden" />
-        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required />
-        <label asp-for="ColorHEX"></label><input asp-for="ColorHEX" maxlength="7" placeholder="#14675A" aria-describedby="color-help" />
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" />
+        <span asp-validation-for="Name" id="name-error"></span>
+        <label asp-for="ColorHEX"></label><input asp-for="ColorHEX" maxlength="7" placeholder="#14675A" aria-describedby="color-help color-error" aria-invalid="@(ViewData.ModelState["ColorHEX"]?.Errors.Count > 0 ? "true" : null)" />
+        <span asp-validation-for="ColorHEX" id="color-error"></span>
         <p id="color-help" class="muted">Leave blank, or use # followed by six hexadecimal digits.</p>
         <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
         <label class="check-label"><input asp-for="ConfirmDeactivation" /> I confirm that changing an active shared category to inactive affects all users.</label>

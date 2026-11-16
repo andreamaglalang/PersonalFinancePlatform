@@ -18,11 +18,11 @@ h2 { font-size: 1.2rem; }
 .eyebrow { color: #56736b; text-transform: uppercase; font-size: .75rem; letter-spacing: .12em; font-weight: 700; }
 .muted { color: #56736b; }
 label { display: block; font-weight: 600; margin-top: 1rem; }
-input { display: block; width: 100%; padding: .8rem; margin: .3rem 0 1rem; border: 1px solid #a8bfb6; border-radius: .4rem; font: inherit; }
+input { display: block; width: 100%; padding: .8rem; margin: .3rem 0 1rem; border: 1px solid #14675a; border-radius: .4rem; font: inherit; }
 button { border: 0; border-radius: .4rem; background: #14675a; color: white; padding: .8rem 1.3rem; font: inherit; font-weight: 600; cursor: pointer; }
 .login button { width: 100%; margin-top: .8rem; }
 button.secondary { background: #e9f2ee; color: #193b38; }
-:focus-visible { outline: 3px solid #bc8a24; outline-offset: 3px; }
+:focus-visible { outline: 3px solid #14675a; outline-offset: 3px; }
 .notice { background: #fff4df; border-left: 4px solid #b78325; padding: 1rem; }
 .skip-link { position: absolute; left: 1rem; top: .5rem; transform: translateY(-200%); background: #fff; padding: .7rem 1rem; border: 2px solid #14675a; border-radius: .4rem; z-index: 10; }
 .skip-link:focus { transform: translateY(0); }
@@ -47,7 +47,7 @@ button.secondary { background: #e9f2ee; color: #193b38; }
     main { margin: 1.5rem auto; }
 }
 footer { text-align: center; color: #56736b; font-size: .85rem; padding: 1.5rem; }
-select { width: 100%; padding: .8rem; margin: .3rem 0 1rem; border: 1px solid #a8bfb6; border-radius: .4rem; font: inherit; background: #fff; color: #193b38; }
+select { width: 100%; padding: .8rem; margin: .3rem 0 1rem; border: 1px solid #14675a; border-radius: .4rem; font: inherit; background: #fff; color: #193b38; }
 .button-link { display: inline-block; background: #14675a; color: #fff; padding: .7rem 1rem; border-radius: .4rem; }
 .category-filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1.5rem 0; }
 .category-filters > div { flex: 1 1 10rem; min-width: 0; }
