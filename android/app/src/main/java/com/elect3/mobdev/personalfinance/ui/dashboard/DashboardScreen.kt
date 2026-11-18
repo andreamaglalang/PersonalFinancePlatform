@@ -34,6 +34,7 @@ fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier,
         onAddExpense = shell.addTransaction?.let { add -> { add(TransactionType.Expense) } },
         onAddIncome = shell.addTransaction?.let { add -> { add(TransactionType.Income) } },
         onOpenActivity = shell.openActivity,
+        onOpenFilter = shell.openActivityFilter,
     )
 }
 
@@ -53,6 +54,7 @@ fun DashboardScreen(
     onAddExpense: (() -> Unit)? = null,
     onAddIncome: (() -> Unit)? = null,
     onOpenActivity: (() -> Unit)? = null,
+    onOpenFilter: (() -> Unit)? = null,
 ) {
     val copy = dashboardCopy(source)
     val typography = LocalOwliTypography.current
@@ -116,8 +118,11 @@ fun DashboardScreen(
                         }
                     } }
                     item(key = "net") { Box(contentWidth) { DashboardNetFlowPanel(state.summary, allTime, copy) { allTime = it } } }
-                    if (onAddExpense != null || onAddIncome != null || onOpenActivity != null) item(key = "quick") {
-                        Box(contentWidth) { DashboardQuickActions(onAddExpense, onAddIncome, onOpenActivity) }
+                    if (onAddExpense != null || onAddIncome != null || onOpenFilter != null) item(key = "quick") {
+                        Box(contentWidth) { DashboardQuickActions(onAddExpense, onAddIncome, onOpenFilter) }
+                    }
+                    item(key = "where") {
+                        Box(contentWidth.padding(top = 6.dp)) { DashboardWhereItWent(state.summary, allTime, source) }
                     }
                     item(key = "summary") {
                         Column(contentWidth.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

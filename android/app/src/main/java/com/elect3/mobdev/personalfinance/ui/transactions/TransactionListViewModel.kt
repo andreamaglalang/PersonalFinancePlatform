@@ -1,5 +1,8 @@
 package com.elect3.mobdev.personalfinance.ui.transactions
 
+import com.elect3.mobdev.personalfinance.domain.repository.FilterableTransactionRepository
+import com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter
+import com.elect3.mobdev.personalfinance.domain.repository.TransactionListSort
 import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -32,6 +35,29 @@ class TransactionListViewModel @MainThread constructor(
 
     private var generation = 0L
     private var request: Job? = null
+
+    /** Server-side filter applied to every page, refresh and load-more. Default: all transactions, newest first. */
+    private var filter = TransactionFilter()
+    private val mutableFilter = MutableStateFlow(filter)
+    val activeFilter: StateFlow<TransactionFilter> = mutableFilter.asStateFlow()
+
+    /** Filtering is offered only for sources that filter the complete dataset before paging. */
+    val supportsFiltering: Boolean get() = repository is FilterableTransactionRepository
+
+    /**
+     * Replaces the active filter and reloads from page one. Pending reads are superseded, so a late page for
+     * the previous filter can never be merged into the new result set.
+     */
+    @MainThread
+    fun applyFilter(newFilter: TransactionFilter) {
+        if (invalidated || !supportsFiltering) return
+        if (mutableState.value is TransactionListUiState.SessionExpired) return
+        if (newFilter == filter) return
+        filter = newFilter
+        mutableFilter.value = newFilter
+        supersedeRequest()
+        loadFirstPage()
+    }
 
     init {
         loadFirstPage()
@@ -170,11 +196,13 @@ class TransactionListViewModel @MainThread constructor(
         if (invalidated || !isSessionCurrent()) { invalidateSession(); return }
         val token = generation
         val source = repository
+        val activeFilter = filter
         // Assign before starting: an immediate mock response cannot leave a stale active-job handle.
         val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             try {
                 val result = try {
-                    source.readPage(page, PAGE_SIZE).also { response ->
+                    (if (!activeFilter.isDefault && source is FilterableTransactionRepository)
+                        source.readPage(page, PAGE_SIZE, activeFilter) else source.readPage(page, PAGE_SIZE)).also { response ->
                         if (response is TransactionPageResult.Success) {
                             require(response.page.page == page && response.page.pageSize == PAGE_SIZE)
                         }
@@ -218,9 +246,12 @@ class TransactionListViewModel @MainThread constructor(
         super.onCleared()
     }
 
+    /** Merge pages in the same order the source uses (date, then ID, in the filter's direction). */
     private fun orderedUnique(items: List<Transaction>): List<Transaction> =
-        items.distinctBy { it.transactionId }
-            .sortedWith(compareByDescending<Transaction> { it.transactionDate }.thenByDescending { it.transactionId })
+        items.distinctBy { it.transactionId }.sortedWith(when (filter.sort) {
+            TransactionListSort.Newest -> compareByDescending<Transaction> { it.transactionDate }.thenByDescending { it.transactionId }
+            TransactionListSort.Oldest -> compareBy<Transaction> { it.transactionDate }.thenBy { it.transactionId }
+        })
 
     private fun appendState(items: List<Transaction>, page: TransactionPage): TransactionAppendState =
         if (page.items.isEmpty() || items.size.toLong() >= page.totalCount || page.page == Int.MAX_VALUE) {

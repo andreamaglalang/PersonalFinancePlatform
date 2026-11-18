@@ -44,7 +44,7 @@ internal class RemoteCategoryRepository(private val transport: AuthenticatedFina
             "includeInactive" to query.includeInactive, "page" to query.page, "pageSize" to query.pageSize),
     ) { FinanceJson.categories(it, query) }
 }
-class RemoteTransactionRepository internal constructor(private val transport: AuthenticatedFinanceTransport) : TransactionRepository {
+class RemoteTransactionRepository internal constructor(private val transport: AuthenticatedFinanceTransport) : FilterableTransactionRepository {
     suspend fun list(query: TransactionQuery = TransactionQuery()): FinanceResult<TransactionPage> = transport.get(
         FinanceResource.Transactions, queryString("page" to query.page, "pageSize" to query.pageSize,
             "type" to query.type?.wireValue, "categoryId" to query.categoryId,
@@ -53,7 +53,15 @@ class RemoteTransactionRepository internal constructor(private val transport: Au
     ) { FinanceJson.transactions(it, query) }
 
     /** Compatibility adapter; new consumers retain richer typed errors via list(). */
-    override suspend fun readPage(page: Int, pageSize: Int): TransactionPageResult = when (val result = list(TransactionQuery(page, pageSize))) {
+    override suspend fun readPage(page: Int, pageSize: Int): TransactionPageResult = pageResult(list(TransactionQuery(page, pageSize)))
+
+    /** Existing API query parameters only: type, categoryId, fromDate, toDate, sortBy=date, sortDirection. */
+    override suspend fun readPage(page: Int, pageSize: Int, filter: TransactionFilter): TransactionPageResult = pageResult(list(
+        TransactionQuery(page, pageSize, type = filter.type, categoryId = filter.categoryId,
+            fromDate = filter.fromDate, toDate = filter.toDate, sortBy = TransactionSort.Date,
+            sortDirection = if (filter.sort == TransactionListSort.Oldest) SortDirection.Ascending else SortDirection.Descending)))
+
+    private fun pageResult(result: FinanceResult<TransactionPage>): TransactionPageResult = when (result) {
         is FinanceResult.Success -> TransactionPageResult.Success(result.value)
         is FinanceResult.Failure -> TransactionPageResult.Failure(when (result.reason) {
             FinanceFailure.MissingSession, FinanceFailure.SessionExpired -> TransactionFailure.SessionExpired

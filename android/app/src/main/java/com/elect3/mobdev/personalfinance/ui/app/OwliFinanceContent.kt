@@ -44,6 +44,8 @@ fun OwliFinanceContent(
     var formOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     var formInitialType by remember(authenticatedContentKey) { mutableStateOf<TransactionType?>(null) }
     val demoCategories = remember { DemoCategoryRepository() }
+    // Demo filtering uses categories derived from the demo records so IDs match the filtered data.
+    val demoFilterCategories = remember { com.elect3.mobdev.personalfinance.data.mock.DemoFixtureCategoryRepository() }
     val account = if (authenticatedContentKey != null) {
         val key = authenticatedContentKey
         val repository = checkNotNull(authenticatedRepository)
@@ -65,6 +67,7 @@ fun OwliFinanceContent(
             else dashboardContent,
         transactionsContent = {
             TransactionListRoute(account?.model() ?: demoTransactions(), isAuthenticated = account != null,
+                filterCategories = if (account == null) demoFilterCategories else authenticatedCategories,
                 onAddTransaction = openAdd?.let { add -> { add(null) } })
         },
         diagnostics = diagnostics,

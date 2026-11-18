@@ -104,6 +104,19 @@ class FinanceRepositoriesTest {
         assertEquals(1, result.page.items.size)
         assertEquals("page=1&pageSize=20&sortBy=date&sortDirection=desc", f.http.requests.single().url.query)
     }
+    @Test fun filteredReadPageSendsOnlyExistingQueryParametersAndNeverTheDisplayName() = runTest {
+        val f = Fixture(); f.login(); f.http.response = { FinanceHttpResponse(200, transactions()) }
+        val filter = TransactionFilter(type = TransactionType.Expense, categoryId = 7, categoryName = "Food",
+            fromDate = LocalDate.of(2026, 11, 1), toDate = LocalDate.of(2026, 11, 30), sort = TransactionListSort.Oldest)
+        assertTrue(f.repos.transactions.readPage(1, 20, filter) is TransactionPageResult.Success)
+        assertEquals("page=1&pageSize=20&type=Expense&categoryId=7&fromDate=2026-11-01&toDate=2026-11-30&sortBy=date&sortDirection=asc",
+            f.http.requests.single().url.query)
+    }
+    @Test fun defaultFilterKeepsTheUnfilteredNewestFirstQuery() = runTest {
+        val f = Fixture(); f.login(); f.http.response = { FinanceHttpResponse(200, transactions()) }
+        f.repos.transactions.readPage(1, 20, TransactionFilter())
+        assertEquals("page=1&pageSize=20&sortBy=date&sortDirection=desc", f.http.requests.single().url.query)
+    }
     @Test fun sqlLoadedUtcTimestampWithoutZoneUsesUtcRatherThanDeviceZone() = runTest {
         val f = Fixture(); f.login()
         f.http.response = { FinanceHttpResponse(200, transactions().replace("01:02:03.1234567Z", "01:02:03.1234567")) }

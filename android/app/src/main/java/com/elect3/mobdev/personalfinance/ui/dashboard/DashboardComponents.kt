@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -199,9 +201,7 @@ internal fun DashboardNetFlowPanel(
                 eye(Modifier.weight(1f), false)
             }
         }
-        OwliPanelFooter {
-            Text(stringResource(R.string.dashboard_flow_share_note), style = typography.caption, color = owli.onPanelMuted)
-        }
+        OwliPanelFooter { DashboardPanelFooter(summary, allTime, month) }
     }
 }
 
@@ -265,11 +265,11 @@ private fun DashboardPeriodTabs(allTime: Boolean, onSelect: (Boolean) -> Unit) {
 
 /** Quick actions under the panel; each is shown only when its action exists. */
 @Composable
-internal fun DashboardQuickActions(onAddExpense: (() -> Unit)?, onAddIncome: (() -> Unit)?, onOpenActivity: (() -> Unit)?) {
+internal fun DashboardQuickActions(onAddExpense: (() -> Unit)?, onAddIncome: (() -> Unit)?, onOpenFilter: (() -> Unit)?) {
     val actions = listOfNotNull(
         onAddExpense?.let { Triple(R.drawable.ic_owli_minus, R.string.dashboard_quick_expense to R.string.dashboard_quick_expense_action, it) },
         onAddIncome?.let { Triple(R.drawable.ic_owli_plus, R.string.dashboard_quick_income to R.string.dashboard_quick_income_action, it) },
-        onOpenActivity?.let { Triple(R.drawable.ic_owli_transactions_list, R.string.dashboard_quick_activity to R.string.dashboard_quick_activity_action, it) },
+        onOpenFilter?.let { Triple(R.drawable.ic_owli_filter, R.string.dashboard_quick_filter to R.string.dashboard_quick_filter_action, it) },
     )
     if (actions.isEmpty()) return
     val stacked = LocalConfiguration.current.fontScale > 1.3f
@@ -342,6 +342,138 @@ internal fun DashboardOverview(summary: DashboardSummary, allTime: Boolean) {
                 Text(stringResource(R.string.dashboard_top_category), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(topValue, style = typography.bodyStrong)
                 Text(topDetail, style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/**
+ * Share of a period's total expenses as a one-decimal percent label (half-up), e.g. "42.9%".
+ * The denominator is always the full period total, never a sum of the displayed prefix.
+ */
+internal fun categoryShareLabel(categoryTotal: BigDecimal, periodExpenses: BigDecimal): String {
+    if (periodExpenses.signum() <= 0) return "0.0%"
+    val pct = categoryTotal.multiply(BigDecimal(100)).divide(periodExpenses, 1, RoundingMode.HALF_UP)
+    return "${pct.toPlainString()}%"
+}
+
+/** Number of categories shown in "Where it went". */
+internal const val WHERE_IT_WENT_LIMIT = 5
+
+/**
+ * Panel footer: entry count, completeness wording (only "all recorded" for the verified complete snapshot),
+ * the rounding note for the rings, and the Insights shortcut, which stays unavailable until Insights exists.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun DashboardPanelFooter(summary: DashboardSummary, allTime: Boolean, month: String) {
+    val typography = LocalOwliTypography.current
+    val owli = LocalOwliColors.current
+    val locale = LocalConfiguration.current.locales[0]
+    val count = NumberFormat.getIntegerInstance(locale).format(if (allTime) summary.recordCount else summary.monthlyRecordCount)
+    val text = if (allTime) stringResource(R.string.dashboard_footer_all_time, count)
+        else stringResource(R.string.dashboard_footer_month, count, month)
+    val insightsDescription = stringResource(R.string.dashboard_footer_insights_unavailable)
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(text, style = typography.caption, color = owli.onPanelMuted, modifier = Modifier.padding(end = 8.dp))
+        // Visibly unavailable: dimmed, labelled "Soon", announced as disabled, no click action.
+        Row(
+            Modifier.clearAndSetSemantics { contentDescription = insightsDescription; disabled() },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(stringResource(R.string.navigation_insights), style = typography.label, color = owli.onPanel.copy(alpha = 0.5f))
+            Icon(painterResource(R.drawable.ic_owli_chevron_right), contentDescription = null,
+                tint = owli.onPanel.copy(alpha = 0.5f), modifier = Modifier.size(14.dp))
+            Text(stringResource(R.string.navigation_soon), style = typography.micro, color = owli.onPanelMuted)
+        }
+    }
+}
+
+/**
+ * "Where it went": up to five expense categories for the selected period, ranked by exact total,
+ * from the same verified complete snapshot as the rest of the Dashboard. Percentages use the period's
+ * total expenses as the denominator; every category tied at the highest total gets the TOP badge.
+ */
+@Composable
+internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, source: DashboardSource) {
+    val typography = LocalOwliTypography.current
+    val owli = LocalOwliColors.current
+    val scheme = MaterialTheme.colorScheme
+    val month = reportingMonthText(summary.reportingMonth)
+    val ranked = if (allTime) summary.expenseCategoryTotals else summary.monthlyExpenseCategoryTotals
+    val periodExpenses = if (allTime) summary.totalExpenses else summary.monthlyExpenses
+    val periodLabel = if (allTime) stringResource(R.string.dashboard_where_period_all_time)
+        else stringResource(R.string.dashboard_where_period_month, month)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        com.elect3.mobdev.personalfinance.ui.components.OwliSectionHeader(
+            stringResource(R.string.dashboard_where_title), trailing = periodLabel)
+        OwliGroupCard {
+            if (ranked.isEmpty() || periodExpenses.signum() <= 0) {
+                Text(if (allTime) stringResource(R.string.dashboard_where_empty_all_time)
+                    else stringResource(R.string.dashboard_where_empty_month, month),
+                    style = typography.body, color = scheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp))
+                return@OwliGroupCard
+            }
+            val shown = ranked.take(WHERE_IT_WENT_LIMIT)
+            val highest = shown.first().total
+            shown.forEachIndexed { index, category ->
+                if (index > 0) OwliGroupDivider()
+                val isTop = category.total.compareTo(highest) == 0
+                val share = categoryShareLabel(category.total, periodExpenses)
+                val barFraction = category.total.divide(highest, 4, RoundingMode.HALF_UP).toFloat()
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(String.format(java.util.Locale.ROOT, "%02d", index + 1),
+                            style = typography.micro.copy(fontFeatureSettings = "tnum"), color = scheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp))
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text(category.categoryName, style = typography.bodyStrong, modifier = Modifier.weight(1f, fill = false))
+                            if (isTop) Text(stringResource(R.string.dashboard_where_top_badge),
+                                style = typography.overline.copy(fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                                color = owli.accent,
+                                modifier = Modifier.clip(LocalOwliShapes.current.rowTile).background(owli.accentSoft)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(formatPhpAmount(category.total), style = typography.amountRow, textAlign = TextAlign.End)
+                            Text(share, style = typography.caption.copy(fontFeatureSettings = "tnum"), color = scheme.onSurfaceVariant)
+                        }
+                    }
+                    // Proportional bar (relative to the largest shown category); decorative, values are in text.
+                    Box(Modifier.padding(start = 26.dp).fillMaxWidth().height(3.dp)
+                        .clip(LocalOwliShapes.current.chip).background(owli.hairline)) {
+                        Box(Modifier.fillMaxWidth(barFraction).height(3.dp)
+                            .background(if (isTop) owli.accent else owli.accent.copy(alpha = 0.35f)))
+                    }
+                }
+            }
+            val leaders = shown.filter { it.total.compareTo(highest) == 0 }
+            val leaderShare = categoryShareLabel(highest, periodExpenses)
+            val scope = if (allTime) stringResource(R.string.dashboard_where_scope_all_time)
+                else stringResource(R.string.dashboard_where_scope_month, month)
+            val fact = if (leaders.size == 1) stringResource(R.string.dashboard_where_fact_single, leaders.first().categoryName, leaderShare, scope)
+                else stringResource(R.string.dashboard_where_fact_tie, leaders.joinToString(", ") { it.categoryName }, leaderShare, scope)
+            val sourceNote = stringResource(if (source == DashboardSource.Demo) R.string.dashboard_where_source_demo
+                else R.string.dashboard_where_source_account)
+            OwliGroupDivider()
+            Row(Modifier.fillMaxWidth().background(owli.accentSoft.copy(alpha = 0.55f)).padding(horizontal = 14.dp, vertical = 11.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(painterResource(R.drawable.ic_owli_eye_glyph), contentDescription = null, tint = owli.accent,
+                    modifier = Modifier.padding(top = 1.dp).size(18.dp))
+                Column {
+                    Text(fact, style = typography.caption, color = scheme.onSurface)
+                    val more = ranked.size - shown.size
+                    Text(if (more > 0) stringResource(R.string.dashboard_where_more, sourceNote, more) else sourceNote,
+                        style = typography.caption, color = scheme.onSurfaceVariant)
+                }
             }
         }
     }

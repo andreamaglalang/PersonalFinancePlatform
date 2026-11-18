@@ -29,6 +29,9 @@ import java.time.format.DateTimeFormatter
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsNotEnabled
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -161,7 +164,7 @@ class DashboardScreenTest {
         )
         val tied = DashboardSummaryCalculator().calculate(rows, YearMonth.of(2026, 11))
         show(DashboardUiState.Content(tied))
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Dining, Transport", substring = true))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Dining, Transport", substring = false))
         compose.onNodeWithText("Dining, Transport", useUnmergedTree = true).assertIsDisplayed()
     }
 
@@ -264,5 +267,30 @@ class DashboardScreenTest {
         show(DashboardUiState.Content(summary))
         compose.onNodeWithText(text(R.string.dashboard_title)).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         reveal(R.string.dashboard_recent_transactions).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+    }
+
+    @Test fun whereItWentRanksMonthExpensesWithTopBadgeAndFullPeriodPercentages() {
+        show(DashboardUiState.Content(summary))
+        selectPeriod(R.string.dashboard_period_month)
+        reveal(R.string.dashboard_where_title).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        compose.onNodeWithText(text(R.string.dashboard_where_period_month, month)).assertExists()
+        val ranked = summary.monthlyExpenseCategoryTotals
+        val top = ranked.first()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.dashboard_where_top_badge)))
+        compose.onNodeWithText(text(R.string.dashboard_where_top_badge), useUnmergedTree = true).assertIsDisplayed()
+        // Denominator is the full month total, not the sum of the displayed rows.
+        val share = categoryShareLabel(top.total, summary.monthlyExpenses)
+        compose.onAllNodesWithText(share, useUnmergedTree = true).onFirst().assertExists()
+        compose.onAllNodesWithText("01", useUnmergedTree = true).onFirst().assertExists()
+        if (ranked.size > 5) compose.onAllNodesWithText("06", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test fun footerReportsVerifiedCountAndInsightsShortcutIsNotActionable() {
+        show(DashboardUiState.Content(summary))
+        val count = summary.recordCount.toString()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.dashboard_footer_all_time, count)))
+        compose.onNodeWithText(text(R.string.dashboard_footer_all_time, count)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(text(R.string.dashboard_footer_insights_unavailable))
+            .assertIsNotEnabled().assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
     }
 }

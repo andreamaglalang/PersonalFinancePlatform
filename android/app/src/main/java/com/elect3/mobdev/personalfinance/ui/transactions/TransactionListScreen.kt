@@ -1,9 +1,19 @@
 package com.elect3.mobdev.personalfinance.ui.transactions
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.elect3.mobdev.personalfinance.domain.repository.CategoryRepository
+import com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter
+import com.elect3.mobdev.personalfinance.ui.components.LocalOwliFilterRequest
+import java.time.LocalDate
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.painterResource
 import com.elect3.mobdev.personalfinance.ui.components.OwliOwlAvatar
 import com.elect3.mobdev.personalfinance.ui.components.OwliRibbon
@@ -51,8 +61,21 @@ import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 /** The owner supplies a lifecycle-managed ViewModel; this route creates no repositories or models. */
 @Composable
 fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier = Modifier, isAuthenticated: Boolean = false,
-    onAddTransaction: (() -> Unit)? = null) {
+    onAddTransaction: (() -> Unit)? = null, filterCategories: CategoryRepository? = null) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
+    var sheetOpen by rememberSaveable { mutableStateOf(false) }
+    val canFilter = viewModel.supportsFiltering
+    val request = LocalOwliFilterRequest.current
+    LaunchedEffect(request.pending) { if (request.pending) { if (canFilter) sheetOpen = true; request.consume() } }
+    if (sheetOpen && canFilter) {
+        TransactionFilterSheet(
+            current = activeFilter, categories = filterCategories, today = remember { LocalDate.now() },
+            onApply = { viewModel.applyFilter(it); sheetOpen = false },
+            onReset = { viewModel.applyFilter(TransactionFilter()); sheetOpen = false },
+            onDismiss = { sheetOpen = false },
+        )
+    }
     TransactionListScreen(
         state = state,
         onRetryInitialLoad = viewModel::retryInitialLoad,
@@ -63,6 +86,9 @@ fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier
         modifier = modifier,
         isAuthenticated = isAuthenticated,
         onAddTransaction = onAddTransaction,
+        activeFilter = activeFilter,
+        onOpenFilter = if (canFilter) ({ sheetOpen = true }) else null,
+        onClearFilter = { viewModel.applyFilter(TransactionFilter()) },
     )
 }
 
@@ -78,6 +104,9 @@ fun TransactionListScreen(
     modifier: Modifier = Modifier,
     isAuthenticated: Boolean = false,
     onAddTransaction: (() -> Unit)? = null,
+    activeFilter: TransactionFilter = TransactionFilter(),
+    onOpenFilter: (() -> Unit)? = null,
+    onClearFilter: () -> Unit = {},
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -160,14 +189,24 @@ fun TransactionListScreen(
             item(key = "ribbon") {
                 OwliRibbon(stringResource(if (isAuthenticated) R.string.transactions_account_data else R.string.transactions_demo_data), null)
             }
+            if (onOpenFilter != null && state !is TransactionListUiState.SessionExpired) item(key = "filters") {
+                TransactionFilterBar(activeFilter, onOpenFilter, onClearFilter)
+            }
             when (state) {
                 TransactionListUiState.InitialLoading -> item(key = "initial-loading") {
                     LoadingPanel(stringResource(R.string.transactions_loading))
                 }
                 TransactionListUiState.Empty -> item(key = "empty") {
-                    MessagePanel(stringResource(R.string.transactions_empty_title), stringResource(
-                        if (isAuthenticated) R.string.transactions_account_empty_message else R.string.transactions_empty_message)) {
-                        ActionButton(stringResource(R.string.transactions_refresh), onRefresh)
+                    if (activeFilter.narrows) {
+                        // Filtered result set is empty; the full history may not be.
+                        MessagePanel(stringResource(R.string.filter_empty_title), stringResource(R.string.filter_empty_message)) {
+                            ActionButton(stringResource(R.string.filter_clear), onClearFilter)
+                        }
+                    } else {
+                        MessagePanel(stringResource(R.string.transactions_empty_title), stringResource(
+                            if (isAuthenticated) R.string.transactions_account_empty_message else R.string.transactions_empty_message)) {
+                            ActionButton(stringResource(R.string.transactions_refresh), onRefresh)
+                        }
                     }
                 }
                 is TransactionListUiState.InitialError -> item(key = "initial-error") {
@@ -298,4 +337,50 @@ private fun ActionButton(label: String, onClick: () -> Unit, enabled: Boolean = 
 private fun failureMessage(reason: TransactionFailure, isAuthenticated: Boolean = false): String = when (reason) {
     TransactionFailure.Unavailable -> stringResource(if (isAuthenticated) R.string.transactions_account_unavailable_message else R.string.transactions_unavailable_message)
     TransactionFailure.SessionExpired -> stringResource(if (isAuthenticated) R.string.auth_session_expired else R.string.transactions_session_message)
+}
+
+/** Filter entry point plus a readable summary of what the server is filtering on. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun TransactionFilterBar(filter: TransactionFilter, onOpen: () -> Unit, onClear: () -> Unit) {
+    val typography = LocalOwliTypography.current
+    val owli = LocalOwliColors.current
+    val today = remember { LocalDate.now() }
+    val parts = buildList {
+        filter.type?.let { add(stringResource(if (it == com.elect3.mobdev.personalfinance.domain.model.TransactionType.Income)
+            R.string.transaction_income else R.string.transaction_expense)) }
+        filter.categoryName?.let { add(it) }
+        when (presetOf(filter, today)) {
+            TransactionDatePreset.AllTime -> Unit
+            TransactionDatePreset.ThisMonth -> add(stringResource(R.string.filter_date_this_month))
+            TransactionDatePreset.LastMonth -> add(stringResource(R.string.filter_date_last_month))
+            TransactionDatePreset.Custom -> add(stringResource(R.string.filter_summary_range,
+                filter.fromDate?.let { formatTransactionDate(it) } ?: stringResource(R.string.filter_date_any),
+                filter.toDate?.let { formatTransactionDate(it) } ?: stringResource(R.string.filter_date_any)))
+        }
+        if (filter.sort == com.elect3.mobdev.personalfinance.domain.repository.TransactionListSort.Oldest) add(stringResource(R.string.filter_sort_oldest))
+    }
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        OutlinedButton(onClick = onOpen, shape = LocalOwliShapes.current.chip,
+            border = BorderStroke(1.dp, if (filter.isDefault) owli.hairline else MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+            modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(painterResource(R.drawable.ic_owli_filter), contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(if (filter.isDefault) stringResource(R.string.filter_button) else stringResource(R.string.filter_button_active, parts.size),
+                style = typography.label)
+        }
+        if (!filter.isDefault) {
+            Text(stringResource(R.string.filter_summary, parts.joinToString(" · ")), style = typography.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterVertically).semantics { liveRegion = LiveRegionMode.Polite })
+            TextButton(onClick = onClear, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.filter_clear), style = typography.label, color = owli.accent)
+            }
+        }
+    }
 }

@@ -1,5 +1,9 @@
 package com.elect3.mobdev.personalfinance.ui.app
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.elect3.mobdev.personalfinance.ui.components.LocalOwliFilterRequest
+import com.elect3.mobdev.personalfinance.ui.components.OwliFilterRequest
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -13,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -39,7 +43,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -98,9 +105,12 @@ fun OwliApp(
             restoreState = true
         }
     }
+    var filterRequested by remember { mutableStateOf(false) }
     val shellActions = remember(onAddTransaction) {
-        OwliShellActions(addTransaction = onAddTransaction, openActivity = { navigateTo(OwliDestination.Transactions) })
+        OwliShellActions(addTransaction = onAddTransaction, openActivity = { navigateTo(OwliDestination.Transactions) },
+            openActivityFilter = { filterRequested = true; navigateTo(OwliDestination.Transactions) })
     }
+    val filterRequest = OwliFilterRequest(pending = filterRequested, consume = { filterRequested = false })
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -117,7 +127,7 @@ fun OwliApp(
         // Consume host/system-bar space so the screens' existing safeDrawingPadding
         // does not add it again. The bar's height is excluded from the content viewport.
         Box(Modifier.fillMaxSize().padding(innerPadding).consumeWindowInsets(innerPadding)) {
-            CompositionLocalProvider(LocalOwliShellActions provides shellActions) {
+            CompositionLocalProvider(LocalOwliShellActions provides shellActions, LocalOwliFilterRequest provides filterRequest) {
                 NavHost(
                     navController = navController,
                     startDestination = OwliDestination.Dashboard.route,
@@ -144,7 +154,12 @@ fun OwliApp(
     }
 }
 
-/** Owlight floating bar: Home · (+) · Activity. Items are selectable tabs with visible labels (≥48dp). */
+/**
+ * Owlight floating bar: Home · Activity · (+) · Plan · Insights (mockup order).
+ * The raised (+) is drawn in the outer container, NOT inside the bar's rounded Surface: a Surface clips
+ * its children to its shape, which previously cropped the top of the offset button.
+ * Plan and Insights are not implemented yet; they are shown dimmed, labelled "Soon" and are not actionable.
+ */
 @Composable
 private fun OwliFloatingNavigation(
     selectedRoute: String?,
@@ -152,17 +167,18 @@ private fun OwliFloatingNavigation(
     onAdd: (() -> Unit)?,
 ) {
     val owli = LocalOwliColors.current
-    val scheme = MaterialTheme.colorScheme
-    val background = scheme.background
+    val background = MaterialTheme.colorScheme.background
+    val raised = onAdd != null && LocalConfiguration.current.fontScale <= 1.3f
     Box(
         Modifier.fillMaxWidth()
             .background(Brush.verticalGradient(0f to Color.Transparent, 0.42f to background))
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
-        contentAlignment = Alignment.BottomCenter,
+            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 10.dp),
+        contentAlignment = Alignment.TopCenter,
     ) {
         Surface(
-            modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(),
+            // Room above the bar for the raised button's overhang (button 56dp, bar row 64dp).
+            modifier = Modifier.padding(top = if (raised) 22.dp else 0.dp).widthIn(max = 520.dp).fillMaxWidth(),
             shape = LocalOwliShapes.current.bottomBar,
             color = owli.navBackground,
             border = BorderStroke(1.dp, owli.hairline),
@@ -170,10 +186,15 @@ private fun OwliFloatingNavigation(
         ) {
             Row(Modifier.padding(6.dp).selectableGroup(), verticalAlignment = Alignment.CenterVertically) {
                 OwliNavItem(OwliDestination.Dashboard, selectedRoute, onSelect, Modifier.weight(1f))
-                if (onAdd != null) OwliAddButton(onAdd)
                 OwliNavItem(OwliDestination.Transactions, selectedRoute, onSelect, Modifier.weight(1f))
+                if (onAdd != null) {
+                    if (raised) Box(Modifier.width(68.dp)) else OwliAddButton(onAdd, raised = false)
+                }
+                OwliUnavailableNavItem(R.string.navigation_plan, R.drawable.ic_owli_plan, Modifier.weight(1f))
+                OwliUnavailableNavItem(R.string.navigation_insights, R.drawable.ic_owli_insights, Modifier.weight(1f))
             }
         }
+        if (raised && onAdd != null) OwliAddButton(onAdd, raised = true)
     }
 }
 
@@ -197,20 +218,38 @@ private fun OwliNavItem(destination: OwliDestination, selectedRoute: String?, on
     }
 }
 
-/** Raised round ink button that opens Add Transaction. */
+/** Planned destination: visible for orientation, announced as unavailable, never navigates. */
 @Composable
-private fun OwliAddButton(onAdd: () -> Unit) {
+private fun OwliUnavailableNavItem(label: Int, icon: Int, modifier: Modifier) {
+    val color = LocalOwliColors.current.navUnselected.copy(alpha = 0.55f)
+    val name = stringResource(label)
+    val description = stringResource(R.string.navigation_coming_soon_description, name)
+    Column(
+        modifier.heightIn(min = 52.dp).padding(vertical = 6.dp)
+            .clearAndSetSemantics { contentDescription = description; disabled() },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+        Text(name, style = LocalOwliTypography.current.micro, color = color, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(stringResource(R.string.navigation_soon), style = LocalOwliTypography.current.micro.copy(fontSize = 9.sp),
+            color = color, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** Round ink button that opens Add Transaction; raised above the bar unless large text is in use. */
+@Composable
+private fun OwliAddButton(onAdd: () -> Unit, raised: Boolean) {
     val scheme = MaterialTheme.colorScheme
     val label = stringResource(R.string.navigation_add)
-    val lift = if (LocalConfiguration.current.fontScale > 1.3f) 0.dp else (-18).dp
     Surface(
         onClick = onAdd,
-        modifier = Modifier.padding(horizontal = 8.dp).offset(y = lift).size(56.dp).semantics { contentDescription = label },
+        modifier = Modifier.padding(horizontal = if (raised) 0.dp else 6.dp).size(56.dp).semantics { contentDescription = label },
         shape = CircleShape,
         color = scheme.primary,
         contentColor = scheme.onPrimary,
         border = BorderStroke(4.dp, scheme.background),
-        shadowElevation = 8.dp,
+        shadowElevation = if (raised) 8.dp else 0.dp,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(painterResource(R.drawable.ic_owli_plus), contentDescription = null, modifier = Modifier.size(24.dp))

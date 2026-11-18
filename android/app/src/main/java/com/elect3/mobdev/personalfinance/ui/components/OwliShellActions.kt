@@ -14,6 +14,14 @@ import com.elect3.mobdev.personalfinance.domain.model.TransactionType
 data class OwliShellActions(
     val addTransaction: ((TransactionType?) -> Unit)? = null,
     val openActivity: (() -> Unit)? = null,
+    /** Opens Activity and asks it to show its filter sheet once. */
+    val openActivityFilter: (() -> Unit)? = null,
 )
 
 val LocalOwliShellActions = staticCompositionLocalOf { OwliShellActions() }
+
+/** One-shot request from the shell for the Activity screen to open its filter sheet. */
+@Immutable
+data class OwliFilterRequest(val pending: Boolean = false, val consume: () -> Unit = {})
+
+val LocalOwliFilterRequest = androidx.compose.runtime.compositionLocalOf { OwliFilterRequest() }

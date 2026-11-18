@@ -44,4 +44,13 @@ class FlowShareTest {
         // 1 / 200 = 0.5% -> "1%" (display rounding only).
         assertEquals("1%", shares("1", "199").first.label)
     }
+
+    @Test fun categoryShareUsesFullPeriodTotalWithOneDecimalHalfUp() {
+        // Owlight reference: Utilities 1,849.00 of 4,309.25 -> 42.9%; Transport 225.00 -> 5.2%.
+        assertEquals("42.9%", categoryShareLabel(BigDecimal("1849.00"), BigDecimal("4309.25")))
+        assertEquals("5.2%", categoryShareLabel(BigDecimal("225.00"), BigDecimal("4309.25")))
+        assertEquals("0.0%", categoryShareLabel(BigDecimal("1.00"), BigDecimal("0")))
+        assertEquals("100.0%", categoryShareLabel(BigDecimal("10"), BigDecimal("10.00")))
+        assertEquals("0.1%", categoryShareLabel(BigDecimal("1"), BigDecimal("2000")))   // 0.05 -> 0.1 (half-up)
+    }
 }

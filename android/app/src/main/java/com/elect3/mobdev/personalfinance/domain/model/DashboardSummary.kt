@@ -19,7 +19,20 @@ class DashboardSummary internal constructor(
     /** Transactions dated within [reportingMonth]. */
     val monthlyRecordCount: Long = 0,
     topExpenseCategories: List<DashboardCategoryTotal> = emptyList(),
+    expenseCategoryTotals: List<DashboardCategoryTotal> = emptyList(),
+    monthlyExpenseCategoryTotals: List<DashboardCategoryTotal> = emptyList(),
 ) {
+    /**
+     * Every expense category across the complete snapshot, ranked by exact total (descending), then name, then ID.
+     * Totals sum exactly to [totalExpenses]; consumers may show a prefix but must use [totalExpenses] as the denominator.
+     */
+    val expenseCategoryTotals: List<DashboardCategoryTotal> =
+        Collections.unmodifiableList(ArrayList(expenseCategoryTotals))
+
+    /** Same ranking restricted to [reportingMonth]; totals sum exactly to [monthlyExpenses]. */
+    val monthlyExpenseCategoryTotals: List<DashboardCategoryTotal> =
+        Collections.unmodifiableList(ArrayList(monthlyExpenseCategoryTotals))
+
     val recentTransactions: List<Transaction> =
         Collections.unmodifiableList(ArrayList(recentTransactions))
 

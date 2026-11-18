@@ -31,6 +31,7 @@ class DashboardSummaryCalculator {
         var monthlyExpenses = BigDecimal("0.00")
         var monthlyCount = 0L
         val monthlyExpenseByCategory = LinkedHashMap<Int, BigDecimal>()
+        val expenseByCategory = LinkedHashMap<Int, BigDecimal>()
         for (transaction in transactions) {
             val inMonth = transaction.transactionDate >= start && transaction.transactionDate < end
             if (inMonth) monthlyCount++
@@ -41,6 +42,7 @@ class DashboardSummaryCalculator {
                 }
                 TransactionType.Expense -> {
                     expenses += transaction.amount
+                    expenseByCategory.merge(transaction.categoryId, transaction.amount, BigDecimal::add)
                     if (inMonth) {
                         monthlyExpenses += transaction.amount
                         monthlyExpenseByCategory.merge(transaction.categoryId, transaction.amount, BigDecimal::add)
@@ -64,7 +66,31 @@ class DashboardSummaryCalculator {
             recordCount = transactions.size.toLong(),
             monthlyRecordCount = monthlyCount,
             topExpenseCategories = topCategories(monthlyExpenseByCategory, newestFirst, start, end),
+            expenseCategoryTotals = rankedCategories(expenseByCategory, newestFirst, null, null),
+            monthlyExpenseCategoryTotals = rankedCategories(monthlyExpenseByCategory, newestFirst, start, end),
         )
+    }
+
+    /**
+     * Every category with expenses in the window, ranked by exact total (descending; compareTo ignores scale),
+     * then name, then ID. Display names follow the same rule as [topCategories]: the newest expense in the window.
+     * A null window means the complete snapshot.
+     */
+    private fun rankedCategories(
+        totals: Map<Int, BigDecimal>,
+        newestFirst: List<Transaction>,
+        start: LocalDate?,
+        end: LocalDate?,
+    ): List<DashboardCategoryTotal> {
+        val names = HashMap<Int, String>()
+        for (transaction in newestFirst) {
+            if (transaction.type == TransactionType.Expense &&
+                (start == null || transaction.transactionDate >= start) && (end == null || transaction.transactionDate < end)
+            ) names.putIfAbsent(transaction.categoryId, transaction.categoryName)
+        }
+        return totals.map { (id, total) -> DashboardCategoryTotal(id, checkNotNull(names[id]), total) }
+            .sortedWith(compareByDescending<DashboardCategoryTotal> { it.total }
+                .thenBy { it.categoryName }.thenBy { it.categoryId })
     }
 
     /** All categories tied at the highest positive total; compareTo ignores decimal scale. */
