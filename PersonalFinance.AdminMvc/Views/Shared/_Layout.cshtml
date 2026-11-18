@@ -2,6 +2,7 @@
     var isDashboard = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Dashboard", StringComparison.OrdinalIgnoreCase)
         && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
     var isCategories = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Categories", StringComparison.OrdinalIgnoreCase);
+    var showAdministratorNavigation = User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator");
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -11,11 +12,11 @@
     <title>@ViewData["Title"] — OWLI Administrator</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body class="@(showAdministratorNavigation ? "administrator-shell" : null)">
     <a class="skip-link" href="#main">Skip to main content</a>
     <header class="topbar">
         <a class="brand" asp-controller="Dashboard" asp-action="Index">OWLI <span>Administrator</span></a>
-        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator"))
+        @if (showAdministratorNavigation)
         {
             <nav aria-label="Administrator navigation">
                 <a asp-controller="Dashboard" asp-action="Index" class="nav-link"

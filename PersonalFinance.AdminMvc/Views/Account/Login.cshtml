@@ -1,19 +1,25 @@
 @model LoginViewModel
 @{ ViewData["Title"] = "Administrator sign in"; }
-<section class="card login">
-    <p class="eyebrow">Your Wise Money Companion</p>
-    <h1>Administrator sign in</h1>
-    <p class="muted">Use your authorized OWLI administrator account.</p>
-    @if (!string.IsNullOrEmpty(Model.Message))
-    {
-        <p class="notice" role="alert">@Model.Message</p>
-    }
-    <form asp-controller="Account" asp-action="Login" method="post">
-        <input type="hidden" asp-for="ReturnUrl" />
-        <label asp-for="Email"></label>
-        <input asp-for="Email" type="email" autocomplete="username" required maxlength="256" />
-        <label asp-for="Password"></label>
-        <input name="Password" id="Password" type="password" autocomplete="current-password" required maxlength="128" />
-        <button type="submit">Sign in securely</button>
-    </form>
+<section class="card login" aria-labelledby="login-title">
+    <div class="login-branding">
+        <p class="login-wordmark">OWLI</p>
+        <p class="muted">Your Wise Money Companion</p>
+        <p class="eyebrow">Administrator portal</p>
+    </div>
+    <div class="login-content">
+        <h1 id="login-title">Administrator sign in</h1>
+        <p class="muted">Use your authorized OWLI administrator account.</p>
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <p class="notice" role="alert">@Model.Message</p>
+        }
+        <form asp-controller="Account" asp-action="Login" method="post">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <label asp-for="Email"></label>
+            <input asp-for="Email" type="email" autocomplete="username" required maxlength="256" />
+            <label asp-for="Password"></label>
+            <input name="Password" id="Password" type="password" autocomplete="current-password" required maxlength="128" />
+            <button type="submit">Sign in securely</button>
+        </form>
+    </div>
 </section>
