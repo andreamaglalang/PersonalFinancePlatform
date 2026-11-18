@@ -7,6 +7,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,22 +55,34 @@ fun OwliEntryGate(
             modifier = modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                Surface(color = MaterialTheme.colorScheme.surface) {
-                    Row(
-                        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Text(stringResource(if (authenticated && authenticatedContent != null) R.string.auth_signed_in_title
-                            else if (authenticated) R.string.auth_authenticated_sample_title else R.string.auth_demo_title),
-                            style = LocalOwliTypography.current.caption,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f))
-                        TextButton(onClick = { if (authenticated) viewModel.logout() else viewModel.returnToLogin() },
-                            modifier = Modifier.heightIn(min = 48.dp)) {
-                            Text(stringResource(if (authenticated) R.string.auth_logout else R.string.auth_return_to_login),
-                                style = LocalOwliTypography.current.bodyStrong)
+                // Owlight session strip: who/what is shown, plus the only exit (Log out / Return to Login).
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Column(Modifier.fillMaxWidth().statusBarsPadding()) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(Modifier.size(8.dp).clip(CircleShape).background(
+                                if (authenticated && authenticatedContent != null) LocalOwliColors.current.income else LocalOwliColors.current.accent))
+                            Text(stringResource(if (authenticated && authenticatedContent != null) R.string.auth_signed_in_title
+                                else if (authenticated) R.string.auth_authenticated_sample_title else R.string.auth_demo_title),
+                                style = LocalOwliTypography.current.label,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f))
+                            OutlinedButton(onClick = { if (authenticated) viewModel.logout() else viewModel.returnToLogin() },
+                                shape = LocalOwliShapes.current.chip,
+                                border = BorderStroke(1.dp, LocalOwliColors.current.hairline),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                                contentPadding = PaddingValues(horizontal = 14.dp),
+                                modifier = Modifier.heightIn(min = 48.dp)) {
+                                Icon(painterResource(R.drawable.ic_owli_logout), contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(if (authenticated) R.string.auth_logout else R.string.auth_return_to_login),
+                                    style = LocalOwliTypography.current.label)
+                            }
                         }
+                        HorizontalDivider(color = LocalOwliColors.current.hairline)
                     }
                 }
             },

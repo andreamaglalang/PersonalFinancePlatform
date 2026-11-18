@@ -244,10 +244,10 @@ class DashboardScreenTest {
         node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         assertTrue(layouts.isNotEmpty())
         assertFalse(layouts.first().hasVisualOverflow)
-        // Summary cards keep the complete unsigned value at narrow widths and large fonts.
-        // At 2x text the hero pushes the "summary" lazy item off-screen, where it may be composed but not
-        // placed; node-level performScrollTo cannot position it. Scroll the list to that item first.
-        compose.onNode(hasScrollToKeyAction()).performScrollToKey("summary")
+        // The Midnight Panel's owl-eye values keep the complete unsigned value at narrow widths and large fonts.
+        // At 2x text the panel can extend off-screen, where a node may be composed but not placed;
+        // node-level performScrollTo cannot position it. Scroll the list to the panel item first.
+        compose.onNode(hasScrollToKeyAction()).performScrollToKey("net")
         val unsigned = compose.onAllNodesWithText(formatPhpAmount(amount), useUnmergedTree = true).onFirst()
         unsigned.performScrollTo().assertIsDisplayed()
         val cardLayouts = mutableListOf<TextLayoutResult>()

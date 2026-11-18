@@ -28,11 +28,13 @@ import com.elect3.mobdev.personalfinance.domain.model.TransactionType
 import com.elect3.mobdev.personalfinance.ui.components.OwliTransactionDirection
 import com.elect3.mobdev.personalfinance.ui.components.OwliTransactionDirectionTile
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliShapes
+import androidx.compose.ui.graphics.RectangleShape
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 
 /** Fit the category and amount to the actual card width, with a full-width fallback. */
 @Composable
-fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifier) {
+fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifier, framed: Boolean = true) {
     val configuration = LocalConfiguration.current
     val date = remember(transaction.transactionDate, configuration) {
         formatTransactionDate(transaction.transactionDate)
@@ -55,16 +57,19 @@ fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifier) {
     val typeStyle = typography.micro
     val owliColors = LocalOwliColors.current
     val typeColor = if (income) owliColors.income else owliColors.expense
+    // Owlight: income amounts in green, expense amounts in the primary text color (the sign carries meaning).
+    val amountColor = if (income) owliColors.income else MaterialTheme.colorScheme.onSurface
 
+    // Framed rows stand alone (Transactions); unframed rows sit inside an Owlight group card (Dashboard).
     Surface(
-        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).semantics(mergeDescendants = true) {},
-        shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        modifier = modifier.fillMaxWidth().heightIn(min = 60.dp).semantics(mergeDescendants = true) {},
+        shape = if (framed) LocalOwliShapes.current.quickAction else RectangleShape,
+        border = if (framed) BorderStroke(1.dp, owliColors.hairline) else null,
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top,
         ) {
@@ -88,11 +93,11 @@ fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifier) {
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.Top) {
                             Text(transaction.categoryName, style = categoryStyle, modifier = Modifier.weight(1f))
-                            Text(signedAmount, style = amountStyle, textAlign = TextAlign.End, color = typeColor)
+                            Text(signedAmount, style = amountStyle, textAlign = TextAlign.End, color = amountColor)
                         }
                     } else {
                         Text(transaction.categoryName, style = categoryStyle)
-                        Text(signedAmount, style = amountStyle, color = typeColor,
+                        Text(signedAmount, style = amountStyle, color = amountColor,
                             modifier = Modifier.fillMaxWidth())
                     }
                     transaction.description?.takeIf { it.isNotBlank() }?.let {

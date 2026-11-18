@@ -1,5 +1,7 @@
 package com.elect3.mobdev.personalfinance.ui.transactions.add
 
+import androidx.compose.foundation.BorderStroke
+import com.elect3.mobdev.personalfinance.ui.auth.owliFieldColors
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,6 +51,8 @@ fun AddTransactionDialog(
     onSaved: () -> Unit = {},
     /** Authenticated API creator; must be null for Mock Demo (the view model enforces this). */
     accountCreation: TransactionCreationRepository? = null,
+    /** Optional starting type chosen by the entry point (e.g. Dashboard "Income"); applied once via the view model. */
+    initialType: TransactionType? = null,
 ) {
     val store = remember { ViewModelStore() }
     val model = remember {
@@ -65,6 +69,7 @@ fun AddTransactionDialog(
     LaunchedEffect(model, sessionKeys) {
         if (workflow == FormWorkflow.Authenticated) sessionKeys.collect { if (it != sessionKey) model.invalidate() }
     }
+    LaunchedEffect(model) { initialType?.let { if (model.state.value.type != it) model.type(it) } }
     val state by model.state.collectAsStateWithLifecycle()
     AddTransactionCompletionEffects(model, state, onClose, onSaved)
     Dialog(onDismissRequest = model::back, properties = DialogProperties(usePlatformDefaultWidth = false,
@@ -120,7 +125,7 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                     enabled = state.completed || ((demo || offline || account) && !state.submitting && !state.invalidated &&
                         (uncertainRetry || (state.valid && editable))),
                     shape = shapes.button, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                    if (state.submitting) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    if (state.submitting) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
                     Text(stringResource(if (state.completed) R.string.form_done else if (state.submitting && account) R.string.form_account_saving
                         else if (state.submitting && offline) R.string.form_offline_saving
                         else if (state.submitting) R.string.form_previewing else if (uncertainRetry) R.string.form_retry_unchanged
@@ -138,7 +143,13 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 TransactionType.entries.forEachIndexed { index, type ->
                     SegmentedButton(selected = state.type == type, enabled = editable,
-                        onClick = { focus.clearFocus(); model.type(type) }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
+                        onClick = { focus.clearFocus(); model.type(type) }, shape = SegmentedButtonDefaults.itemShape(index, 2),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = MaterialTheme.colorScheme.primary,
+                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                            activeBorderColor = MaterialTheme.colorScheme.primary,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                            inactiveBorderColor = colors.hairline)) {
                         Text(stringResource(if (type == TransactionType.Income) R.string.transaction_income else R.string.transaction_expense))
                     }
                 }
@@ -148,7 +159,7 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                     Text(stringResource(R.string.form_amount), style = typography.label)
                     OutlinedTextField(state.amount, model::amount, enabled = editable, singleLine = true,
                         label = { Text(stringResource(R.string.form_amount)) },
-                        textStyle = typography.heroAmount,
+                        textStyle = typography.heroAmount, shape = shapes.field, colors = owliFieldColors(),
                         modifier = Modifier.fillMaxWidth().onFocusChanged { if (!it.isFocused && state.amount.isNotEmpty()) model.touch(FormField.Amount) },
                         isError = FormField.Amount in state.touched && !state.amountValid,
                         supportingText = { if (FormField.Amount in state.touched && !state.amountValid) ErrorText(R.string.form_amount_error) },
@@ -163,9 +174,11 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                         color = if (state.type == TransactionType.Income) colors.income else colors.expense, style = typography.bodyStrong)
                 }
             }
-            Surface(shape = shapes.summaryCard, color = MaterialTheme.colorScheme.surface) {
+            Surface(shape = shapes.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = { focus.clearFocus(); model.touch(FormField.Category); categoryOpen = true }, enabled = editable,
+                        shape = shapes.field, border = BorderStroke(1.dp, colors.hairline),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = colors.field, contentColor = MaterialTheme.colorScheme.onSurface),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                         Text(stringResource(R.string.form_category) + ": " +
                             (state.categories.firstOrNull { it.categoryId == state.selectedCategoryId }?.name ?: stringResource(R.string.form_choose_category)))
@@ -174,12 +187,15 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                     if (state.loading) Text(stringResource(R.string.form_categories_loading), style = typography.caption)
                     if (state.categoryError != null) Text(stringResource(R.string.form_categories_error), color = MaterialTheme.colorScheme.error)
                     OutlinedButton(onClick = { focus.clearFocus(); dateOpen = true }, enabled = editable,
+                        shape = shapes.field, border = BorderStroke(1.dp, colors.hairline),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = colors.field, contentColor = MaterialTheme.colorScheme.onSurface),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                         Text(stringResource(R.string.form_date) + ": " + formatTransactionDate(state.date))
                     }
                     if (!state.dateValid) ErrorText(R.string.form_date_error)
                     OutlinedTextField(state.description, model::description, enabled = editable,
                         label = { Text(stringResource(R.string.form_description)) }, minLines = 2, maxLines = 5,
+                        shape = shapes.field, colors = owliFieldColors(),
                         modifier = Modifier.fillMaxWidth(), isError = state.description.length > 200,
                         supportingText = {
                             Column {

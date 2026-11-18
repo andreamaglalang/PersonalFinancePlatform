@@ -61,8 +61,8 @@
     <string name="dashboard_refresh_failed">Refresh failed</string>
     <string name="dashboard_retained_summary">The previous complete summary is still shown. %1$s</string>
     <string name="dashboard_retry_refresh">Retry refresh</string>
-    <string name="navigation_dashboard">Dashboard</string>
-    <string name="navigation_transactions">Transactions</string>
+    <string name="navigation_dashboard">Home</string>
+    <string name="navigation_transactions">Activity</string>
     <string name="auth_welcome">Welcome back</string>
     <string name="auth_intro">Sign in to take the next step toward wiser money habits.</string>
     <string name="auth_email">Email address</string>
@@ -165,4 +165,22 @@
     <string name="dashboard_account_period_all_time_detail">All your recorded transactions</string>
     <string name="dashboard_account_net_month_explanation">Income minus expenses for %1$s, the latest month with your transactions. This is not an account balance.</string>
     <string name="dashboard_unsupported_currency">This summary supports PHP amounts only. Your account uses another currency or has converted transactions, so totals are not shown.</string>
+    <!-- Owlight UI -->
+    <string name="auth_or">or</string>
+    <string name="dashboard_greeting_morning">Good morning</string>
+    <string name="dashboard_greeting_afternoon">Good afternoon</string>
+    <string name="dashboard_greeting_evening">Good evening</string>
+    <string name="dashboard_ribbon_demo_detail">Demo figures · not saved to any account</string>
+    <string name="dashboard_ribbon_account_detail">Figures from your signed-in account</string>
+    <string name="dashboard_flow_share_note">Rings show each side as a share of income plus expenses, rounded.</string>
+    <string name="dashboard_flow_share_description">Income %1$s, %2$s of total flow. Expenses %3$s, %4$s of total flow.</string>
+    <string name="dashboard_quick_expense">Expense</string>
+    <string name="dashboard_quick_income">Income</string>
+    <string name="dashboard_quick_activity">Activity</string>
+    <string name="dashboard_quick_expense_action">Add expense</string>
+    <string name="dashboard_quick_income_action">Add income</string>
+    <string name="dashboard_quick_activity_action">Open activity</string>
+    <string name="dashboard_overview">Overview</string>
+    <string name="navigation_add">Add transaction</string>
+    <string name="dashboard_see_all">See all</string>
 </resources>

@@ -21,6 +21,7 @@ import com.elect3.mobdev.personalfinance.ui.dashboard.DashboardViewModel
 import com.elect3.mobdev.personalfinance.ui.transactions.AccountTransactionStore
 import com.elect3.mobdev.personalfinance.ui.transactions.TransactionListRoute
 import com.elect3.mobdev.personalfinance.ui.transactions.TransactionListViewModel
+import com.elect3.mobdev.personalfinance.domain.model.TransactionType
 
 /** Scope sits above navigation: tabs retain pagination, logout disposes account data. */
 @Composable
@@ -41,6 +42,7 @@ fun OwliFinanceContent(
     diagnosticInstanceId: Int = 0,
 ) {
     var formOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
+    var formInitialType by remember(authenticatedContentKey) { mutableStateOf<TransactionType?>(null) }
     val demoCategories = remember { DemoCategoryRepository() }
     val account = if (authenticatedContentKey != null) {
         val key = authenticatedContentKey
@@ -54,16 +56,20 @@ fun OwliFinanceContent(
         LaunchedEffect(scope, sessionKeys) { scope.invalidateOnSessionChange(sessionKeys, key) }
         scope
     } else null
+    // Same rule as before for every Add entry point: Mock Demo, or a signed-in account with categories.
+    val canAdd = account == null || authenticatedCategories != null
+    val openAdd: ((TransactionType?) -> Unit)? = if (canAdd) ({ type -> formInitialType = type; formOpen = true }) else null
     OwliApp(
         // Demo (no account scope) always uses the owner's sample Dashboard; it never reads account data.
         dashboardContent = if (account != null && accountDashboard != null) ({ accountDashboard(account.dashboardModel()) })
             else dashboardContent,
         transactionsContent = {
             TransactionListRoute(account?.model() ?: demoTransactions(), isAuthenticated = account != null,
-                onAddTransaction = if (account == null || authenticatedCategories != null) ({ formOpen = true }) else null)
+                onAddTransaction = openAdd?.let { add -> { add(null) } })
         },
         diagnostics = diagnostics,
         diagnosticInstanceId = diagnosticInstanceId,
+        onAddTransaction = openAdd,
     )
     if (formOpen) {
         val key = authenticatedContentKey
@@ -74,7 +80,8 @@ fun OwliFinanceContent(
             sessionKey = key, sessionKeys = sessionKeys,
             isCurrent = { key == null || isSessionCurrent(key) },
             onExpired = { if (key != null && isSessionCurrent(key)) onSessionExpired(key) },
-            onClose = { formOpen = false },
+            onClose = { formOpen = false; formInitialType = null },
+            initialType = formInitialType,
             // Confirmed server save only: reload this account's list, and its Dashboard if already opened.
             onSaved = { account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard() },
             // Real API writes exist only for an authenticated session; Mock Demo never receives a creator.

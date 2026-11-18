@@ -24,7 +24,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.data.remote.AuthFailure
-import com.elect3.mobdev.personalfinance.ui.components.OwliBrand
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import com.elect3.mobdev.personalfinance.ui.components.OwliCrest
+import com.elect3.mobdev.personalfinance.ui.components.OwliMoon
+import com.elect3.mobdev.personalfinance.ui.components.OwliStarfield
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliShapes
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 
@@ -53,6 +62,8 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     val typography = LocalOwliTypography.current
     val shapes = LocalOwliShapes.current
+    val owli = LocalOwliColors.current
+    val scheme = MaterialTheme.colorScheme
     val focus = LocalFocusManager.current
     val enabled = !state.isLoading && !state.isSignedIn
     fun submit() {
@@ -66,72 +77,107 @@ fun LoginScreen(
     LaunchedEffect(state.isSignedIn) {
         if (state.isSignedIn) { email = ""; password = ""; passwordVisible = false }
     }
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.Center) {
-            Column(
-                Modifier.widthIn(max = 480.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+    Surface(modifier.fillMaxSize(), color = scheme.surface) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                .imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // ---- Midnight header: stars, moon, owl crest, spaced wordmark, tagline ----
+            Box(
+                Modifier.fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(owli.panelStart, owli.panelEnd))),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                OwliBrand()
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.auth_welcome), style = typography.screenTitle,
+                OwliStarfield(Modifier.matchParentSize(), seed = 53, count = 26)
+                OwliMoon(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 18.dp, end = 30.dp),
+                    backdrop = owli.panelStart)
+                Column(
+                    Modifier.statusBarsPadding().padding(top = 40.dp, bottom = 58.dp, start = 20.dp, end = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    OwliCrest()
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.app_name), style = typography.crestWordmark, color = owli.onPanel,
+                        modifier = Modifier.padding(start = 9.dp))
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.app_tagline), style = typography.caption, color = owli.onPanelMuted,
+                        textAlign = TextAlign.Center)
+                }
+            }
+            // ---- Sign-in sheet overlapping the header ----
+            Surface(
+                Modifier.offset(y = (-30).dp).widthIn(max = 520.dp).fillMaxWidth(),
+                shape = shapes.sheetTop,
+                color = scheme.surface,
+            ) {
+                Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 18.dp)) {
+                    Text(stringResource(R.string.auth_welcome), style = typography.screenTitle, color = scheme.onSurface,
                         modifier = Modifier.semantics { heading() })
-                    Text(stringResource(R.string.app_tagline), style = typography.bodyStrong,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(stringResource(R.string.auth_intro), style = typography.body)
-                }
-                Surface(shape = shapes.hero, color = MaterialTheme.colorScheme.surface) {
-                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedTextField(
-                            value = email, onValueChange = { email = it },
-                            modifier = Modifier.fillMaxWidth(), enabled = enabled, singleLine = true,
-                            label = { Text(stringResource(R.string.auth_email)) }, textStyle = typography.bodyStrong,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                        )
-                        OutlinedTextField(
-                            value = password, onValueChange = { password = it },
-                            modifier = Modifier.fillMaxWidth(), enabled = enabled, singleLine = true,
-                            label = { Text(stringResource(R.string.auth_password)) }, textStyle = typography.bodyStrong,
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                val visibilityLabel = stringResource(if (passwordVisible)
-                                    R.string.auth_hide_password else R.string.auth_show_password)
-                                TextButton(onClick = { passwordVisible = !passwordVisible }, enabled = enabled,
-                                    modifier = Modifier.heightIn(min = 48.dp)
-                                        .semantics { contentDescription = visibilityLabel }) {
-                                    Text(stringResource(if (passwordVisible) R.string.auth_hide else R.string.auth_show),
-                                        style = typography.caption)
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { submit() }),
-                        )
-                        state.error?.let {
-                            Text(stringResource(authErrorResource(it)), style = typography.body,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                        }
-                        if (state.revocationUnconfirmed) Text(stringResource(R.string.auth_logout_unconfirmed),
-                            style = typography.body, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                        Button(onClick = { submit() }, enabled = enabled && email.isNotBlank() && password.isNotBlank(),
-                            shape = shapes.button, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                                .semantics { liveRegion = LiveRegionMode.Polite }) {
-                            if (state.isLoading) {
-                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.auth_intro), style = typography.body, color = scheme.onSurfaceVariant)
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = email, onValueChange = { email = it },
+                        modifier = Modifier.fillMaxWidth(), enabled = enabled, singleLine = true,
+                        label = { Text(stringResource(R.string.auth_email)) }, textStyle = typography.bodyStrong,
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_owli_mail), contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        shape = shapes.field, colors = owliFieldColors(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = password, onValueChange = { password = it },
+                        modifier = Modifier.fillMaxWidth(), enabled = enabled, singleLine = true,
+                        label = { Text(stringResource(R.string.auth_password)) }, textStyle = typography.bodyStrong,
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_owli_lock), contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        shape = shapes.field, colors = owliFieldColors(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val visibilityLabel = stringResource(if (passwordVisible)
+                                R.string.auth_hide_password else R.string.auth_show_password)
+                            TextButton(onClick = { passwordVisible = !passwordVisible }, enabled = enabled,
+                                modifier = Modifier.heightIn(min = 48.dp)
+                                    .semantics { contentDescription = visibilityLabel }) {
+                                Text(stringResource(if (passwordVisible) R.string.auth_hide else R.string.auth_show),
+                                    style = typography.label, color = owli.accent)
                             }
-                            Text(stringResource(when {
-                                state.isLoggingOut -> R.string.auth_signing_out
-                                state.isLoading -> R.string.auth_signing_in
-                                state.isSignedIn -> R.string.auth_signed_in
-                                else -> R.string.auth_sign_in
-                            }), style = typography.bodyStrong)
-                        }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
+                    )
+                    state.error?.let {
+                        Spacer(Modifier.height(14.dp))
+                        LoginNotice(stringResource(authErrorResource(it)), isError = true)
                     }
-                }
-                onExploreMockDemo?.let { explore ->
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (state.revocationUnconfirmed) {
+                        Spacer(Modifier.height(14.dp))
+                        LoginNotice(stringResource(R.string.auth_logout_unconfirmed), isError = false)
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Button(onClick = { submit() }, enabled = enabled && email.isNotBlank() && password.isNotBlank(),
+                        shape = shapes.button, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                            .semantics { liveRegion = LiveRegionMode.Polite }) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp,
+                                color = LocalContentColor.current)
+                            Spacer(Modifier.width(10.dp))
+                        }
+                        Text(stringResource(when {
+                            state.isLoggingOut -> R.string.auth_signing_out
+                            state.isLoading -> R.string.auth_signing_in
+                            state.isSignedIn -> R.string.auth_signed_in
+                            else -> R.string.auth_sign_in
+                        }), style = typography.button)
+                    }
+                    onExploreMockDemo?.let { explore ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            HorizontalDivider(Modifier.weight(1f), color = owli.hairline)
+                            Text(stringResource(R.string.auth_or), style = typography.caption, color = scheme.onSurfaceVariant)
+                            HorizontalDivider(Modifier.weight(1f), color = owli.hairline)
+                        }
                         OutlinedButton(
                             onClick = {
                                 password = ""
@@ -141,19 +187,71 @@ fun LoginScreen(
                             },
                             enabled = enabled,
                             shape = shapes.button,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                            border = BorderStroke(1.dp, owli.hairline),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.onSurface),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         ) {
+                            Icon(painterResource(R.drawable.ic_owli_mark), contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.auth_explore_mock_demo), style = typography.bodyStrong)
                         }
+                        Spacer(Modifier.height(8.dp))
                         Text(stringResource(R.string.auth_demo_note), style = typography.caption,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            color = scheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    HorizontalDivider(color = owli.hairline)
+                    Spacer(Modifier.height(14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(painterResource(R.drawable.ic_owli_lock), contentDescription = null,
+                            tint = scheme.onSurfaceVariant, modifier = Modifier.padding(top = 1.dp).size(15.dp))
+                        Text(stringResource(R.string.auth_session_note), style = typography.caption,
+                            color = scheme.onSurfaceVariant)
                     }
                 }
-                Text(stringResource(R.string.auth_session_note), style = typography.caption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
+}
+
+/** Error (container colors) or neutral notice, announced politely. */
+@Composable
+private fun LoginNotice(message: String, isError: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    val owli = LocalOwliColors.current
+    Row(
+        Modifier.fillMaxWidth().clip(LocalOwliShapes.current.alert)
+            .background(if (isError) scheme.errorContainer else owli.accentSoft)
+            .padding(horizontal = 12.dp, vertical = 11.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(painterResource(R.drawable.ic_owli_alert), contentDescription = null,
+            tint = if (isError) scheme.onErrorContainer else owli.tileContent, modifier = Modifier.size(18.dp))
+        Text(message, style = LocalOwliTypography.current.body,
+            color = if (isError) scheme.onErrorContainer else scheme.onSurface)
+    }
+}
+
+/** Owlight filled field: lavender container, hairline border, ink focus. */
+@Composable
+internal fun owliFieldColors(): TextFieldColors {
+    val owli = LocalOwliColors.current
+    val scheme = MaterialTheme.colorScheme
+    return OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = scheme.surface,
+        unfocusedContainerColor = owli.field,
+        disabledContainerColor = owli.field,
+        errorContainerColor = scheme.surface,
+        focusedBorderColor = scheme.primary,
+        unfocusedBorderColor = owli.hairline,
+        disabledBorderColor = owli.hairline,
+        focusedLabelColor = scheme.primary,
+        unfocusedLabelColor = scheme.onSurfaceVariant,
+        focusedLeadingIconColor = scheme.onSurfaceVariant,
+        unfocusedLeadingIconColor = scheme.onSurfaceVariant,
+        cursorColor = scheme.primary,
+    )
 }
 
 private fun authErrorResource(failure: AuthFailure): Int = when (failure) {

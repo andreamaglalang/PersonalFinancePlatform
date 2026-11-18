@@ -85,7 +85,7 @@ class AuthGateTest {
         compose.runOnIdle { recompositions++ }
         compose.waitForIdle()
         assertSame(original, model)
-        compose.onNodeWithText("Transactions").performClick()
+        compose.onNodeWithText("Activity").performClick()
         compose.onNodeWithText("AUTH_TEST_TRANSACTIONS").assertIsDisplayed()
         compose.runOnIdle { back.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("AUTH_TEST_DASHBOARD").assertIsDisplayed()
@@ -115,7 +115,7 @@ class AuthGateTest {
     @Test fun visibleLogoutRemovesAuthenticatedBackStackAndBackCannotReopenIt() {
         showGate()
         authenticate()
-        compose.onNodeWithText("Transactions").performClick()
+        compose.onNodeWithText("Activity").performClick()
         compose.onNodeWithText("Log out").performClick()
         compose.waitUntil(5_000) { !model.state.value.isLoading }
         compose.onNodeWithText("AUTH_TEST_DASHBOARD").assertDoesNotExist()

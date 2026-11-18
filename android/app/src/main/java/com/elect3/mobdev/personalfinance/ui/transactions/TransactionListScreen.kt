@@ -1,10 +1,23 @@
 package com.elect3.mobdev.personalfinance.ui.transactions
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.res.painterResource
+import com.elect3.mobdev.personalfinance.ui.components.OwliOwlAvatar
+import com.elect3.mobdev.personalfinance.ui.components.OwliRibbon
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliShapes
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -78,26 +91,22 @@ fun TransactionListScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item(key = "brand") {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(stringResource(R.string.app_tagline), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Surface(shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-                        Text(stringResource(if (isAuthenticated) R.string.transactions_account_data else R.string.transactions_demo_data),
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OwliOwlAvatar(size = 36.dp)
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.app_name), style = LocalOwliTypography.current.wordmark,
+                            color = MaterialTheme.colorScheme.onBackground)
+                        Text(stringResource(R.string.app_tagline), style = LocalOwliTypography.current.caption,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
             if (onAddTransaction != null && state !is TransactionListUiState.SessionExpired) item(key = "add") {
-                Button(onClick = onAddTransaction, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Text(stringResource(R.string.form_title))
+                Button(onClick = onAddTransaction, shape = LocalOwliShapes.current.button,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                    Icon(painterResource(R.drawable.ic_owli_plus), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.form_title), style = LocalOwliTypography.current.button)
                 }
             }
             item(key = "title") {
@@ -105,7 +114,7 @@ fun TransactionListScreen(
                 val textMeasurer = rememberTextMeasurer()
                 val headingText = stringResource(R.string.transactions_title)
                 val refreshText = stringResource(R.string.transactions_refresh)
-                val headingStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                val headingStyle = LocalOwliTypography.current.screenTitle
                 val title: @Composable (Modifier) -> Unit = { titleModifier ->
                     Text(
                         headingText,
@@ -115,9 +124,14 @@ fun TransactionListScreen(
                 }
                 val refresh: @Composable () -> Unit = {
                     if (state is TransactionListUiState.Content) {
-                        FilledTonalButton(onClick = onRefresh, enabled = !state.isRefreshing,
+                        OutlinedButton(onClick = onRefresh, enabled = !state.isRefreshing,
+                            shape = LocalOwliShapes.current.chip,
+                            border = BorderStroke(1.dp, LocalOwliColors.current.hairline),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
                             modifier = Modifier.heightIn(min = 48.dp)) {
-                            Text(refreshText)
+                            Icon(painterResource(R.drawable.ic_owli_refresh), contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(refreshText, style = LocalOwliTypography.current.label)
                         }
                     }
                 }
@@ -142,6 +156,9 @@ fun TransactionListScreen(
                         }
                     }
                 }
+            }
+            item(key = "ribbon") {
+                OwliRibbon(stringResource(if (isAuthenticated) R.string.transactions_account_data else R.string.transactions_demo_data), null)
             }
             when (state) {
                 TransactionListUiState.InitialLoading -> item(key = "initial-loading") {
@@ -236,7 +253,7 @@ private fun LoadingPanel(label: String) {
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
@@ -250,15 +267,16 @@ private fun MessagePanel(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainer,
+        shape = LocalOwliShapes.current.group,
+        color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface,
         contentColor = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
+        border = if (isError) null else BorderStroke(1.dp, LocalOwliColors.current.hairline),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            Text(title, style = LocalOwliTypography.current.sectionTitle, modifier = Modifier.semantics { heading() })
             Text(
                 message,
                 style = MaterialTheme.typography.bodyMedium,
@@ -271,8 +289,8 @@ private fun MessagePanel(
 
 @Composable
 private fun ActionButton(label: String, onClick: () -> Unit, enabled: Boolean = true) {
-    Button(onClick = onClick, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) {
-        Text(label)
+    Button(onClick = onClick, enabled = enabled, shape = LocalOwliShapes.current.button, modifier = Modifier.heightIn(min = 48.dp)) {
+        Text(label, style = LocalOwliTypography.current.bodyStrong)
     }
 }
 

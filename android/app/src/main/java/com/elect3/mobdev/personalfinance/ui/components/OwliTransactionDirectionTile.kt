@@ -31,15 +31,15 @@ fun OwliTransactionDirectionTile(
     val shapes = LocalOwliShapes.current
     val (icon, containerColor, iconColor) = when (direction) {
         OwliTransactionDirection.Income -> Triple(
-            R.drawable.ic_owli_income_up, colors.incomeCardFill, colors.income,
+            R.drawable.ic_owli_income_up, colors.tile, colors.income,
         )
         OwliTransactionDirection.Expense -> Triple(
-            R.drawable.ic_owli_expense_down, colors.expenseCardFill, colors.expense,
+            R.drawable.ic_owli_expense_down, colors.tile, colors.tileContent,
         )
     }
 
     Surface(
-        modifier = modifier.size(40.dp),
+        modifier = modifier.size(38.dp),
         shape = shapes.rowTile,
         color = containerColor,
         contentColor = iconColor,
