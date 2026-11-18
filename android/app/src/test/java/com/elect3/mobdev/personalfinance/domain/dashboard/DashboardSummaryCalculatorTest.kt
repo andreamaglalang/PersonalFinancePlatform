@@ -23,6 +23,9 @@ class DashboardSummaryCalculatorTest {
             type = type,
         )
 
+    private fun expense(id: Int, date: String, amount: String, categoryId: Int, categoryName: String): Transaction =
+        row(id, date, amount, TransactionType.Expense).copy(categoryId = categoryId, categoryName = categoryName)
+
     private fun money(expected: String, actual: BigDecimal) {
         assertEquals(0, BigDecimal(expected).compareTo(actual))
     }
@@ -138,6 +141,71 @@ class DashboardSummaryCalculatorTest {
         val zero = row(1, "2026-11-01", "0.00")
         money("0.00", calculator.calculate(listOf(zero), fallback).totalIncome)
         assertThrows(IllegalArgumentException::class.java) { calculator.calculate(listOf(zero, zero), fallback) }
+    }
+
+    @Test fun monthlyRecordCountUsesReportingMonthBoundaries() {
+        val summary = calculator.calculate(listOf(
+            row(1, "2026-10-31", "1.00"),
+            row(2, "2026-11-01", "1.00"),
+            row(3, "2026-11-30", "1.00", TransactionType.Expense),
+            row(4, "2026-12-01", "1.00"),
+        ), fallback, YearMonth.of(2026, 11))
+        assertEquals(4L, summary.recordCount)
+        assertEquals(2L, summary.monthlyRecordCount)
+        assertEquals(0L, calculator.calculate(emptyList(), fallback).monthlyRecordCount)
+    }
+
+    @Test fun topCategorySumsExpensesByCategoryIdWithinReportingMonthOnly() {
+        val summary = calculator.calculate(listOf(
+            expense(1, "2026-11-02", "100.00", 7, "Groceries"),
+            expense(2, "2026-11-20", "60.50", 7, "Groceries"),
+            expense(3, "2026-11-05", "150.00", 9, "Rent"),
+            // Outside the month and income rows never count toward the top category.
+            expense(4, "2026-10-31", "999.00", 9, "Rent"),
+            row(5, "2026-11-03", "5000.00"),
+        ), fallback, YearMonth.of(2026, 11))
+        assertEquals(1, summary.topExpenseCategories.size)
+        val top = summary.topExpenseCategories.single()
+        assertEquals(7, top.categoryId)
+        assertEquals("Groceries", top.categoryName)
+        money("160.50", top.total)
+    }
+
+    @Test fun topCategoryTiesAreAllReportedRegardlessOfScaleAndOrderedByName() {
+        val summary = calculator.calculate(listOf(
+            expense(1, "2026-11-02", "40.0", 3, "Transport"),
+            expense(2, "2026-11-03", "40.00", 2, "Dining"),
+            expense(3, "2026-11-04", "10.00", 4, "Books"),
+        ), fallback, YearMonth.of(2026, 11))
+        assertEquals(listOf(2, 3), summary.topExpenseCategories.map { it.categoryId })
+        assertEquals(listOf("Dining", "Transport"), summary.topExpenseCategories.map { it.categoryName })
+        summary.topExpenseCategories.forEach { money("40.00", it.total) }
+    }
+
+    @Test fun sameNameDifferentCategoryIdsAreNotMerged() {
+        val summary = calculator.calculate(listOf(
+            expense(1, "2026-11-02", "30.00", 5, "Bills"),
+            expense(2, "2026-11-03", "30.00", 6, "Bills"),
+        ), fallback, YearMonth.of(2026, 11))
+        assertEquals(listOf(5, 6), summary.topExpenseCategories.map { it.categoryId })
+        summary.topExpenseCategories.forEach { money("30.00", it.total) }
+    }
+
+    @Test fun noTopCategoryWithoutPositiveReportingMonthExpenses() {
+        val incomeOnly = calculator.calculate(listOf(row(1, "2026-11-02", "10.00")), fallback)
+        assertTrue(incomeOnly.topExpenseCategories.isEmpty())
+        val zeroExpense = calculator.calculate(listOf(expense(1, "2026-11-02", "0.00", 7, "Groceries")), fallback)
+        assertTrue(zeroExpense.topExpenseCategories.isEmpty())
+        assertTrue(calculator.calculate(emptyList(), fallback).topExpenseCategories.isEmpty())
+    }
+
+    @Test fun topCategoryNameComesFromNewestReportingMonthExpense() {
+        val summary = calculator.calculate(listOf(
+            expense(1, "2026-11-02", "10.00", 7, "Old name"),
+            expense(2, "2026-11-09", "10.00", 7, "New name"),
+        ), fallback, YearMonth.of(2026, 11))
+        assertEquals("New name", summary.topExpenseCategories.single().categoryName)
+        money("20.00", summary.topExpenseCategories.single().total)
     }
 
     @Test fun actualFixtureSelectsNovemberAndRetainsAllRecords() {

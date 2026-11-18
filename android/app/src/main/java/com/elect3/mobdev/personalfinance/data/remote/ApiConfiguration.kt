@@ -6,9 +6,14 @@ import java.net.URL
 /** No endpoint is selected by default. Supplying one requires separate environment approval. */
 class ApiConfiguration private constructor(private val base: URI?) {
     internal fun authUrl(operation: String): URL? {
-        require(operation == "login" || operation == "logout")
+        require(operation == "login" || operation == "logout" || operation == "refresh")
         return base?.resolve("api/auth/$operation")?.toURL()
     }
+
+    internal fun financeUrl(resource: FinanceResource, query: String): URL? =
+        base?.resolve("api/${resource.path}?$query")?.toURL()
+
+    internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 
     companion object {
         fun unconfigured() = ApiConfiguration(null)

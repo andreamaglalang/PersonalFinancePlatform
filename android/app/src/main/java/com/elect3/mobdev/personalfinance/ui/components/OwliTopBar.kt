@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.res.stringResource
+import com.elect3.mobdev.personalfinance.R
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -15,7 +17,7 @@ import androidx.compose.ui.unit.dp
 
 /** Keeps brand and data status together when they fit, otherwise stacks them. */
 @Composable
-fun OwliTopBar(modifier: Modifier = Modifier) {
+fun OwliTopBar(modifier: Modifier = Modifier, dataLabel: String = stringResource(R.string.dashboard_demo_data)) {
     Layout(
         modifier = modifier.fillMaxWidth().heightIn(min = 44.dp)
             .semantics { isTraversalGroup = true },
@@ -27,6 +29,7 @@ fun OwliTopBar(modifier: Modifier = Modifier) {
                 },
             )
             OwliMockDataChip(
+                text = dataLabel,
                 modifier = Modifier.semantics {
                     isTraversalGroup = true
                     traversalIndex = 1f

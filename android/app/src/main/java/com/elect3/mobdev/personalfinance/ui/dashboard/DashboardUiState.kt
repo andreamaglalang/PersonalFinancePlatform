@@ -23,4 +23,6 @@ sealed interface DashboardUiState {
 sealed interface DashboardError {
     data class Repository(val reason: TransactionFailure) : DashboardError
     data object InvalidSnapshot : DashboardError
+    /** Account data in a currency the PHP-only summary cannot total without conversion. */
+    data object UnsupportedCurrency : DashboardError
 }

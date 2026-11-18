@@ -5,6 +5,7 @@ import com.elect3.mobdev.personalfinance.domain.model.Transaction
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionPageResult
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionRepository
+import java.math.BigDecimal
 import java.time.YearMonth
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -13,6 +14,8 @@ sealed interface DashboardSummaryResult {
     data class Success(val summary: DashboardSummary) : DashboardSummaryResult
     data class RepositoryFailure(val reason: TransactionFailure) : DashboardSummaryResult
     data class InvalidSnapshot(val detail: String) : DashboardSummaryResult
+    /** Account mode only: totals would mix or convert currencies, so none are produced. */
+    data object UnsupportedCurrency : DashboardSummaryResult
 }
 
 /**
@@ -20,24 +23,35 @@ sealed interface DashboardSummaryResult {
  * Page metadata cannot prove isolation for a concurrently changing repository; such a source
  * requires a snapshot token or authoritative summary API before using this loader.
  * Unexpected repository exceptions propagate, including coroutine cancellation.
+ *
+ * Account mode ([accountCurrency] non-null): the summary is produced only for a PHP account whose every
+ * record is a plain PHP amount (FX 1, base equal to amount). Anything else yields [DashboardSummaryResult.UnsupportedCurrency]
+ * instead of totals; amounts are never converted or combined across currencies.
  */
 class LoadDashboardSummary(
     private val repository: TransactionRepository,
     private val calculator: DashboardSummaryCalculator = DashboardSummaryCalculator(),
+    private val pageSize: Int = 20,
+    private val accountCurrency: (() -> String?)? = null,
 ) {
+    init { require(pageSize in 1..100) { "Invalid page size" } }
+
     suspend operator fun invoke(fallbackMonth: YearMonth): DashboardSummaryResult {
+        if (accountCurrency != null && accountCurrency.invoke() != SUPPORTED_CURRENCY) {
+            return DashboardSummaryResult.UnsupportedCurrency
+        }
         val records = LinkedHashMap<Int, Transaction>()
         var expectedTotal: Long? = null
         var pageNumber = 1
         while (true) {
             currentCoroutineContext().ensureActive()
-            val result = repository.readPage(pageNumber, PAGE_SIZE)
+            val result = repository.readPage(pageNumber, pageSize)
             currentCoroutineContext().ensureActive()
             when (result) {
                 is TransactionPageResult.Failure -> return DashboardSummaryResult.RepositoryFailure(result.reason)
                 is TransactionPageResult.Success -> {
                     val page = result.page
-                    if (page.page != pageNumber || page.pageSize != PAGE_SIZE) {
+                    if (page.page != pageNumber || page.pageSize != pageSize) {
                         return invalid("Unexpected pagination metadata")
                     }
                     if (expectedTotal != null && expectedTotal != page.totalCount) {
@@ -54,13 +68,16 @@ class LoadDashboardSummary(
                     if (remaining < 0) return invalid("Records exceed reported total")
                     if (remaining == 0L) break
                     if (page.items.isEmpty()) return invalid("Premature empty page")
-                    if (page.items.size != PAGE_SIZE) return invalid("Incomplete non-final page")
+                    if (page.items.size != pageSize) return invalid("Incomplete non-final page")
                     if (pageNumber == Int.MAX_VALUE) return invalid("Page number exhausted")
                     pageNumber++
                 }
             }
         }
         currentCoroutineContext().ensureActive()
+        if (accountCurrency != null && records.values.any { !isPlainPhp(it) }) {
+            return DashboardSummaryResult.UnsupportedCurrency
+        }
         val summary = try {
             calculator.calculate(records.values.toList(), fallbackMonth)
         } catch (exception: IllegalArgumentException) {
@@ -72,7 +89,11 @@ class LoadDashboardSummary(
 
     private fun invalid(detail: String) = DashboardSummaryResult.InvalidSnapshot(detail)
 
+    /** Mirrors the calculator's unconverted-PHP contract so currency issues are reported distinctly. */
+    private fun isPlainPhp(t: Transaction) = t.currencyCode == SUPPORTED_CURRENCY &&
+        t.fxRate.compareTo(BigDecimal.ONE) == 0 && t.amountBase.compareTo(t.amount) == 0 && t.fxRateDate == t.transactionDate
+
     private companion object {
-        const val PAGE_SIZE = 20
+        const val SUPPORTED_CURRENCY = "PHP"
     }
 }

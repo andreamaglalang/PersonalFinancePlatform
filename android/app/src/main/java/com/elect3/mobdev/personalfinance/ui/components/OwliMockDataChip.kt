@@ -12,9 +12,12 @@ import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliShapes
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 
-/** Noninteractive label identifying demonstration data, with no live-status semantics. */
+/**
+ * Noninteractive label identifying the data source, with no live-status semantics.
+ * Defaults to the demonstration-data label; signed-in screens pass their account label.
+ */
 @Composable
-fun OwliMockDataChip(modifier: Modifier = Modifier) {
+fun OwliMockDataChip(modifier: Modifier = Modifier, text: String = stringResource(R.string.dashboard_demo_data)) {
     val colors = MaterialTheme.colorScheme
     val shapes = LocalOwliShapes.current
     val typography = LocalOwliTypography.current
@@ -28,7 +31,7 @@ fun OwliMockDataChip(modifier: Modifier = Modifier) {
         shadowElevation = 0.dp,
     ) {
         Text(
-            text = stringResource(R.string.dashboard_demo_data),
+            text = text,
             style = typography.micro,
             modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
         )

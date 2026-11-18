@@ -35,6 +35,13 @@ kotlin {
     }
 }
 
+// Run the no-logging contract against the actual release implementation on the JVM.
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        (variant as com.android.build.api.variant.HasUnitTestBuilder).enableUnitTest = true
+    }
+}
+
 dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -45,6 +52,10 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.coroutines.android)
+    implementation("com.google.code.gson:gson:2.11.0") {
+        // Compile-time tooling annotations only; not needed by Gson at Android runtime.
+        exclude(group = "com.google.errorprone", module = "error_prone_annotations")
+    }
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(platform(libs.compose.bom))

@@ -19,6 +19,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.data.mock.TransactionFixtures
 import com.elect3.mobdev.personalfinance.domain.dashboard.DashboardSummaryCalculator
+import com.elect3.mobdev.personalfinance.domain.model.TransactionType
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 import com.elect3.mobdev.personalfinance.ui.theme.PersonalFinanceTheme
 import com.elect3.mobdev.personalfinance.ui.transactions.formatPhpAmount
@@ -61,14 +62,29 @@ class DashboardScreenTest {
             .assertIsDisplayed()
     }
 
+    private val month: String get() {
+        val locale = InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.locales[0]
+        return summary.reportingMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    }
+
+    private fun selectPeriod(id: Int) {
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(id)))
+        compose.onNodeWithText(text(id)).performClick()
+    }
+
     @Test fun sectionsDemoAndSignedNetArePresent() {
         show(DashboardUiState.Content(summary))
         compose.onNodeWithText(text(R.string.dashboard_demo_data)).assertIsDisplayed()
         reveal(R.string.dashboard_net_flow)
+        // Defaults to all recorded sample transactions, explained as not an account balance.
         compose.onNodeWithText(text(R.string.transaction_income_amount, formatPhpAmount(summary.netTransactionFlow)))
-            .assertIsDisplayed()
-        reveal(R.string.dashboard_monthly_overview)
-        reveal(R.string.dashboard_monthly_net)
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.dashboard_net_explanation)).performScrollTo().assertIsDisplayed()
+        // The month view names the reporting month explicitly, never an unlabeled "this month".
+        selectPeriod(R.string.dashboard_period_month)
+        compose.onNodeWithText(text(R.string.transaction_income_amount, formatPhpAmount(summary.monthlyNetTransactionFlow)))
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.dashboard_net_month_explanation, month)).performScrollTo().assertIsDisplayed()
         reveal(R.string.dashboard_recent_transactions)
         val description = TransactionFixtures.items.first().description!!
         compose.onNode(hasScrollAction())
@@ -84,20 +100,81 @@ class DashboardScreenTest {
         compose.onNodeWithText(text(R.string.dashboard_net_flow)).assertDoesNotExist()
     }
 
-    @Test fun totalsMonthlyAmountsAndExplicitReportingMonthAreShown() {
-        show(DashboardUiState.Content(summary))
+    private fun assertAmountsShown(vararg amounts: BigDecimal) {
         val list = compose.onNode(hasScrollAction())
-        for (amount in listOf(summary.totalIncome, summary.totalExpenses, summary.monthlyIncome, summary.monthlyExpenses)) {
+        for (amount in amounts) {
             val formatted = formatPhpAmount(amount)
             list.performScrollToNode(hasText(formatted, substring = true))
             compose.onNodeWithText(formatted, useUnmergedTree = true).assertIsDisplayed()
         }
-        val locale = InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.locales[0]
-        val month = summary.reportingMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
-        list.performScrollToNode(hasText(month))
-        compose.onNodeWithText(month).assertIsDisplayed()
+    }
+
+    @Test fun totalsMonthlyAmountsAndExplicitReportingMonthAreShown() {
+        show(DashboardUiState.Content(summary))
+        assertAmountsShown(summary.totalIncome, summary.totalExpenses)
+        compose.onNodeWithText(text(R.string.dashboard_period_all_time_detail)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(month).assertDoesNotExist()
         compose.onAllNodesWithText(text(R.string.dashboard_income), useUnmergedTree = true).onLast().assertExists()
         compose.onAllNodesWithText(text(R.string.dashboard_expenses), useUnmergedTree = true).onLast().assertExists()
+        selectPeriod(R.string.dashboard_period_month)
+        assertAmountsShown(summary.monthlyIncome, summary.monthlyExpenses)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(month))
+        compose.onNodeWithText(month).assertIsDisplayed()
+    }
+
+    @Test fun periodToggleIsAccessibleRadioGroupDefaultingToAllTime() {
+        show(DashboardUiState.Content(summary))
+        val monthOption = compose.onNodeWithText(text(R.string.dashboard_period_month))
+        val allTimeOption = compose.onNodeWithText(text(R.string.dashboard_period_all_time))
+        allTimeOption.performScrollTo().assertIsSelected()
+        monthOption.assertIsNotSelected().assertHasClickAction()
+        monthOption.performClick()
+        monthOption.assertIsSelected()
+        allTimeOption.assertIsNotSelected()
+    }
+
+    @Test fun entriesAndTopCategoryCardsDescribeReportingMonth() {
+        show(DashboardUiState.Content(summary))
+        selectPeriod(R.string.dashboard_period_month)
+        val list = compose.onNode(hasScrollAction())
+        list.performScrollToNode(hasText(text(R.string.dashboard_entries)))
+        compose.onNodeWithText(text(R.string.dashboard_entries), useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithText(summary.monthlyRecordCount.toString(), useUnmergedTree = true).onFirst().assertExists()
+        compose.onNodeWithText(text(R.string.dashboard_entries_month, month), useUnmergedTree = true).assertExists()
+        list.performScrollToNode(hasText(text(R.string.dashboard_top_category)))
+        compose.onNodeWithText(text(R.string.dashboard_top_category), useUnmergedTree = true).assertIsDisplayed()
+        val top = summary.topExpenseCategories
+        val detail = when (top.size) {
+            0 -> text(R.string.dashboard_top_category_none_detail, month)
+            1 -> text(R.string.dashboard_top_category_amount, formatPhpAmount(top.first().total), month)
+            else -> text(R.string.dashboard_top_category_tie, formatPhpAmount(top.first().total), month)
+        }
+        compose.onNodeWithText(detail, useUnmergedTree = true).assertExists()
+    }
+
+    @Test fun tiedTopCategoriesAreBothNamed() {
+        val base = TransactionFixtures.items.first().copy(type = TransactionType.Expense,
+            amount = BigDecimal("25.00"), amountBase = BigDecimal("25.00"))
+        val rows = listOf(
+            base.copy(transactionId = 1, categoryId = 1, categoryName = "Dining"),
+            base.copy(transactionId = 2, categoryId = 2, categoryName = "Transport"),
+        )
+        val tied = DashboardSummaryCalculator().calculate(rows, YearMonth.of(2026, 11))
+        show(DashboardUiState.Content(tied))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Dining, Transport", substring = true))
+        compose.onNodeWithText("Dining, Transport", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test fun netFlowIsNeverLabelledAsBalance() {
+        show(DashboardUiState.Content(summary))
+        compose.onAllNodes(hasText("Balance", substring = false, ignoreCase = true)).assertCountEquals(0)
+        compose.onAllNodes(hasText("Account balance", substring = false, ignoreCase = true)).assertCountEquals(0)
+    }
+
+    @Test fun emptyStateShowsCalmMessageAndSampleLabel() {
+        show(DashboardUiState.Empty)
+        compose.onNodeWithText(text(R.string.dashboard_demo_data)).assertIsDisplayed()
+        reveal(R.string.dashboard_empty_message)
     }
 
     @Test fun emptyRefreshInvokesCallback() {
@@ -167,7 +244,15 @@ class DashboardScreenTest {
         node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         assertTrue(layouts.isNotEmpty())
         assertFalse(layouts.first().hasVisualOverflow)
-        reveal(R.string.dashboard_monthly_overview)
+        // Summary cards keep the complete unsigned value at narrow widths and large fonts.
+        // At 2x text the hero pushes the "summary" lazy item off-screen, where it may be composed but not
+        // placed; node-level performScrollTo cannot position it. Scroll the list to that item first.
+        compose.onNode(hasScrollToKeyAction()).performScrollToKey("summary")
+        val unsigned = compose.onAllNodesWithText(formatPhpAmount(amount), useUnmergedTree = true).onFirst()
+        unsigned.performScrollTo().assertIsDisplayed()
+        val cardLayouts = mutableListOf<TextLayoutResult>()
+        unsigned.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(cardLayouts) }
+        assertFalse(cardLayouts.first().hasVisualOverflow)
         reveal(R.string.dashboard_recent_transactions)
     }
 
@@ -178,6 +263,6 @@ class DashboardScreenTest {
     @Test fun dashboardAndSectionTitlesAreSemanticHeadings() {
         show(DashboardUiState.Content(summary))
         compose.onNodeWithText(text(R.string.dashboard_title)).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
-        reveal(R.string.dashboard_monthly_overview).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        reveal(R.string.dashboard_recent_transactions).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 }

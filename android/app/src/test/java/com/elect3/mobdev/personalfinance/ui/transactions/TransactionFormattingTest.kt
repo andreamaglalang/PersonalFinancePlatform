@@ -10,6 +10,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TransactionFormattingTest {
+    @Test fun actualCurrencyCodesAreUnambiguousWithoutConversionOrPrecisionLoss() {
+        for (code in listOf("USD", "EUR", "JPY", "KWD", "ABC")) {
+            assertEquals("$code 1,234.56", formatTransactionAmount(BigDecimal("1234.56"), code, Locale.US))
+            assertEquals("$code 90,071,992,547,409.91",
+                formatTransactionAmount(BigDecimal("90071992547409.91"), code, Locale.US))
+        }
+        assertEquals(formatPhpAmount(BigDecimal("35.50")), formatTransactionAmount(BigDecimal("35.50"), "PHP"))
+    }
+
+    @Test fun currencyFormatterRejectsRoundingAndInvalidCodesAndSupportsLocale() {
+        assertEquals("EUR 1.234,56", formatTransactionAmount(BigDecimal("1234.56"), "EUR", Locale.GERMANY))
+        assertThrows(ArithmeticException::class.java) { formatTransactionAmount(BigDecimal("1.001"), "JPY") }
+        assertThrows(IllegalArgumentException::class.java) { formatTransactionAmount(BigDecimal.ONE, "usd") }
+    }
     // Parse using JVM locale data, not Android ICU's potentially different symbol/spacing.
     private fun parsedAmount(text: String): BigDecimal {
         val parser = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-PH")) as DecimalFormat

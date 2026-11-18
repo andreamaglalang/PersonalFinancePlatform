@@ -37,7 +37,8 @@ import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 
 /** The owner supplies a lifecycle-managed ViewModel; this route creates no repositories or models. */
 @Composable
-fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier = Modifier) {
+fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier = Modifier, isAuthenticated: Boolean = false,
+    onAddTransaction: (() -> Unit)? = null) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     TransactionListScreen(
         state = state,
@@ -47,6 +48,8 @@ fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier
         onRetryAppend = viewModel::retryAppend,
         onRestartDemoSession = viewModel::restartDemoSession,
         modifier = modifier,
+        isAuthenticated = isAuthenticated,
+        onAddTransaction = onAddTransaction,
     )
 }
 
@@ -60,6 +63,8 @@ fun TransactionListScreen(
     onRetryAppend: () -> Unit,
     onRestartDemoSession: () -> Unit,
     modifier: Modifier = Modifier,
+    isAuthenticated: Boolean = false,
+    onAddTransaction: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -84,10 +89,15 @@ fun TransactionListScreen(
                     Surface(shape = MaterialTheme.shapes.small,
                         color = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-                        Text(stringResource(R.string.transactions_demo_data),
+                        Text(stringResource(if (isAuthenticated) R.string.transactions_account_data else R.string.transactions_demo_data),
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                     }
+                }
+            }
+            if (onAddTransaction != null && state !is TransactionListUiState.SessionExpired) item(key = "add") {
+                Button(onClick = onAddTransaction, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.form_title))
                 }
             }
             item(key = "title") {
@@ -138,17 +148,20 @@ fun TransactionListScreen(
                     LoadingPanel(stringResource(R.string.transactions_loading))
                 }
                 TransactionListUiState.Empty -> item(key = "empty") {
-                    MessagePanel(stringResource(R.string.transactions_empty_title), stringResource(R.string.transactions_empty_message)) {
+                    MessagePanel(stringResource(R.string.transactions_empty_title), stringResource(
+                        if (isAuthenticated) R.string.transactions_account_empty_message else R.string.transactions_empty_message)) {
                         ActionButton(stringResource(R.string.transactions_refresh), onRefresh)
                     }
                 }
                 is TransactionListUiState.InitialError -> item(key = "initial-error") {
-                    MessagePanel(stringResource(R.string.transactions_unavailable_title), failureMessage(state.reason), isError = true) {
+                    MessagePanel(stringResource(R.string.transactions_unavailable_title), failureMessage(state.reason, isAuthenticated), isError = true) {
                         ActionButton(stringResource(R.string.transactions_retry), onRetryInitialLoad)
                     }
                 }
                 is TransactionListUiState.SessionExpired -> item(key = "session-expired") {
-                    SessionExpiredPanel(state.restart, onRestartDemoSession)
+                    if (isAuthenticated) MessagePanel(stringResource(R.string.transactions_account_session_title),
+                        stringResource(R.string.auth_session_expired), isError = true) {}
+                    else SessionExpiredPanel(state.restart, onRestartDemoSession)
                 }
                 is TransactionListUiState.Content -> {
                     if (state.isRefreshing) item(key = "refresh-loading") {
@@ -158,7 +171,7 @@ fun TransactionListScreen(
                         item(key = "refresh-error") {
                             MessagePanel(
                                 stringResource(R.string.transactions_refresh_error_title),
-                                stringResource(R.string.transactions_refresh_error_message, failureMessage(reason)),
+                                stringResource(R.string.transactions_refresh_error_message, failureMessage(reason, isAuthenticated)),
                                 isError = true,
                             ) { ActionButton(stringResource(R.string.transactions_retry_refresh), onRefresh, enabled = !state.isRefreshing) }
                         }
@@ -167,7 +180,7 @@ fun TransactionListScreen(
                         TransactionRow(transaction)
                     }
                     item(key = "pagination") {
-                        PaginationFooter(state.append, !state.isRefreshing, onLoadMore, onRetryAppend)
+                        PaginationFooter(state.append, !state.isRefreshing, onLoadMore, onRetryAppend, isAuthenticated)
                     }
                 }
             }
@@ -197,13 +210,14 @@ private fun PaginationFooter(
     enabled: Boolean,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    isAuthenticated: Boolean = false,
 ) {
     when (append) {
         TransactionAppendState.Ready -> ActionButton(stringResource(R.string.transactions_load_more), onLoadMore, enabled)
         TransactionAppendState.Loading -> LoadingPanel(stringResource(R.string.transactions_loading_more))
         is TransactionAppendState.Error -> MessagePanel(
             stringResource(R.string.transactions_append_error_title),
-            failureMessage(append.reason),
+            failureMessage(append.reason, isAuthenticated),
             isError = true,
         ) { ActionButton(stringResource(R.string.transactions_retry_append), onRetry, enabled) }
         TransactionAppendState.End -> Text(
@@ -263,7 +277,7 @@ private fun ActionButton(label: String, onClick: () -> Unit, enabled: Boolean = 
 }
 
 @Composable
-private fun failureMessage(reason: TransactionFailure): String = when (reason) {
-    TransactionFailure.Unavailable -> stringResource(R.string.transactions_unavailable_message)
-    TransactionFailure.SessionExpired -> stringResource(R.string.transactions_session_message)
+private fun failureMessage(reason: TransactionFailure, isAuthenticated: Boolean = false): String = when (reason) {
+    TransactionFailure.Unavailable -> stringResource(if (isAuthenticated) R.string.transactions_account_unavailable_message else R.string.transactions_unavailable_message)
+    TransactionFailure.SessionExpired -> stringResource(if (isAuthenticated) R.string.auth_session_expired else R.string.transactions_session_message)
 }

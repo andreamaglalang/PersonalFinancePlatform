@@ -5,85 +5,93 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elect3.mobdev.personalfinance.R
+import com.elect3.mobdev.personalfinance.ui.components.OwliSummaryGrid
+import com.elect3.mobdev.personalfinance.ui.components.OwliTopBar
+import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 import com.elect3.mobdev.personalfinance.ui.transactions.TransactionRow
-import java.time.format.DateTimeFormatter
 
 @Composable
-fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier) {
+fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, source: DashboardSource = DashboardSource.Demo) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    DashboardScreen(state, viewModel::retry, viewModel::refresh, modifier)
+    DashboardScreen(state, viewModel::retry, viewModel::refresh, modifier, source)
 }
 
-/** Owner supplies theme and actions; this screen creates no repositories or ViewModels. */
+/**
+ * Owner supplies theme and actions; this screen creates no repositories or ViewModels.
+ * Demo: every figure is sample data, so the sample-data chip is shown in every state.
+ * Account: figures come from the signed-in account and are labelled as such.
+ */
 @Composable
-fun DashboardScreen(state: DashboardUiState, onRetry: () -> Unit, onRefresh: () -> Unit, modifier: Modifier = Modifier) {
+fun DashboardScreen(
+    state: DashboardUiState,
+    onRetry: () -> Unit,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    source: DashboardSource = DashboardSource.Demo,
+) {
+    val copy = dashboardCopy(source)
+    val typography = LocalOwliTypography.current
+    // Period choice survives configuration changes. Defaults to all recorded transactions,
+    // preserving the existing launch summary; the month option is always explicitly labelled.
+    var allTime by rememberSaveable { mutableStateOf(true) }
+    // Readable line length on wide windows; full width on phones.
+    val contentWidth = Modifier.widthIn(max = 640.dp).fillMaxWidth()
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(Modifier.fillMaxSize().safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item(key = "header") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground)
-                    DashboardHeading(stringResource(R.string.dashboard_title))
-                    Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-                        Text(stringResource(R.string.dashboard_demo_data), style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                Column(contentWidth, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OwliTopBar(dataLabel = stringResource(copy.dataLabel))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        DashboardHeading(stringResource(R.string.dashboard_title), typography.screenTitle)
+                        Text(stringResource(R.string.app_tagline), style = typography.caption,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (state is DashboardUiState.Content) DashboardAction(stringResource(R.string.dashboard_refresh), onRefresh, !state.isRefreshing)
                 }
             }
             when (state) {
-                DashboardUiState.InitialLoading -> item { DashboardLoading(stringResource(R.string.dashboard_loading)) }
+                DashboardUiState.InitialLoading -> item { Box(contentWidth) { DashboardLoading(stringResource(copy.loading)) } }
                 DashboardUiState.Empty -> item {
-                    DashboardMessage(stringResource(R.string.dashboard_empty_title), stringResource(R.string.dashboard_empty_message)) {
-                        DashboardAction(stringResource(R.string.dashboard_refresh), onRefresh)
+                    Box(contentWidth) {
+                        DashboardMessage(stringResource(copy.emptyTitle), stringResource(copy.emptyMessage), showOwl = true) {
+                            DashboardAction(stringResource(R.string.dashboard_refresh), onRefresh)
+                        }
                     }
                 }
                 is DashboardUiState.InitialFailure -> item {
-                    DashboardMessage(stringResource(R.string.dashboard_unavailable_title), dashboardErrorMessage(state.error)) {
-                        DashboardAction(stringResource(R.string.dashboard_retry), onRetry)
+                    Box(contentWidth) {
+                        DashboardMessage(stringResource(R.string.dashboard_unavailable_title), dashboardErrorMessage(state.error, copy)) {
+                            DashboardAction(stringResource(R.string.dashboard_retry), onRetry)
+                        }
                     }
                 }
                 DashboardUiState.SessionExpired -> item {
-                    DashboardMessage(stringResource(R.string.dashboard_session_title), stringResource(R.string.dashboard_session_message))
+                    Box(contentWidth) { DashboardMessage(stringResource(copy.sessionTitle), stringResource(copy.sessionMessage)) }
                 }
                 is DashboardUiState.Content -> {
-                    if (state.isRefreshing) item { DashboardLoading(stringResource(R.string.dashboard_refreshing)) }
+                    if (state.isRefreshing) item { Box(contentWidth) { DashboardLoading(stringResource(copy.refreshing)) } }
                     state.refreshError?.let { error -> item {
-                        DashboardMessage(stringResource(R.string.dashboard_refresh_failed),
-                            stringResource(R.string.dashboard_retained_summary, dashboardErrorMessage(error))) {
-                            DashboardAction(stringResource(R.string.dashboard_retry_refresh), onRefresh)
+                        Box(contentWidth) {
+                            DashboardMessage(stringResource(R.string.dashboard_refresh_failed),
+                                stringResource(R.string.dashboard_retained_summary, dashboardErrorMessage(error, copy))) {
+                                DashboardAction(stringResource(R.string.dashboard_retry_refresh), onRefresh)
+                            }
                         }
                     } }
-                    item(key = "net") {
-                        DashboardCard {
-                            DashboardHeading(stringResource(R.string.dashboard_net_flow))
-                            DashboardAmount(state.summary.netTransactionFlow, signed = true, prominent = true)
-                            Text(stringResource(R.string.dashboard_net_explanation), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    item(key = "totals") { DashboardCard { DashboardIncomeExpenses(state.summary.totalIncome, state.summary.totalExpenses) } }
-                    item(key = "monthly") {
-                        val locale = LocalConfiguration.current.locales[0]
-                        val month = state.summary.reportingMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
-                        DashboardCard {
-                            DashboardHeading(stringResource(R.string.dashboard_monthly_overview))
-                            Text(month, style = MaterialTheme.typography.titleMedium)
-                            DashboardIncomeExpenses(state.summary.monthlyIncome, state.summary.monthlyExpenses)
-                            Text(stringResource(R.string.dashboard_monthly_net), style = MaterialTheme.typography.bodyMedium)
-                            DashboardAmount(state.summary.monthlyNetTransactionFlow, signed = true)
-                        }
-                    }
-                    item(key = "recent") { DashboardHeading(stringResource(R.string.dashboard_recent_transactions)) }
-                    items(state.summary.recentTransactions, key = { "transaction-${it.transactionId}" }) { TransactionRow(it) }
+                    item(key = "net") { Box(contentWidth) { DashboardNetFlowHero(state.summary, allTime, copy) { allTime = it } } }
+                    item(key = "summary") { OwliSummaryGrid(dashboardSummaryItems(state.summary, allTime), contentWidth) }
+                    item(key = "recent") { Box(contentWidth.padding(top = 4.dp)) { DashboardHeading(stringResource(R.string.dashboard_recent_transactions)) } }
+                    items(state.summary.recentTransactions, key = { "transaction-${it.transactionId}" }) { TransactionRow(it, contentWidth) }
                 }
             }
         }

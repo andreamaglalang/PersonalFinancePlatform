@@ -8,6 +8,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.elect3.mobdev.personalfinance.ui.dashboard.DashboardViewModel
+import com.elect3.mobdev.personalfinance.ui.auth.LoginViewModel
+import com.elect3.mobdev.personalfinance.ui.auth.EntryMode
 import com.elect3.mobdev.personalfinance.ui.transactions.TransactionListViewModel
 import com.elect3.mobdev.personalfinance.ui.transactions.TransactionListUiState
 import com.elect3.mobdev.personalfinance.data.mock.TransactionFixtures
@@ -38,6 +40,11 @@ class MainActivityTest {
         compose.onNode(heading(R.string.transactions_title)).assertIsDisplayed()
     }
 
+    private fun enterMockDemo() {
+        compose.onNodeWithText(text(R.string.auth_explore_mock_demo)).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
     /** Inspect an already-created model; never let this test construct one. */
     private fun existingTransactions(activity: MainActivity): TransactionListViewModel {
         val failFastFactory = object : ViewModelProvider.Factory {
@@ -66,7 +73,29 @@ class MainActivityTest {
         destination(R.string.navigation_transactions).assertIsNotSelected().assertIsDisplayed()
     }
 
-    @Test fun normalLaunchShowsDashboardAndCompleteDemoSummary() {
+    @Test fun normalLaunchShowsLoginAndNoAuthenticatedNavigation() {
+        compose.onNodeWithText(text(R.string.auth_welcome)).assertIsDisplayed()
+        compose.onNode(heading(R.string.dashboard_title)).assertDoesNotExist()
+        compose.onNode(heading(R.string.transactions_title)).assertDoesNotExist()
+        compose.activityRule.scenario.onActivity {
+            assertEquals(EntryMode.SignedOut, ViewModelProvider(it).get(LoginViewModel::class.java).state.value.entryMode)
+        }
+    }
+
+    @Test fun loginFirstActivityRecreationRetainsAuthenticationModelAndStaysSignedOut() {
+        lateinit var original: LoginViewModel
+        compose.activityRule.scenario.onActivity { original = ViewModelProvider(it).get(LoginViewModel::class.java) }
+        compose.activityRule.scenario.recreate()
+        compose.activityRule.scenario.onActivity {
+            assertSame(original, ViewModelProvider(it).get(LoginViewModel::class.java))
+            assertEquals(EntryMode.SignedOut, original.state.value.entryMode)
+        }
+        compose.onNodeWithText(text(R.string.auth_welcome)).assertIsDisplayed()
+        compose.onNode(heading(R.string.dashboard_title)).assertDoesNotExist()
+    }
+
+    @Test fun explicitMockDemoShowsDashboardAndCompleteDemoSummary() {
+        enterMockDemo()
         assertDashboardLoaded()
         // An existing model bypasses this factory; a missing model must reach it.
         // Throwing avoids creating the hidden Transactions ViewModel during the assertion.
@@ -83,6 +112,7 @@ class MainActivityTest {
     }
 
     @Test fun activityRecreationRetainsDashboardViewModel() {
+        enterMockDemo()
         assertDashboardLoaded()
         lateinit var original: DashboardViewModel
         compose.activityRule.scenario.onActivity { activity ->
@@ -98,6 +128,7 @@ class MainActivityTest {
     }
 
     @Test fun switchingPreservesBothModelsLoadedPagesAndTransactionScroll() {
+        enterMockDemo()
         assertDashboardLoaded()
         lateinit var dashboard: DashboardViewModel
         compose.activityRule.scenario.onActivity { dashboard = ViewModelProvider(it).get(DashboardViewModel::class.java) }
@@ -136,6 +167,7 @@ class MainActivityTest {
     }
 
     @Test fun transactionsSelectionAndModelSurviveRecreationAndBackReturnsDashboard() {
+        enterMockDemo()
         destination(R.string.navigation_transactions).performClick()
         awaitTransactionsHeading()
         lateinit var original: TransactionListViewModel

@@ -1,10 +1,12 @@
 package com.elect3.mobdev.personalfinance.domain.dashboard
 
+import com.elect3.mobdev.personalfinance.domain.model.DashboardCategoryTotal
 import com.elect3.mobdev.personalfinance.domain.model.DashboardSummary
 import com.elect3.mobdev.personalfinance.domain.model.Transaction
 import com.elect3.mobdev.personalfinance.domain.model.TransactionType
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import java.time.YearMonth
 
 /** Pure PHP mock-contract calculation. Caller must supply a complete snapshot. */
@@ -27,8 +29,11 @@ class DashboardSummaryCalculator {
         var expenses = BigDecimal("0.00")
         var monthlyIncome = BigDecimal("0.00")
         var monthlyExpenses = BigDecimal("0.00")
+        var monthlyCount = 0L
+        val monthlyExpenseByCategory = LinkedHashMap<Int, BigDecimal>()
         for (transaction in transactions) {
             val inMonth = transaction.transactionDate >= start && transaction.transactionDate < end
+            if (inMonth) monthlyCount++
             when (transaction.type) {
                 TransactionType.Income -> {
                     income += transaction.amount
@@ -36,10 +41,16 @@ class DashboardSummaryCalculator {
                 }
                 TransactionType.Expense -> {
                     expenses += transaction.amount
-                    if (inMonth) monthlyExpenses += transaction.amount
+                    if (inMonth) {
+                        monthlyExpenses += transaction.amount
+                        monthlyExpenseByCategory.merge(transaction.categoryId, transaction.amount, BigDecimal::add)
+                    }
                 }
             }
         }
+        val newestFirst = transactions.sortedWith(
+            compareByDescending<Transaction> { it.transactionDate }.thenByDescending { it.transactionId },
+        )
         return DashboardSummary(
             reportingCurrency = "PHP",
             totalIncome = income,
@@ -49,11 +60,32 @@ class DashboardSummaryCalculator {
             monthlyIncome = monthlyIncome,
             monthlyExpenses = monthlyExpenses,
             monthlyNetTransactionFlow = monthlyIncome - monthlyExpenses,
-            recentTransactions = transactions.sortedWith(
-                compareByDescending<Transaction> { it.transactionDate }.thenByDescending { it.transactionId },
-            ).take(5),
+            recentTransactions = newestFirst.take(5),
             recordCount = transactions.size.toLong(),
+            monthlyRecordCount = monthlyCount,
+            topExpenseCategories = topCategories(monthlyExpenseByCategory, newestFirst, start, end),
         )
+    }
+
+    /** All categories tied at the highest positive total; compareTo ignores decimal scale. */
+    private fun topCategories(
+        totals: Map<Int, BigDecimal>,
+        newestFirst: List<Transaction>,
+        start: LocalDate,
+        end: LocalDate,
+    ): List<DashboardCategoryTotal> {
+        val highest = totals.values.filter { it.signum() > 0 }.maxWithOrNull(BigDecimal::compareTo)
+            ?: return emptyList()
+        // Display name comes from the category's newest reporting-month expense.
+        val names = HashMap<Int, String>()
+        for (transaction in newestFirst) {
+            if (transaction.type == TransactionType.Expense &&
+                transaction.transactionDate >= start && transaction.transactionDate < end
+            ) names.putIfAbsent(transaction.categoryId, transaction.categoryName)
+        }
+        return totals.filter { it.value.compareTo(highest) == 0 }
+            .map { (id, total) -> DashboardCategoryTotal(id, checkNotNull(names[id]), total) }
+            .sortedWith(compareBy<DashboardCategoryTotal> { it.categoryName }.thenBy { it.categoryId })
     }
 
     private fun validate(transaction: Transaction) {

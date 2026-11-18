@@ -1,0 +1,63 @@
+package com.elect3.mobdev.personalfinance.data.remote
+
+import com.elect3.mobdev.personalfinance.data.auth.InMemoryAuthRepository
+import com.elect3.mobdev.personalfinance.domain.model.TransactionPage
+import com.elect3.mobdev.personalfinance.domain.repository.*
+import java.net.URLEncoder
+
+/**
+ * Passive construction. Reads occur only through the authenticated Transactions route;
+ * the single write path, [creation], is used only by the authenticated Add Transaction save.
+ */
+class FinanceRepositories private constructor(
+    transport: AuthenticatedFinanceTransport,
+    currency: () -> String?,
+    /** Authenticated POST api/transactions. Never handed to Mock Demo. */
+    val creation: TransactionCreationRepository,
+) {
+    constructor(configuration: ApiConfiguration, auth: InMemoryAuthRepository) : this(
+        AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()),
+        { auth.accountBaseCurrency() },
+        RemoteTransactionCreationRepository(configuration, auth),
+    )
+    /** Test hosts: fake engines only. The default POST engine refuses to send, so no socket can open. */
+    internal constructor(
+        configuration: ApiConfiguration,
+        auth: InMemoryAuthRepository,
+        engine: FinanceHttpEngine,
+        postEngine: FinancePostEngine = FinancePostEngine { throw IllegalStateException("No POST engine in this host") },
+    ) : this(
+        AuthenticatedFinanceTransport(configuration, auth, engine),
+        { auth.accountBaseCurrency() },
+        RemoteTransactionCreationRepository(auth, postEngine, configuration),
+    )
+    val categories: CategoryRepository = RemoteCategoryRepository(transport)
+    val transactions: RemoteTransactionRepository = RemoteTransactionRepository(transport)
+    val baseCurrency: () -> String? = currency
+}
+internal fun queryString(vararg pairs: Pair<String, Any?>) = pairs.filter { it.second != null }.joinToString("&") {
+    URLEncoder.encode(it.first, "UTF-8") + "=" + URLEncoder.encode(it.second.toString(), "UTF-8")
+}
+internal class RemoteCategoryRepository(private val transport: AuthenticatedFinanceTransport) : CategoryRepository {
+    override suspend fun list(query: CategoryQuery): FinanceResult<CategoryPage> = transport.get(
+        FinanceResource.Categories, queryString("type" to query.type?.wireValue,
+            "includeInactive" to query.includeInactive, "page" to query.page, "pageSize" to query.pageSize),
+    ) { FinanceJson.categories(it, query) }
+}
+class RemoteTransactionRepository internal constructor(private val transport: AuthenticatedFinanceTransport) : TransactionRepository {
+    suspend fun list(query: TransactionQuery = TransactionQuery()): FinanceResult<TransactionPage> = transport.get(
+        FinanceResource.Transactions, queryString("page" to query.page, "pageSize" to query.pageSize,
+            "type" to query.type?.wireValue, "categoryId" to query.categoryId,
+            "fromDate" to query.fromDate, "toDate" to query.toDate,
+            "sortBy" to query.sortBy.wire, "sortDirection" to query.sortDirection.wire),
+    ) { FinanceJson.transactions(it, query) }
+
+    /** Compatibility adapter; new consumers retain richer typed errors via list(). */
+    override suspend fun readPage(page: Int, pageSize: Int): TransactionPageResult = when (val result = list(TransactionQuery(page, pageSize))) {
+        is FinanceResult.Success -> TransactionPageResult.Success(result.value)
+        is FinanceResult.Failure -> TransactionPageResult.Failure(when (result.reason) {
+            FinanceFailure.MissingSession, FinanceFailure.SessionExpired -> TransactionFailure.SessionExpired
+            else -> TransactionFailure.Unavailable
+        })
+    }
+}

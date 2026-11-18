@@ -22,7 +22,10 @@ import kotlinx.coroutines.launch
 class TransactionListViewModel @MainThread constructor(
     initialRepository: TransactionRepository,
     private val replacementFactory: (() -> TransactionRepository)? = null,
+    private val isSessionCurrent: () -> Boolean = { true },
+    private val onSessionExpired: () -> Unit = {},
 ) : ViewModel() {
+    private var invalidated = false
     private var repository = initialRepository
     private val mutableState = MutableStateFlow<TransactionListUiState>(TransactionListUiState.InitialLoading)
     val state: StateFlow<TransactionListUiState> = mutableState.asStateFlow()
@@ -55,6 +58,7 @@ class TransactionListViewModel @MainThread constructor(
 
     @MainThread
     fun refresh() {
+        if (invalidated) return
         val current = mutableState.value
         if (current is TransactionListUiState.SessionExpired) return
         if (current == TransactionListUiState.InitialLoading) return
@@ -64,9 +68,20 @@ class TransactionListViewModel @MainThread constructor(
         loadFirstPage(content)
     }
 
+    /** Creation completion requires a fresh page one even if an older initial read is pending. */
+    @MainThread
+    fun refreshAfterConfirmedCreation() {
+        if (invalidated || mutableState.value is TransactionListUiState.SessionExpired) return
+        if (!isSessionCurrent()) { invalidateSession(); return }
+        val previous = mutableState.value as? TransactionListUiState.Content
+        supersedeRequest()
+        loadFirstPage(previous)
+    }
+
     /** Only this explicit action invokes replacement. The supplier must be fast and nonblocking. */
     @MainThread
     fun restartDemoSession() {
+        if (invalidated) return
         if (mutableState.value !is TransactionListUiState.SessionExpired) return
         supersedeRequest()
         val factory = replacementFactory
@@ -152,6 +167,7 @@ class TransactionListViewModel @MainThread constructor(
     }
 
     private fun readPage(page: Int, onResult: (TransactionPageResult) -> Unit) {
+        if (invalidated || !isSessionCurrent()) { invalidateSession(); return }
         val token = generation
         val source = repository
         // Assign before starting: an immediate mock response cannot leave a stale active-job handle.
@@ -169,7 +185,9 @@ class TransactionListViewModel @MainThread constructor(
                     TransactionPageResult.Failure(TransactionFailure.Unavailable)
                 }
                 coroutineContext.ensureActive()
-                if (token == generation) onResult(result)
+                if (token == generation && !invalidated) {
+                    if (isSessionCurrent()) onResult(result) else invalidateSession()
+                }
             } finally {
                 if (token == generation) request = null
             }
@@ -178,9 +196,27 @@ class TransactionListViewModel @MainThread constructor(
         job.start()
     }
 
-    private fun expiredState() = TransactionListUiState.SessionExpired(
-        if (replacementFactory == null) DemoRestartState.Unsupported else DemoRestartState.Available,
-    )
+    private fun expiredState(): TransactionListUiState.SessionExpired {
+        if (!invalidated && isSessionCurrent()) onSessionExpired()
+        return TransactionListUiState.SessionExpired(
+            if (replacementFactory == null) DemoRestartState.Unsupported else DemoRestartState.Available,
+        )
+    }
+
+    /** Dispose financial data without changing authentication ownership or revoking sessions. */
+    fun invalidateSession() {
+        invalidated = true
+        supersedeRequest()
+        mutableState.value = TransactionListUiState.SessionExpired(DemoRestartState.Unsupported)
+    }
+
+    override fun onCleared() {
+        // AccountTransactionStore explicitly erases account data before clearing.
+        // Preserve the existing disposed-demo snapshot contract.
+        invalidated = true
+        supersedeRequest()
+        super.onCleared()
+    }
 
     private fun orderedUnique(items: List<Transaction>): List<Transaction> =
         items.distinctBy { it.transactionId }
@@ -208,11 +244,13 @@ class TransactionListViewModel @MainThread constructor(
     class Factory(
         private val repository: TransactionRepository,
         private val replacementFactory: (() -> TransactionRepository)? = null,
+        private val isSessionCurrent: () -> Boolean = { true },
+        private val onSessionExpired: () -> Unit = {},
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == TransactionListViewModel::class.java) { "Unsupported ViewModel class" }
             @Suppress("UNCHECKED_CAST")
-            return TransactionListViewModel(repository, replacementFactory) as T
+            return TransactionListViewModel(repository, replacementFactory, isSessionCurrent, onSessionExpired) as T
         }
     }
 

@@ -20,6 +20,8 @@ import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 enum class OwliSummaryRole {
     Income,
     Expense,
+    Entries,
+    TopCategory,
     Neutral,
 }
 
@@ -42,6 +44,12 @@ fun OwliSummaryCard(
         )
         OwliSummaryRole.Expense -> Triple(
             owliColors.expenseCardFill, owliColors.expenseCardLabel, owliColors.expense,
+        )
+        OwliSummaryRole.Entries -> Triple(
+            owliColors.entriesCardFill, owliColors.entriesCardLabel, owliColors.entriesCardLabel,
+        )
+        OwliSummaryRole.TopCategory -> Triple(
+            owliColors.topCategoryCardFill, owliColors.topCategoryCardLabel, owliColors.topCategoryCardLabel,
         )
         OwliSummaryRole.Neutral -> Triple(
             colors.surface, colors.onSurfaceVariant, colors.onSurface,

@@ -37,7 +37,9 @@ fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifier) {
     val date = remember(transaction.transactionDate, configuration) {
         formatTransactionDate(transaction.transactionDate)
     }
-    val amount = remember(transaction.amount) { formatPhpAmount(transaction.amount) }
+    val amount = remember(transaction.amount, transaction.currencyCode) {
+        formatTransactionAmount(transaction.amount, transaction.currencyCode)
+    }
     val income = transaction.type == TransactionType.Income
     val label = stringResource(if (income) R.string.transaction_income else R.string.transaction_expense)
     val signedAmount = stringResource(

@@ -16,7 +16,20 @@ class DashboardSummary internal constructor(
     val monthlyNetTransactionFlow: BigDecimal,
     recentTransactions: List<Transaction>,
     val recordCount: Long,
+    /** Transactions dated within [reportingMonth]. */
+    val monthlyRecordCount: Long = 0,
+    topExpenseCategories: List<DashboardCategoryTotal> = emptyList(),
 ) {
     val recentTransactions: List<Transaction> =
         Collections.unmodifiableList(ArrayList(recentTransactions))
+
+    /**
+     * Every category tied for the highest positive expense total within [reportingMonth],
+     * ordered by name then ID. Empty when the month has no positive expenses.
+     */
+    val topExpenseCategories: List<DashboardCategoryTotal> =
+        Collections.unmodifiableList(ArrayList(topExpenseCategories))
 }
+
+/** Exact reporting-month expense total for one category, grouped by category ID. */
+data class DashboardCategoryTotal(val categoryId: Int, val categoryName: String, val total: BigDecimal)

@@ -27,6 +27,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.elect3.mobdev.personalfinance.R
+import com.elect3.mobdev.personalfinance.data.auth.AuthDiagnosticEvent
+import com.elect3.mobdev.personalfinance.data.auth.AuthDiagnosticSink
+import com.elect3.mobdev.personalfinance.data.auth.NoAuthDiagnostics
+import com.elect3.mobdev.personalfinance.data.auth.BackDiagnosticSource
+import com.elect3.mobdev.personalfinance.data.auth.observeBackDispatch
 
 private enum class OwliDestination(val route: String, val label: Int, val icon: Int) {
     Dashboard("dashboard", R.string.navigation_dashboard, R.drawable.ic_dashboard),
@@ -39,6 +44,8 @@ fun OwliApp(
     dashboardContent: @Composable () -> Unit,
     transactionsContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    diagnostics: AuthDiagnosticSink = NoAuthDiagnostics,
+    diagnosticInstanceId: Int = 0,
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -46,6 +53,10 @@ fun OwliApp(
 
     fun navigateTo(destination: OwliDestination) {
         if (destination.route == navController.currentDestination?.route) return
+        if (diagnostics.enabled) diagnostics.record(when (destination) {
+            OwliDestination.Dashboard -> AuthDiagnosticEvent.NAV_DASHBOARD_SELECTED
+            OwliDestination.Transactions -> AuthDiagnosticEvent.NAV_TRANSACTIONS_SELECTED
+        }, diagnosticInstanceId, null)
         navController.navigate(destination.route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
@@ -99,7 +110,9 @@ fun OwliApp(
                     // Register here (not beside Scaffold) so this destination owns Back.
                     // Keep the route guard while outgoing content awaits disposal.
                     BackHandler(enabled = selectedRoute == OwliDestination.Transactions.route) {
-                        navigateTo(OwliDestination.Dashboard)
+                        observeBackDispatch(diagnostics, diagnosticInstanceId, BackDiagnosticSource.TRANSACTIONS) {
+                            navigateTo(OwliDestination.Dashboard)
+                        }
                     }
                 }
             }

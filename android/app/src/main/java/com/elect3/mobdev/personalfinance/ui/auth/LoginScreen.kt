@@ -122,6 +122,7 @@ fun LoginScreen(
                                 Spacer(Modifier.width(10.dp))
                             }
                             Text(stringResource(when {
+                                state.isLoggingOut -> R.string.auth_signing_out
                                 state.isLoading -> R.string.auth_signing_in
                                 state.isSignedIn -> R.string.auth_signed_in
                                 else -> R.string.auth_sign_in

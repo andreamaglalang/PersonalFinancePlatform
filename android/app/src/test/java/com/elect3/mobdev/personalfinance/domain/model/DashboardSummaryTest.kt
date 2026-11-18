@@ -17,4 +17,21 @@ class DashboardSummaryTest {
             (summary.recentTransactions as MutableList<Transaction>).clear()
         }
     }
+
+    @Test fun newMonthlyFieldsDefaultSafelyAndTopCategoriesAreDefensivelyCopied() {
+        val defaults = DashboardSummary("PHP", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+            YearMonth.of(2026, 11), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, emptyList(), 0)
+        assertEquals(0L, defaults.monthlyRecordCount)
+        assertTrue(defaults.topExpenseCategories.isEmpty())
+
+        val source = mutableListOf(DashboardCategoryTotal(7, "Groceries", BigDecimal("10.00")))
+        val summary = DashboardSummary("PHP", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+            YearMonth.of(2026, 11), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, emptyList(), 1,
+            monthlyRecordCount = 1, topExpenseCategories = source)
+        source.clear()
+        assertEquals(1, summary.topExpenseCategories.size)
+        assertThrows(UnsupportedOperationException::class.java) {
+            (summary.topExpenseCategories as MutableList<DashboardCategoryTotal>).clear()
+        }
+    }
 }
