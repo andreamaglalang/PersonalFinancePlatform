@@ -54,6 +54,16 @@ builder.Services.AddHttpClient<BudgetApiClient>((provider, http) =>
     AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
 }).RemoveAllLoggers();
 builder.Services.AddSingleton<AdminSessionStore>();
+builder.Services.AddHttpClient<ReportsApiClient>((provider, http) =>
+{
+    http.BaseAddress = new Uri(provider.GetRequiredService<IOptions<BackendApiOptions>>().Value.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(10);
+    http.MaxResponseContentBufferSize = 1024 * 1024;
+    http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+}).RemoveAllLoggers();
 builder.Services.AddScoped<AuthenticationCoordinator>();
 builder.Services.AddScoped<AdminCookieEvents>();
 builder.Services.AddAuthentication(AdminSessionStore.Scheme)

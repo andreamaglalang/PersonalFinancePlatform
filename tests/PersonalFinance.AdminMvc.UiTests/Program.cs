@@ -42,6 +42,7 @@ Check(account.GetMethod(nameof(AccountController.Logout))!.IsDefined(typeof(Vali
     "Sign-out requires antiforgery.");
 
 Console.WriteLine("PASS: page-local category filtering and sorting, pagination, input validation, Administrator and antiforgery metadata.");
+await ReportsChecks.RunAsync();
 
 sealed class PageFixture : ICategoryManagementService
 {

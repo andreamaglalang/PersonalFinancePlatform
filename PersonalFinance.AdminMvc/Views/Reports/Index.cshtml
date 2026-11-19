@@ -4,11 +4,14 @@
 }
 <div class="reports">
     <header class="reports-header">
-        <h1>Financial Reports</h1>
+        <div>
+            <h1>Financial Reports</h1>
+            <p class="muted">Signed-in account</p>
+        </div>
         <form asp-controller="Reports" asp-action="Index" method="get" class="reports-filter" data-busy="Applying month…">
             <div>
                 <label for="report-month">Report month (YYYY-MM)</label>
-                <input id="report-month" name="month" type="month" value="@Model.Month"
+                <input id="report-month" name="month" type="month" min="2000-01" max="9998-12" value="@Model.Month"
                        aria-invalid="@(Model.MonthError is not null ? "true" : null)"
                        aria-describedby="@(Model.MonthError is not null ? "report-month-error" : null)" required />
             </div>
@@ -19,30 +22,83 @@
     {
         <p id="report-month-error" class="notice" role="alert">@Model.MonthError</p>
     }
-    <p id="report-availability" class="reports-notice" role="status">Report data unavailable until backend integration.</p>
-
-    <section class="card reports-summary" aria-labelledby="monthly-overview" aria-describedby="report-availability">
-        <h2 id="monthly-overview">Monthly overview</h2>
-        <dl class="reports-metrics">
-            <div><dt>Monthly income</dt><dd>Unavailable</dd></div>
-            <div><dt>Monthly expenses</dt><dd>Unavailable</dd></div>
-            <div><dt>Net balance</dt><dd>Unavailable</dd></div>
-            <div><dt>Transaction counts</dt><dd>Unavailable</dd></div>
-        </dl>
-    </section>
-
-    <div class="reports-details">
-        <section class="card" aria-labelledby="report-savings">
-            <h2 id="report-savings">Savings contributions</h2>
-            <p>Unavailable</p>
+    @if (Model.ReportError is not null)
+    {
+        <p class="reports-notice" role="alert">@Model.ReportError</p>
+    }
+    @if (Model.Report is { } report)
+    {
+        <section class="card reports-summary" aria-labelledby="monthly-overview">
+            <h2 id="monthly-overview">Monthly overview</h2>
+            @if (report.TransactionCount == 0 && report.SavingsContributed == 0 && report.Budgets.Count == 0)
+            {
+                <p>No transactions, savings contributions, or budgets for this month.</p>
+            }
+            <dl class="reports-metrics">
+                <div><dt>Monthly income</dt><dd>@report.TotalIncome.ToString("N2") @report.BaseCurrency</dd></div>
+                <div><dt>Monthly expenses</dt><dd>@report.TotalExpenses.ToString("N2") @report.BaseCurrency</dd></div>
+                <div><dt>Net cash flow</dt><dd>@report.NetCashFlow.ToString("N2") @report.BaseCurrency</dd></div>
+                <div><dt>Transaction count</dt><dd>@report.TransactionCount.ToString("N0")</dd></div>
+                <div><dt>Savings contributions</dt><dd>@report.SavingsContributed.ToString("N2") @report.BaseCurrency</dd></div>
+            </dl>
         </section>
-        <section class="card" aria-labelledby="report-categories">
-            <h2 id="report-categories">Category breakdown</h2>
-            <p>Unavailable</p>
-        </section>
-        <section class="card" aria-labelledby="report-budgets">
+
+        <div class="reports-details">
+            @foreach (var breakdown in new[] { (Kind: "Income", Rows: report.IncomeByCategory), (Kind: "Expense", Rows: report.ExpenseByCategory) })
+            {
+                var heading = "report-" + breakdown.Kind.ToLowerInvariant();
+                <section class="card" aria-labelledby="@heading">
+                    <h2 id="@heading">@breakdown.Kind by category</h2>
+                    @if (breakdown.Rows.Count == 0)
+                    {
+                        <p>No @breakdown.Kind.ToLowerInvariant() transactions this month.</p>
+                    }
+                    else
+                    {
+                        <div class="table-scroll" role="region" aria-labelledby="@heading" tabindex="0">
+                            <table>
+                                <thead><tr><th scope="col">Category</th><th scope="col">Total (@report.BaseCurrency)</th><th scope="col">Transactions</th></tr></thead>
+                                <tbody>
+                                @foreach (var row in breakdown.Rows)
+                                {
+                                    <tr><th scope="row">@row.CategoryName</th><td>@row.Total.ToString("N2")</td><td>@row.TransactionCount.ToString("N0")</td></tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+
+        <section class="card category-list" aria-labelledby="report-budgets">
             <h2 id="report-budgets">Budget information and status</h2>
-            <p>Unavailable</p>
+            @if (report.Budgets.Count == 0)
+            {
+                <p>No budgets for this month.</p>
+            }
+            else
+            {
+                <div class="table-scroll" role="region" aria-labelledby="report-budgets" tabindex="0">
+                    <table>
+                        <thead><tr><th scope="col">Category</th><th scope="col">Limit (@report.BaseCurrency)</th><th scope="col">Spent</th><th scope="col">Remaining</th><th scope="col">Alert threshold</th><th scope="col">Status</th></tr></thead>
+                        <tbody>
+                        @foreach (var budget in report.Budgets)
+                        {
+                            var statusClass = budget.Status switch { "OK" => "category-state-active", "Warning" => "status-warning", _ => "status-exceeded" };
+                            <tr>
+                                <th scope="row">@budget.CategoryName @(budget.IsCategoryActive ? "" : "(inactive)")</th>
+                                <td>@budget.LimitAmount.ToString("N2")</td>
+                                <td>@budget.SpentAmount.ToString("N2")</td>
+                                <td>@budget.RemainingAmount.ToString("N2")</td>
+                                <td>@(budget.AlertThresholdPct)%</td>
+                                <td><span class="category-state @statusClass">@budget.Status</span></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </section>
-    </div>
+    }
 </div>

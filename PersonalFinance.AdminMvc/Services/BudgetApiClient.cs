@@ -52,7 +52,7 @@ public sealed class BudgetApiClient(HttpClient http)
 
     private static string Route(int id) => "api/budgets/" + id.ToString(CultureInfo.InvariantCulture);
 
-    private static bool Valid(BudgetResponse? budget) => budget is
+    internal static bool Valid(BudgetResponse? budget) => budget is
     {
         BudgetId: > 0, CategoryId: > 0, PeriodMonth.Day: 1, LimitAmount: > 0, AlertThresholdPct: >= 1 and <= 100,
         Status: "OK" or "Warning" or "Exceeded", BaseCurrency.Length: 3
