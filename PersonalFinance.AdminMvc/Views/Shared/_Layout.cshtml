@@ -17,7 +17,10 @@
 <body class="@(showAdministratorNavigation ? "administrator-shell" : null)">
     <a class="skip-link" href="#main">Skip to main content</a>
     <header class="topbar">
-        <a class="brand" asp-controller="Dashboard" asp-action="Index">OWLI <span>Administrator</span></a>
+        <a class="brand" asp-controller="Dashboard" asp-action="Index">
+            <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
+            <span class="brand-name">OWLI <small>Administrator</small></span>
+        </a>
         @if (showAdministratorNavigation)
         {
             <nav aria-label="Administrator navigation">

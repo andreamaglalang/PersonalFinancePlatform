@@ -8,7 +8,7 @@
 
 :root {
     color-scheme: light;
-    font-family: system-ui, "Segoe UI", sans-serif;
+    font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", sans-serif;
     --page: #f7f4fc;
     --surface: #fff;
     --field: #f6f2fc;
@@ -30,8 +30,20 @@
 body { margin: 0; line-height: 1.6; }
 a { color: var(--ink); text-underline-offset: .2em; }
 .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem max(5%, 1rem); }
-.brand { text-decoration: none; font-size: 1.6rem; font-weight: 800; letter-spacing: .06em; }
-.brand span { color: var(--muted); font-size: .85rem; font-weight: 500; letter-spacing: normal; margin-left: .5rem; }
+.brand { display: inline-flex; align-items: center; gap: .75rem; text-decoration: none; }
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: none;
+    border-radius: .75rem;
+    background: var(--accent-soft);
+    color: var(--ink);
+}
+.brand-mark svg { width: 1.375rem; height: 1.375rem; }
+.brand-name { font-size: 1.125rem; font-weight: 800; letter-spacing: .14em; line-height: 1.2; }
+.brand-name small { display: block; margin-top: .25rem; color: var(--muted); font-size: .75rem; letter-spacing: normal; }
 .administrator-shell {
     display: grid;
     grid-template-columns: 16.5rem minmax(0, 1fr);
@@ -48,7 +60,6 @@ a { color: var(--ink); text-underline-offset: .2em; }
     border-bottom: 0;
 }
 .administrator-shell .brand { align-self: flex-start; margin-inline: .875rem; }
-.administrator-shell .brand span { display: block; margin-left: 0; }
 .topbar nav { display: flex; flex: 1; flex-direction: column; gap: .375rem; }
 .topbar nav form { margin: auto 0 0; padding-top: 1rem; border-top: 1px solid var(--border); }
 .topbar nav button { width: 100%; text-align: left; }
@@ -83,6 +94,9 @@ main { width: min(1050px, 92%); margin: 3rem auto; min-height: 65vh; }
     padding: 0;
 }
 .login-branding {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: grid;
     place-content: center;
     justify-items: center;
@@ -93,6 +107,44 @@ main { width: min(1050px, 92%); margin: 3rem auto; min-height: 65vh; }
     color: var(--panel-text);
     text-align: center;
 }
+.login-branding::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 17% 18%, #f4efff 1px, transparent 2px),
+        radial-gradient(circle at 33% 12%, #bdb1e3 1px, transparent 2px),
+        radial-gradient(circle at 29% 57%, #bdb1e3 1px, transparent 2px),
+        radial-gradient(circle at 12% 75%, #bdb1e3 1px, transparent 2px),
+        radial-gradient(circle at 29% 87%, #f4efff 1px, transparent 2px),
+        radial-gradient(circle at 62% 14%, #f4efff 1px, transparent 2px),
+        radial-gradient(circle at 77% 36%, #bdb1e3 1px, transparent 2px),
+        radial-gradient(circle at 88% 64%, #f4efff 1px, transparent 2px),
+        radial-gradient(circle at 70% 86%, #bdb1e3 1px, transparent 2px);
+    opacity: .65;
+}
+.login-moon {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    box-shadow: -.4rem .25rem 0 0 var(--panel-text);
+    opacity: .85;
+}
+.login-crest {
+    display: grid;
+    place-items: center;
+    width: clamp(4.25rem, 12vw, 6rem);
+    aspect-ratio: 1;
+    border: 1px solid rgb(244 239 255 / .32);
+    border-radius: 50%;
+    background: rgb(244 239 255 / .08);
+}
+.login-crest svg { width: 54%; height: 54%; }
 .login-branding p { margin: 0; }
 .login-wordmark { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; letter-spacing: .24em; }
 .login-branding .eyebrow { margin-top: .75rem; padding: .35rem .75rem; border: 1px solid; border-radius: 999px; }
@@ -123,15 +175,12 @@ button.secondary { background: var(--accent-soft); color: var(--ink); }
 .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .feature-card { padding: clamp(1.25rem, 3vw, 2rem); min-width: 0; }
 .feature-card h3 { margin: .75rem 0; font-size: 1.25rem; }
-.feature-card p:last-child, .dashboard-information p:last-child { margin-bottom: 0; }
-.availability-label { margin: 0; color: var(--muted); font-size: .8rem; font-weight: 600; }
-.dashboard-information { background: var(--accent-soft); border-left: 4px solid var(--accent); }
-.dashboard-information h2 { margin-top: 0; }
 @media (max-width: 800px) {
     .administrator-shell { display: block; }
     .administrator-shell .topbar { gap: .75rem; border-right: 0; border-bottom: 1px solid var(--border); }
-    .administrator-shell .brand span { display: inline; margin-left: .5rem; }
-    .topbar nav form { margin-top: .375rem; padding-top: .75rem; }
+    .topbar nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .topbar nav form { grid-column: 1 / -1; margin-top: .375rem; padding-top: .75rem; }
+    .nav-link[aria-current="page"]::before { inset-inline-start: 0; }
 }
 @media (max-width: 640px) {
     .login { grid-template-columns: minmax(0, 1fr); }
@@ -190,7 +239,6 @@ th, td { border-bottom: 1px solid var(--border); padding: .8rem; overflow-wrap: 
 .reports {
     display: grid;
     gap: 1.25rem;
-    font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", sans-serif;
 }
 .reports-header, .reports-filter {
     display: flex;
