@@ -286,5 +286,7 @@ await BudgetTests.RunAsync(Check);
 await SavingsGoalTests.RunAsync(Check);
 await BillPaymentTests.RunAsync(Check);
 await ReportsOnlyTests.RunAsync(Check);
+await RecurringBillReportJobTests.RunAsync(Check);
+await NotificationDevJobTests.RunAsync(Check);
 Console.WriteLine($"Finance checks: {passed} passed, {failed} failed. In-memory EF + actual JWT/MVC; SQL Server locking/constraints NOT executed.");
 return failed==0?0:1;
