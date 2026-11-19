@@ -1,10 +1,22 @@
 @model DashboardViewModel
 @{ ViewData["Title"] = "Administrator Dashboard"; }
-<section class="card dashboard-welcome" aria-labelledby="dashboard-title">
-    <p class="eyebrow">OWLI administration</p>
-    <h1 id="dashboard-title">Administrator Dashboard</h1>
+<header class="page-heading">
     <p class="welcome-name">Welcome, @Model.AdministratorDisplayName.</p>
-    <p class="role-label">Role: @Model.AdministratorRoleLabel</p>
+    <h1>Dashboard</h1>
+</header>
+<section class="card dashboard-welcome" aria-labelledby="dashboard-categories">
+    <h2 id="dashboard-categories">Default categories overview</h2>
+    <p>The API does not provide totals or a status breakdown for shared default categories.</p>
+    <dl class="reports-metrics">
+        <div><dt>Total defaults</dt><dd>Unavailable</dd></div>
+        <div><dt>Income / expense breakdown</dt><dd>Unavailable</dd></div>
+        <div><dt>Inactive defaults</dt><dd>Unavailable</dd></div>
+    </dl>
+    <div class="dashboard-category-links">
+        <a asp-controller="Categories" asp-action="Index">Browse default categories</a>
+        <a asp-controller="Categories" asp-action="Index" asp-route-state="inactive">Browse inactive defaults page by page</a>
+        <a asp-controller="Categories" asp-action="Create" data-form-dialog="Create shared default category">Create category</a>
+    </div>
 </section>
 
 <section class="dashboard-features" aria-labelledby="features-title">

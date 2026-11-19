@@ -1,10 +1,15 @@
 @{
-    var isDashboard = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Dashboard", StringComparison.OrdinalIgnoreCase)
-        && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
-    var isCategories = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Categories", StringComparison.OrdinalIgnoreCase);
-    var isBudgets = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Budgets", StringComparison.OrdinalIgnoreCase);
-    var isReports = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Reports", StringComparison.OrdinalIgnoreCase);
-    var showAdministratorNavigation = User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator");
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var sidebarIcon = "sidebar";
+    var authenticated = User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator");
+    var page = new (string Controller, string Label, string Icon)[]
+    {
+        ("Dashboard", "Dashboard", "dashboard"), ("Categories", "Default Categories", "tag"),
+        ("Budgets", "Budget Administration", "budget"), ("Reports", "Financial Reports", "report"),
+        ("Account", "Account", "account")
+    };
+    var current = page.FirstOrDefault(item => string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase));
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -12,32 +17,79 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] — OWLI Administrator</title>
+    <script src="~/js/owli-ui.js" asp-append-version="true"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="@(showAdministratorNavigation ? "administrator-shell" : null)">
+<body class="@(authenticated ? "administrator-shell" : null)">
     <a class="skip-link" href="#main">Skip to main content</a>
-    <header class="topbar">
-        <a class="brand" asp-controller="Dashboard" asp-action="Index">
-            <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
-            <span class="brand-name">OWLI <small>Administrator</small></span>
-        </a>
-        @if (showAdministratorNavigation)
+    <aside class="topbar" id="sidebar-slot">
+        <div id="sidebar-content">
+            <a class="brand" asp-controller="Dashboard" asp-action="Index">
+                <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
+                <span class="brand-name">OWLI <small>Administrator</small></span>
+            </a>
+            @if (authenticated)
+            {
+                <nav id="administrator-nav" aria-label="Administrator navigation">
+                    @foreach (var item in page)
+                    {
+                        <a asp-controller="@item.Controller" asp-action="Index" class="nav-link" title="@item.Label"
+                           aria-current="@(current.Controller == item.Controller ? (action == "Index" ? "page" : "location") : null)">
+                            <partial name="_NavIcon" model="item.Icon" /><span class="nav-label">@item.Label</span>
+                        </a>
+                    }
+                </nav>
+                <button type="button" class="secondary sidebar-toggle" data-sidebar-toggle aria-controls="administrator-nav"
+                        aria-expanded="true" aria-label="Collapse sidebar" title="Collapse sidebar" hidden>
+                    <partial name="_NavIcon" model="sidebarIcon" /><span class="nav-label">Collapse sidebar</span>
+                </button>
+            }
+        </div>
+        @if (!authenticated)
         {
-            <nav aria-label="Administrator navigation">
-                <a asp-controller="Dashboard" asp-action="Index" class="nav-link"
-                   aria-current="@(isDashboard ? "page" : null)">Dashboard</a>
-                <a asp-controller="Budgets" asp-action="Index" class="nav-link"
-                   aria-current="@(isBudgets ? "page" : null)">Budget Administration</a>
-                <a asp-controller="Categories" asp-action="Index" class="nav-link"
-                   aria-current="@(isCategories ? "page" : null)">Default categories</a>
-                <a asp-controller="Reports" asp-action="Index" class="nav-link"
-                   aria-current="@(isReports ? "page" : null)">Financial Reports</a>
-                <form asp-controller="Account" asp-action="Logout" method="post">
-                    <button type="submit" class="secondary">Sign out</button>
-                </form>
-            </nav>
+            <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>Dark theme</button>
         }
-    </header>
+    </aside>
+    @if (authenticated)
+    {
+        <header class="workspace-bar">
+            <button type="button" class="secondary drawer-toggle" data-drawer-open aria-expanded="false" aria-controls="navigation-drawer" hidden>Menu</button>
+            <nav aria-label="Breadcrumb" class="breadcrumbs">
+                <a asp-controller="Dashboard" asp-action="Index">Administrator</a>
+                <span aria-hidden="true">›</span>
+                @if (action != "Index" && current.Controller is not null)
+                {
+                    <a asp-controller="@current.Controller" asp-action="Index">@current.Label</a>
+                    <span aria-hidden="true">›</span>
+                }
+                <span aria-current="page">@(action == "Index" ? current.Label : ViewData["Title"])</span>
+            </nav>
+            <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>Dark theme</button>
+            <details class="account-menu">
+                <summary><span class="brand-mark"><partial name="_OwlMark" /></span><span>Account</span></summary>
+                <div class="account-menu-content">
+                    <a asp-controller="Account" asp-action="Index">Administrator Account</a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…">
+                        <button type="submit" class="secondary">Sign out</button>
+                    </form>
+                </div>
+            </details>
+        </header>
+        <dialog id="navigation-drawer" class="navigation-drawer" aria-labelledby="drawer-title">
+            <div class="dialog-header">
+                <h2 id="drawer-title">Navigation</h2>
+                <button type="button" class="secondary" data-dialog-close autofocus>Close</button>
+            </div>
+            <div data-drawer-content></div>
+        </dialog>
+        <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-dialog-title">
+            <div class="dialog-header">
+                <h2 id="form-dialog-title" data-dialog-title>Administrator action</h2>
+                <button type="button" class="secondary" data-dialog-close autofocus>Close</button>
+            </div>
+            <div data-dialog-content></div>
+        </dialog>
+    }
     <main id="main" tabindex="-1">@RenderBody()</main>
     <footer>OWLI — Your Wise Money Companion</footer>
 </body>

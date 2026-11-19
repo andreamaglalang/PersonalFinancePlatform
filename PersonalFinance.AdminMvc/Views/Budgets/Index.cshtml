@@ -3,10 +3,16 @@
     ViewData["Title"] = "Budget Administration";
 }
 <section class="card category-list">
-    <h1>Budget Administration</h1>
+    <header class="category-heading">
+        <h1>Budget Administration</h1>
+        <a class="button-link" asp-action="Create" data-form-dialog="Create budget">Create budget</a>
+    </header>
     <p>View and manage monthly budgets for the signed-in account.</p>
-    <a class="button-link" asp-action="Create">Create budget</a>
-    <form asp-action="Index" method="get" class="category-filters">
+    @if (TempData["BudgetNotice"] is string notice)
+    {
+        <p class="success-notice" role="status">@notice</p>
+    }
+    <form asp-action="Index" method="get" class="category-filters" data-busy="Loading budgets…">
         <div>
             <label asp-for="Month">Month (YYYY-MM)</label>
             <input asp-for="Month" type="month" />
@@ -41,10 +47,12 @@
                             <td>@budget.SpentAmount.ToString("N2") @budget.BaseCurrency</td>
                             <td>@budget.RemainingAmount.ToString("N2") @budget.BaseCurrency</td>
                             <td>@(budget.AlertThresholdPct)%</td>
-                            <td>@budget.Status</td>
+                            <td><span class="category-state @(budget.Status switch { "OK" => "category-state-active", "Warning" => "status-warning", _ => "status-exceeded" })">@budget.Status</span></td>
                             <td>
-                                <a asp-action="Edit" asp-route-id="@budget.BudgetId" aria-label="Edit budget for @budget.CategoryName">Edit</a>
-                                <a asp-action="Delete" asp-route-id="@budget.BudgetId" aria-label="Delete budget for @budget.CategoryName">Delete</a>
+                                <div class="table-actions">
+                                    <a asp-action="Edit" asp-route-id="@budget.BudgetId" aria-label="Edit budget for @budget.CategoryName" data-form-dialog="Edit budget">Edit</a>
+                                    <a asp-action="Delete" asp-route-id="@budget.BudgetId" aria-label="Delete budget for @budget.CategoryName" data-form-dialog="Delete budget">Delete</a>
+                                </div>
                             </td>
                         </tr>
                     }

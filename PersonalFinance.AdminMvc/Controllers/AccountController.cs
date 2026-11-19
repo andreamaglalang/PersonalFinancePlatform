@@ -11,6 +11,9 @@ namespace PersonalFinance.AdminMvc.Controllers;
 
 public sealed class AccountController(AuthenticationCoordinator coordinator) : Controller
 {
+    [HttpGet, Authorize(Policy = "Administrator")]
+    public IActionResult Index() => View();
+
     [AllowAnonymous, HttpGet]
     public IActionResult Login(string? returnUrl, bool unavailable = false) =>
         AuthenticatedLoginResult() ?? View(new LoginViewModel

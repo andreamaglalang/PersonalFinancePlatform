@@ -2,10 +2,10 @@
 @{
     ViewData["Title"] = "Delete budget";
 }
-<section class="card category-form">
+<section class="card category-form" data-dialog-panel>
     <h1>Delete budget</h1>
     <p>Delete the @Model.CategoryName budget for @Model.PeriodMonth.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)?</p>
-    <form asp-action="Delete" asp-route-id="@Model.BudgetId" method="post">
-        <div class="form-actions"><button type="submit">Delete budget</button><a asp-action="Index">Cancel</a></div>
+    <form asp-action="Delete" asp-route-id="@Model.BudgetId" method="post" data-busy="Deleting budget…">
+        <div class="form-actions"><button type="submit">Delete budget</button><a asp-action="Index" data-dialog-focus data-form-dialog-cancel>Cancel</a></div>
     </form>
 </section>

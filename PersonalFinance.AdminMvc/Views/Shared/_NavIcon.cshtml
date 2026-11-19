@@ -1,0 +1,25 @@
+@model string
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    @switch (Model)
+    {
+        case "dashboard":
+            <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />
+            break;
+        case "tag":
+            <path d="M3 4h8l10 10-7 7L3 10z" /><circle cx="7.5" cy="8" r="1" />
+            break;
+        case "budget":
+            <path d="M4 6h16v13H4zM4 9h16m-5 5h2m-10 0h4" />
+            break;
+        case "report":
+            <path d="M5 4h14v16H5zM9 15v2m3-5v5m3-8v8" />
+            break;
+        case "account":
+            <circle cx="12" cy="8" r="3.5" /><path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+            break;
+        default:
+            <path d="M3 5h18v14H3zM9 5v14m7-10-3 3 3 3" />
+            break;
+    }
+</svg>

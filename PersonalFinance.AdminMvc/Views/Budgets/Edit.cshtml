@@ -3,12 +3,12 @@
     ViewData["Title"] = "Edit budget";
     var budget = (PersonalFinance.AdminMvc.Services.BudgetResponse)ViewData["Budget"]!;
 }
-<section class="card category-form">
+<section class="card category-form" data-dialog-panel>
     <h1>Edit budget</h1>
     <p>@budget.CategoryName · @budget.PeriodMonth.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture) · @budget.BaseCurrency</p>
-    <form asp-action="Edit" asp-route-id="@budget.BudgetId" method="post">
+    <form asp-action="Edit" asp-route-id="@budget.BudgetId" method="post" data-busy="Saving budget…">
         <div asp-validation-summary="ModelOnly" role="alert"></div>
         <partial name="_BudgetFields" model="Model" />
-        <div class="form-actions"><button type="submit">Save budget</button><a asp-action="Index">Back to budgets</a></div>
+        <div class="form-actions"><button type="submit">Save budget</button><a asp-action="Index" data-form-dialog-cancel>Cancel</a></div>
     </form>
 </section>

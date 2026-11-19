@@ -1,0 +1,30 @@
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Administrator Account";
+    var email = User.FindFirstValue(ClaimTypes.Email);
+}
+<header class="page-heading"><h1>Administrator Account</h1></header>
+<div class="account-grid">
+    <section class="card compact-card">
+        <h2>Profile</h2>
+        <dl class="profile-facts">
+            <div><dt>Name</dt><dd>@(string.IsNullOrWhiteSpace(User.Identity?.Name) ? "Unavailable" : User.Identity.Name)</dd></div>
+            <div><dt>Email</dt><dd>@(string.IsNullOrWhiteSpace(email) ? "Unavailable in this session" : email)</dd></div>
+            <div><dt>Role</dt><dd><span class="role-label">Administrator</span></dd></div>
+        </dl>
+    </section>
+    <section class="card compact-card">
+        <h2>Appearance</h2>
+        <div class="theme-options" role="group" aria-label="Appearance">
+            <button type="button" class="secondary" data-theme-choice="light" aria-pressed="true" hidden>Light</button>
+            <button type="button" class="secondary" data-theme-choice="dark" aria-pressed="false" hidden>Dark</button>
+        </div>
+        <noscript><p>Theme controls require JavaScript.</p></noscript>
+    </section>
+    <section class="card compact-card">
+        <h2>Session</h2>
+        <form asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…">
+            <button type="submit" class="secondary">Sign out</button>
+        </form>
+    </section>
+</div>

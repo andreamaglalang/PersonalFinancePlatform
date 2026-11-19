@@ -16,12 +16,30 @@ public sealed class CategoriesController(ICategoryManagementService categories) 
         if ((long)(query.Page - 1) * query.PageSize > int.MaxValue) ModelState.AddModelError("Page", "API page is out of range.");
         if (!ModelState.IsValid)
         {
-            query.Error = "Choose Income or Expense, an API page of at least 1, and a page size from 1 to 100.";
+            query.Error = "Check the filters. Use a search of up to 50 characters and an API page size from 1 to 100.";
             Response.StatusCode = 400;
             return View(query);
         }
         var result = await categories.ListAsync(query, ct);
-        if (result.Succeeded) return View(result.Value);
+        if (result.Succeeded)
+        {
+            var model = result.Value!;
+            model.Search = query.Search;
+            model.State = query.State;
+            model.Sort = query.Sort;
+            var rows = model.Categories.Where(row =>
+                (query.Search is null || row.Name.Contains(query.Search.Trim(), StringComparison.OrdinalIgnoreCase))
+                && (query.State is null || row.IsActive == (query.State == "active")));
+            var byName = StringComparer.CurrentCultureIgnoreCase;
+            model.Categories = (query.Sort switch
+            {
+                "name-desc" => rows.OrderByDescending(row => row.Name, byName),
+                "type" => rows.OrderBy(row => row.Type).ThenBy(row => row.Name, byName),
+                "state" => rows.OrderByDescending(row => row.IsActive).ThenBy(row => row.Name, byName),
+                _ => rows.OrderBy(row => row.Name, byName)
+            }).ToArray();
+            return View(model);
+        }
         if (SecurityResult(result.Failure) is { } security) return security;
         query.Error = Message(result.Failure);
         Response.StatusCode = Status(result.Failure);
@@ -36,7 +54,11 @@ public sealed class CategoriesController(ICategoryManagementService categories) 
     {
         if (!ModelState.IsValid) { Response.StatusCode = 400; return View(model); }
         var result = await categories.CreateAsync(model, ct);
-        if (result.Succeeded) return RedirectToAction(nameof(Edit), new { id = result.Value!.CategoryId });
+        if (result.Succeeded)
+        {
+            TempData["CategoryNotice"] = "Shared category created.";
+            return RedirectToAction(nameof(Edit), new { id = result.Value!.CategoryId });
+        }
         if (SecurityResult(result.Failure) is { } security) return security;
         ModelState.AddModelError(string.Empty, Message(result.Failure, mutation: true));
         Response.StatusCode = Status(result.Failure);
@@ -62,7 +84,11 @@ public sealed class CategoriesController(ICategoryManagementService categories) 
         if (ModelState.IsValid)
         {
             var result = await categories.UpdateAsync(id, model, ct);
-            if (result.Succeeded) return RedirectToAction(nameof(Edit), new { id });
+            if (result.Succeeded)
+            {
+                TempData["CategoryNotice"] = "Shared category saved.";
+                return RedirectToAction(nameof(Edit), new { id });
+            }
             if (SecurityResult(result.Failure) is { } security) return security;
             if (result.Failure is CategoryFailure.Unavailable or CategoryFailure.InvalidResponse)
                 uncertainUpdateWarning = "The update may have succeeded. Reload and check the category before another attempt; no automatic retry was made.";
@@ -84,6 +110,7 @@ public sealed class CategoriesController(ICategoryManagementService categories) 
             return View("Error", uncertainUpdateWarning is null ? readError : uncertainUpdateWarning + " " + readError);
         }
         model.CurrentType = current.Value!.CurrentType;
+        model.CurrentIsActive = current.Value.CurrentIsActive;
         return View(model);
     }
 

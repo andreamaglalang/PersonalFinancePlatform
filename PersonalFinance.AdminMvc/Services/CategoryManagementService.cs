@@ -45,7 +45,8 @@ public sealed class CategoryManagementService(ICategoryApiClient api, AdminSessi
             var snapshot = new EditSnapshot(id, category.Name, category.Type, category.ColorHEX, category.IsActive, DateTimeOffset.UtcNow);
             return CategoryResult<CategoryEditViewModel>.Success(new()
             {
-                Name = category.Name, CurrentType = category.Type, ColorHEX = category.ColorHEX, IsActive = category.IsActive,
+                Name = category.Name, CurrentType = category.Type, ColorHEX = category.ColorHEX,
+                IsActive = category.IsActive, CurrentIsActive = category.IsActive,
                 OriginalState = Protector(session).Protect(JsonSerializer.Serialize(snapshot))
             });
         }, ct);

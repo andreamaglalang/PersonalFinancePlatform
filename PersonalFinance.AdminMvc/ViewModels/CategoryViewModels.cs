@@ -9,6 +9,9 @@ public sealed class CategoryIndexViewModel
     [RegularExpression("^(Income|Expense)$")] public string? Type { get; set; }
     [Range(1, int.MaxValue)] public int Page { get; set; } = 1;
     [Range(1, 100)] public int PageSize { get; set; } = 50;
+    [StringLength(50)] public string? Search { get; set; }
+    [RegularExpression("^(active|inactive)$")] public string? State { get; set; }
+    [RegularExpression("^(name|name-desc|type|state)$")] public string? Sort { get; set; }
     public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
     public bool HasPrevious => Page > 1;
     public bool HasNext { get; set; }
@@ -34,4 +37,5 @@ public sealed class CategoryEditViewModel
     // Protected nonsecret category snapshot, bound to this MVC session. Not an API token.
     [Required, StringLength(8192)] public string OriginalState { get; set; } = string.Empty;
     [BindNever] public string CurrentType { get; set; } = string.Empty;
+    [BindNever] public bool CurrentIsActive { get; set; }
 }

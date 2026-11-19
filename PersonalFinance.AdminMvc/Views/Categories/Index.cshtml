@@ -6,14 +6,17 @@
             <p class="eyebrow">OWLI administration</p>
             <h1 id="categories-title">Shared default categories</h1>
         </div>
-        <a class="button-link" asp-action="Create">Create shared default category</a>
+        <a class="button-link" asp-action="Create" data-form-dialog="Create shared default category">Create category</a>
     </header>
-    <p class="muted">The API paginates personal and shared categories together. This page displays only shared defaults found on the fetched API page, including inactive defaults. It is not a complete default-category inventory.</p>
-    <form asp-action="Index" method="get" class="category-filters">
+    <p class="muted">Search, status, and sorting apply to shared defaults on the current API page. The API paginates shared and personal categories together.</p>
+    <form asp-action="Index" method="get" class="category-filters" data-busy="Loading categories…">
+        <div><label asp-for="Search">Search this page</label><input asp-for="Search" type="search" maxlength="50" /></div>
         <div><label asp-for="Type">Type</label><select asp-for="Type"><option value="">All types</option><option value="Income">Income</option><option value="Expense">Expense</option></select></div>
-        <div><label asp-for="Page">Mixed API page</label><input asp-for="Page" type="number" min="1" /></div>
-        <div><label asp-for="PageSize">Mixed API page size</label><input asp-for="PageSize" type="number" min="1" max="100" /></div>
-        <button type="submit">Load API page</button>
+        <div><label asp-for="State">Status on this page</label><select asp-for="State"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+        <div><label asp-for="Sort">Sort this page</label><select asp-for="Sort"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option><option value="type">Type</option><option value="state">Active first</option></select></div>
+        <div><label asp-for="Page">API page</label><input asp-for="Page" type="number" min="1" /></div>
+        <div><label asp-for="PageSize">Page size</label><input asp-for="PageSize" type="number" min="1" max="100" /></div>
+        <button type="submit">Apply filters</button>
     </form>
     @if (Model.Error is not null)
     {
@@ -24,13 +27,13 @@
         <h2>Shared defaults on API page @Model.Page</h2>
         @if (Model.Categories.Count == 0)
         {
-            <p class="category-empty">No shared default categories on this API page.</p>
+            <p class="category-empty">No shared default categories match on this API page.</p>
         }
         else
         {
             <div class="table-scroll" tabindex="0" role="region" aria-label="Shared defaults on this API page">
                 <table><caption>Shared defaults from the current mixed API page</caption>
-                    <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Color</th><th scope="col">State</th><th scope="col">Action</th></tr></thead>
+                    <thead><tr><th scope="col" aria-sort="@(Model.Sort switch { "name-desc" => "descending", null or "name" => "ascending", _ => null })">Name</th><th scope="col" aria-sort="@(Model.Sort == "type" ? "ascending" : null)">Type</th><th scope="col">Color</th><th scope="col" aria-sort="@(Model.Sort == "state" ? "other" : null)">Status</th><th scope="col">Action</th></tr></thead>
                     <tbody>
                     @foreach (var category in Model.Categories)
                     {
@@ -39,7 +42,13 @@
                             <td>@category.Type</td>
                             <td>@(category.ColorHEX ?? "Not set")</td>
                             <td><span class="category-state @(category.IsActive ? "category-state-active" : "category-state-inactive")">@(category.IsActive ? "Active" : "Inactive")</span></td>
-                            <td><a asp-action="Edit" asp-route-id="@category.CategoryId" aria-label="Edit @category.Name">Edit</a></td>
+                            <td>
+                                <div class="table-actions">
+                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" aria-label="Edit @category.Name" data-form-dialog="Edit shared default category">Edit</a>
+                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" asp-fragment="IsActive" aria-label="Change status for @category.Name"
+                                       data-form-dialog="Change category status" data-dialog-status>Change status</a>
+                                </div>
+                            </td>
                         </tr>
                     }
                     </tbody>
@@ -48,9 +57,9 @@
         }
         <nav class="category-pagination" aria-label="Mixed API pagination">
             @if (Model.HasPrevious)
-            { <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Page="@(Model.Page - 1)" asp-route-PageSize="@Model.PageSize">Previous mixed API page</a> }
+            { <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@Model.Sort" asp-route-Page="@(Model.Page - 1)" asp-route-PageSize="@Model.PageSize">Previous page</a> }
             @if (Model.HasNext)
-            { <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Page="@(Model.Page + 1)" asp-route-PageSize="@Model.PageSize">Next mixed API page</a> }
+            { <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@Model.Sort" asp-route-Page="@(Model.Page + 1)" asp-route-PageSize="@Model.PageSize">Next page</a> }
         </nav>
         <p class="muted">A page may contain no shared defaults even when other API pages do. Pages can shift while categories are being changed. No default-only total is available.</p>
     }

@@ -2,12 +2,12 @@
 @{
     ViewData["Title"] = "Create budget";
 }
-<section class="card category-form">
+<section class="card category-form" data-dialog-panel>
     <h1>Create budget</h1>
-    <form asp-action="Create" method="post">
+    <form asp-action="Create" method="post" data-busy="Creating budget…">
         <div asp-validation-summary="ModelOnly" role="alert"></div>
         <label asp-for="CategoryId"></label>
-        <select asp-for="CategoryId" required>
+        <select asp-for="CategoryId" required data-dialog-focus>
             <option value="">Choose an active expense category</option>
             @foreach (var category in Model.Categories)
             {
@@ -25,7 +25,7 @@
         <partial name="_BudgetFields" model="Model" />
         <div class="form-actions">
             <button type="submit" disabled="@(Model.Categories.Count == 0)">Create budget</button>
-            <a asp-action="Index">Back to budgets</a>
+            <a asp-action="Index" data-form-dialog-cancel>Cancel</a>
         </div>
     </form>
 </section>

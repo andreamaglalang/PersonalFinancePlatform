@@ -49,7 +49,7 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
         {
             var request = new CreateBudgetRequest(model.CategoryId!.Value, month!.Value, model.Amount, model.AlertThresholdPct!.Value);
             var result = await InSessionAsync(token => budgets.CreateAsync(request, token, ct), ct);
-            if (result.Succeeded) return RedirectToAction(nameof(Index));
+            if (result.Succeeded) return BudgetSaved("Budget created.");
             if (SecurityResult(result.Status) is { } security) return security;
             SetWriteError(result.Status);
         }
@@ -80,7 +80,7 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
         {
             var request = new UpdateBudgetRequest(model.Amount, model.AlertThresholdPct!.Value);
             var result = await InSessionAsync(token => budgets.UpdateAsync(id, request, token, ct), ct);
-            if (result.Succeeded) return RedirectToAction(nameof(Index));
+            if (result.Succeeded) return BudgetSaved("Budget saved.");
             if (SecurityResult(result.Status) is { } security) return security;
             SetWriteError(result.Status);
         }
@@ -105,7 +105,13 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
     {
         if (id <= 0) return NotFound();
         var result = await InSessionAsync(token => budgets.DeleteAsync(id, token, ct), ct);
-        return result.Succeeded ? RedirectToAction(nameof(Index)) : FailureView(result.Status, mutation: true);
+        return result.Succeeded ? BudgetSaved("Budget deleted.") : FailureView(result.Status, mutation: true);
+    }
+
+    private IActionResult BudgetSaved(string message)
+    {
+        TempData["BudgetNotice"] = message;
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<IActionResult> CreateViewAsync(BudgetCreateViewModel model, CancellationToken ct)

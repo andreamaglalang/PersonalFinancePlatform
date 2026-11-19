@@ -1,20 +1,39 @@
 @model PersonalFinance.AdminMvc.ViewModels.CategoryEditViewModel
 @{ ViewData["Title"] = "Edit shared default category"; }
-<section class="card category-form" aria-labelledby="category-form-title">
+<section class="card category-form" aria-labelledby="category-form-title" data-dialog-panel>
     <h1 id="category-form-title">Edit shared default category</h1>
     <p>Changes affect this shared category for all users. Type stays unchanged: <strong>@Model.CurrentType</strong>.</p>
     <p class="notice">Deactivation prevents new use where the API requires an active category. Existing financial records are retained. Reactivating makes the category available again.</p>
-    <form asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]" method="post">
+    @if (TempData["CategoryNotice"] is string notice)
+    {
+        <p class="success-notice" role="status">@notice</p>
+    }
+    <form asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]" method="post"
+          data-busy="Saving category…" data-original-active="@(Model.CurrentIsActive ? "true" : "false")">
         <partial name="_ValidationSummary" />
         <input asp-for="OriginalState" type="hidden" />
-        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" />
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" data-dialog-focus />
         <span asp-validation-for="Name" id="name-error"></span>
         <label asp-for="ColorHEX"></label><input asp-for="ColorHEX" maxlength="7" placeholder="#6747C7" aria-describedby="color-help color-error" aria-invalid="@(ViewData.ModelState["ColorHEX"]?.Errors.Count > 0 ? "true" : null)" />
         <span asp-validation-for="ColorHEX" id="color-error"></span>
         <p id="color-help" class="muted">Leave blank, or use # followed by six hexadecimal digits.</p>
-        <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
+        <label class="check-label"><input asp-for="IsActive" data-category-active /> Active for all users</label>
         <label class="check-label check-warning"><input asp-for="ConfirmDeactivation" /> I confirm that changing an active shared category to inactive affects all users.</label>
         <p class="muted">The original fields are checked again before saving. Another administrator may still change the category between that check and the update: the API does not support atomic version enforcement.</p>
-        <div class="form-actions"><button type="submit">Save shared category</button><a asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]">Reload current category</a><a asp-action="Index">Back to API-page browsing</a></div>
+        <div class="form-actions"><button type="submit">Save shared category</button><a asp-action="Edit" asp-route-id="@ViewContext.RouteData.Values["id"]">Reload current category</a><a asp-action="Index" data-form-dialog-cancel>Cancel</a></div>
     </form>
+    <dialog data-confirm-activate aria-labelledby="activate-category-title">
+        <h2 id="activate-category-title">Activate this category?</h2>
+        <p>It will be available again where an active category is required.</p>
+        <form method="dialog" class="form-actions">
+            <button class="secondary" value="cancel" autofocus>Cancel</button><button value="confirm">Activate and save</button>
+        </form>
+    </dialog>
+    <dialog data-confirm-deactivate aria-labelledby="deactivate-category-title">
+        <h2 id="deactivate-category-title">Deactivate this category?</h2>
+        <p>This affects all users. Existing financial records are retained.</p>
+        <form method="dialog" class="form-actions">
+            <button class="secondary" value="cancel" autofocus>Cancel</button><button value="confirm">Deactivate and save</button>
+        </form>
+    </dialog>
 </section>

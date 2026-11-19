@@ -1,11 +1,11 @@
 @model PersonalFinance.AdminMvc.ViewModels.CategoryCreateViewModel
 @{ ViewData["Title"] = "Create shared default category"; }
-<section class="card category-form" aria-labelledby="category-form-title">
+<section class="card category-form" aria-labelledby="category-form-title" data-dialog-panel>
     <h1 id="category-form-title">Create shared default category</h1>
     <p>This creates a shared category available to all users, not a personal category.</p>
-    <form asp-action="Create" method="post">
+    <form asp-action="Create" method="post" data-busy="Creating category…">
         <partial name="_ValidationSummary" />
-        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" />
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" data-dialog-focus />
         <span asp-validation-for="Name" id="name-error"></span>
         <label asp-for="Type"></label><select asp-for="Type" aria-describedby="type-error" aria-invalid="@(ViewData.ModelState["Type"]?.Errors.Count > 0 ? "true" : null)"><option value="Income">Income</option><option value="Expense">Expense</option></select>
         <span asp-validation-for="Type" id="type-error"></span>
@@ -13,6 +13,6 @@
         <span asp-validation-for="ColorHEX" id="color-error"></span>
         <p id="color-help" class="muted">Leave blank, or use # followed by six hexadecimal digits.</p>
         <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
-        <div class="form-actions"><button type="submit">Create shared category</button><a asp-action="Index">Back to API-page browsing</a></div>
+        <div class="form-actions"><button type="submit">Create shared category</button><a asp-action="Index" data-form-dialog-cancel>Cancel</a></div>
     </form>
 </section>
