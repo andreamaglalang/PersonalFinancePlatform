@@ -1,0 +1,71 @@
+﻿[
+    {
+        "Suite":  "PersonalFinance.AdminMvc.UiTests",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS: page-local category filtering and sorting, pagination, input validation, Administrator and antiforgery metadata.",
+                        "PASS: Reports date conversion, authorization, empty and budget-only results, and malformed, HTTP and network failure handling."
+                    ]
+    },
+    {
+        "Suite":  "PersonalFinance.AdminProvisioningTests",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS Role assignment failure rolls back new user and memberships",
+                        "PASS Failure after successful assignment rolls back entire operation",
+                        "Provisioning checks: 22 passed, 0 failed. Real Identity; test transaction/store doubles. No SQL connection or console provisioning execution."
+                    ]
+    },
+    {
+        "Suite":  "PersonalFinance.ApiSecurityTests",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS Credential endpoints require HTTPS and reject query strings",
+                        "PASS Authentication endpoint rate limiting returns 429",
+                        "API security checks: 27 passed, 0 failed. Real JWT/MVC middleware; in-memory persistence; no SQL connections."
+                    ]
+    },
+    {
+        "Suite":  "PersonalFinance.AuthenticationTests",
+        "ExitCode":  0,
+        "Summary":  [
+                        "Authentication service checks: 27 passed, 0 failed.",
+                        "SQL Server transaction/lock/concurrency integration: NOT RUN (no isolated SQL test database configured).",
+                        "JWT cryptography and HTTP middleware are covered by the separate API security suite."
+                    ]
+    },
+    {
+        "Suite":  "PersonalFinance.CategoryUniquenessTests",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS Anonymous writes remain unauthorized",
+                        "PASS Unique-key translation does not blanket-handle category deletion",
+                        "Category uniqueness checks: 15 passed, 0 failed. In-memory boundary simulation/synthetic SQL errors; no SQL connection, collation or rollback certification."
+                    ]
+    },
+    {
+        "Suite":  "PersonalFinance.FinanceTests",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS Dev trigger generates last month\u0027s summary once",
+                        "PASS Dev trigger response contains only the job name and a count",
+                        "Finance checks: 397 passed, 0 failed. In-memory EF + actual JWT/MVC; SQL Server locking/constraints NOT executed."
+                    ]
+    },
+    {
+        "Suite":  "PersonalFinance.SchemaValidation",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS Current model and snapshot retain exact financial trigger metadata and disabled SQL OUTPUT",
+                        "PASS Default offline model validation made no connection-opening attempt",
+                        "Schema validation: 65 passed, 0 failed. No database connections were opened."
+                    ]
+    },
+    {
+        "Suite":  "ReportsContract",
+        "ExitCode":  0,
+        "Summary":  [
+                        "PASS: authenticated reports route, empty/populated backend DTO serialization, MVC request and nested budget deserialization (offline)."
+                    ]
+    }
+]

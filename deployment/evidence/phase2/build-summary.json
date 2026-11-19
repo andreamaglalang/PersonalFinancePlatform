@@ -1,0 +1,72 @@
+﻿[
+    {
+        "Project":  "PersonalFinance.AdminMvc",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.AdminMvc.UiTests",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.AdminProvisioningTests",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.Api",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.ApiSecurityTests",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.AuthenticationTests",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.CategoryUniquenessTests",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.FinanceTests",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "PersonalFinance.SchemaValidation",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    },
+    {
+        "Project":  "ReportsContract",
+        "Configuration":  "Release",
+        "Result":  "PASS",
+        "Warnings":  0,
+        "Errors":  0
+    }
+]

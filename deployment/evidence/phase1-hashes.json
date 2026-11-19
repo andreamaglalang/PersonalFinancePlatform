@@ -1,0 +1,32 @@
+﻿[
+    {
+        "SHA256":  "FA88E229DC600F11048CD6FFCD5BA3B714E827C0761DF81122AE3A480A6BCC76",
+        "Path":  "deployment/evidence/phase1/.gitignore",
+        "Scope":  "Local-only original archive; intentionally not published"
+    },
+    {
+        "SHA256":  "3654A55CBCF1424B1F2126265399927CF4EDA651CD17B6477043FB6AA2FA2813",
+        "Path":  "deployment/evidence/phase1/api.env.template",
+        "Scope":  "Local-only original archive; intentionally not published"
+    },
+    {
+        "SHA256":  "1F8D44291BFA76D0A16C5F1A397B109538100AB15DE43368B04B8466075C106E",
+        "Path":  "deployment/evidence/phase1/mvc.env.template",
+        "Scope":  "Local-only original archive; intentionally not published"
+    },
+    {
+        "SHA256":  "110C6ABD3137F0B778FB7008FCB169D393FE6C9A3F7519E6DAB040DED77D496B",
+        "Path":  "deployment/evidence/phase1/Publish-OWLI.ps1",
+        "Scope":  "Local-only original archive; intentionally not published"
+    },
+    {
+        "SHA256":  "D09303D8F69B2D4EB81C836C5A889B6B7DB7D4325CD657AAA1D331C2229E3086",
+        "Path":  "deployment/evidence/phase1/README.md",
+        "Scope":  "Local-only original archive; intentionally not published"
+    },
+    {
+        "SHA256":  "A45B3AD646F61832562F3D6165212383562A9432F6E9D073E3DD8A5F58C4A492",
+        "Path":  "deployment/evidence/phase1/VALIDATION.md",
+        "Scope":  "Local-only original archive; intentionally not published"
+    }
+]

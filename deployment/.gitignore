@@ -1,0 +1,6 @@
+﻿out/
+out-phase2/
+*.env
+*.log
+# Preserve byte-exact Phase 1 originals locally; do not publish machine details.
+evidence/phase1/

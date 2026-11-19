@@ -1,0 +1,1154 @@
+﻿[
+    {
+        "SHA256":  "0CC5B681126037E3F3CAFC8A4DAA2DB92BC783A92F92A08E969F8275B1E20468",
+        "Path":  "deployment\\out-phase2\\api\\appsettings.json"
+    },
+    {
+        "SHA256":  "F87221287BDE26EAC8B932DA37DB8A9ED2998E1E0559408585A48339A625D938",
+        "Path":  "deployment\\out-phase2\\api\\Azure.Core.dll"
+    },
+    {
+        "SHA256":  "C2D572E9BE14A4D686C18D8DA6EF548503C2817B76A5ADA742D641F3A7CF5831",
+        "Path":  "deployment\\out-phase2\\api\\Azure.Identity.dll"
+    },
+    {
+        "SHA256":  "84057536D4CCB721501CCB6D9C4F01A1A41A1CCE698FD20B298D1C570D51AB95",
+        "Path":  "deployment\\out-phase2\\api\\Hangfire.Core.dll"
+    },
+    {
+        "SHA256":  "8B10EADA0471B47A9D6F9486DD850BEB0349EE08850E99C9E0DC8C3508F98AC0",
+        "Path":  "deployment\\out-phase2\\api\\Hangfire.NetCore.dll"
+    },
+    {
+        "SHA256":  "E05907C65EDEB210F108DF8B14BEA3EC1067CF72B33F67FAAC6D1DCA85C0CDE1",
+        "Path":  "deployment\\out-phase2\\api\\Hangfire.SqlServer.dll"
+    },
+    {
+        "SHA256":  "6AA38A3D01CC3E9BFD6EE5CC7C882F4D0399CFB807E52F19FF458F355A31851B",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.AspNetCore.Authentication.JwtBearer.dll"
+    },
+    {
+        "SHA256":  "7C4D1A714AA878935A99C33A5DF24DD1854A5577E55D4632E63E1F15D7E55FBF",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll"
+    },
+    {
+        "SHA256":  "3472DFA4EE643A1D78E53FA7485BD8F1149898DC80EBAC0B36985D449FA01BD4",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.AspNetCore.Identity.UI.dll"
+    },
+    {
+        "SHA256":  "ED704F63DE95981F91DED8D0CC7642AD73C455B54E741B18DD42E9E44E60C51F",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.AspNetCore.OpenApi.dll"
+    },
+    {
+        "SHA256":  "136D5965CF4768E8420B547A8BDDEA882921F426C371833D558A858A2F0C235A",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Bcl.AsyncInterfaces.dll"
+    },
+    {
+        "SHA256":  "91C6BAB93638C268569A38BC87770A5E3EF9932676F5B7A6D47AEF4208062925",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Bcl.Cryptography.dll"
+    },
+    {
+        "SHA256":  "5E40C6A8B1AE4D0A925A8088D9B9C60F56DA70818CF0D5209CCE7525B7A392F8",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Data.SqlClient.dll"
+    },
+    {
+        "SHA256":  "24596B62AC0546C641E308A06BB9EA4BB153E9A776ED2311E730832465F34F5D",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.EntityFrameworkCore.Abstractions.dll"
+    },
+    {
+        "SHA256":  "87FAF0BF54DE5F62C7D30EB686018B11C53D4ACF6C280ADB39965B303C5B2B59",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.EntityFrameworkCore.dll"
+    },
+    {
+        "SHA256":  "078AD42527C893D858E1C48B7EDC5A0EC755C60B28395E996BC438EDE3555CF0",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.EntityFrameworkCore.Relational.dll"
+    },
+    {
+        "SHA256":  "DCFBC092BE90579B69FFB87D9C082476E8F4323FC46FFA50A164C4ABABB18412",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.EntityFrameworkCore.SqlServer.dll"
+    },
+    {
+        "SHA256":  "C331600EB149D1FB1B60A3C6B108370131E0E8A9B4F1181799B489F4E66D91C0",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Extensions.FileProviders.Embedded.dll"
+    },
+    {
+        "SHA256":  "C89854B2BCDE4401B80552063EA9166EFCC523EDCDDEC79C9C3DEF04BF7C745F",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Identity.Client.Broker.dll"
+    },
+    {
+        "SHA256":  "F9BC295D0011112FE4D7D8A728A27A38627739DF6CD144C8402B5DAE03BF40AF",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Identity.Client.dll"
+    },
+    {
+        "SHA256":  "741CF55CADCA6E0C5913BD1FAD11D0CD1D82EE2AFEA9BD95A94843AA6FA3A9D9",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Identity.Client.Extensions.Msal.dll"
+    },
+    {
+        "SHA256":  "AB9315EDF6DCC91F26F20BCE51E11B75D5BD4E673B44A3784CF3752555BBDBD3",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.Identity.Client.NativeInterop.dll"
+    },
+    {
+        "SHA256":  "84A6C307FE84453C9FC3A1AF45BF2302B5D2ABA4D5B9BFB7D581D6A28787461F",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.IdentityModel.Abstractions.dll"
+    },
+    {
+        "SHA256":  "4F61FD3D3F5003951A09CDD27FFDC3C4841A158D27A6D7247BE3E5939E7DAB32",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.IdentityModel.JsonWebTokens.dll"
+    },
+    {
+        "SHA256":  "2BC4582AE62236F066901A7DCB2A88D04A181AD1978F2DB2F4314DF6AE1A50C6",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.IdentityModel.Logging.dll"
+    },
+    {
+        "SHA256":  "40ADA0B98384788970117CADF63863EDD99BD5BD6FB8076F6DA68D65F6DBDA4F",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.IdentityModel.Protocols.dll"
+    },
+    {
+        "SHA256":  "7921AEF6FA1DA2E563A237DDA129B12407AC6C56448BB0EB7EEBC59BB6C6BABB",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll"
+    },
+    {
+        "SHA256":  "106DB045348A9B767F3002D4EC3BB582C9141F6D8E9966E1E0AD58A71BA42B8B",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.IdentityModel.Tokens.dll"
+    },
+    {
+        "SHA256":  "DAE97412C5804DA0906639014CB6BD73B2CF37AD02DA95437DED59578946E6E9",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.OpenApi.dll"
+    },
+    {
+        "SHA256":  "A9DCA1B42BC875F966B78B2C0880E62B838F0ED6567166D7F1F07AE4B76EC4BF",
+        "Path":  "deployment\\out-phase2\\api\\Microsoft.SqlServer.Server.dll"
+    },
+    {
+        "SHA256":  "A28C251DFE36D881E9E2462E171441B8B0EC156FE3F452602C9149B1B9EFE05B",
+        "Path":  "deployment\\out-phase2\\api\\Newtonsoft.Json.dll"
+    },
+    {
+        "SHA256":  "7D3324B8F56125204817EA2302B958BE3F9B07E608CE471341B72A78E43C9E8A",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Api.deps.json"
+    },
+    {
+        "SHA256":  "384F993664284BF844CB0DE95D6BBD9264E661DAF457E8E792547684C8D938D2",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Api.dll"
+    },
+    {
+        "SHA256":  "7078369C166F0FF84FDF7FFCD148B3D00099EE03544BCC6C26C9C517A87EE9E1",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Api.pdb"
+    },
+    {
+        "SHA256":  "94B92D437D5BE753FF0BA94AF9064DBD50F8BF1A7459DEBBEDF6CB5699910D50",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Api.runtimeconfig.json"
+    },
+    {
+        "SHA256":  "952602D08F3CC4A3E8C9A7589F477B4283E4C79674611CC7C2B15598D8FDACC2",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Api.staticwebassets.endpoints.json"
+    },
+    {
+        "SHA256":  "28E49C05EC8FCDE586435A8FA353FA5AB5FF0B5A2AEB89D7E5F1D3947F8484C6",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Domain.dll"
+    },
+    {
+        "SHA256":  "BE8A1937EA230FD19D15CFBFD9985E689820E609F4E049C916692B903B0C9256",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Domain.pdb"
+    },
+    {
+        "SHA256":  "2C6EBEEE82CD46803BC43ED42EEDC02B090449C856EA62C74283E3EB30668F8C",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Infrastructure.dll"
+    },
+    {
+        "SHA256":  "20C45E4CAB291E21BFCC3D43E26559888BE4A237F43F805D8774B5BAA4A2C432",
+        "Path":  "deployment\\out-phase2\\api\\PersonalFinance.Infrastructure.pdb"
+    },
+    {
+        "SHA256":  "3C4062071D51B56D7B64E12E98F195692FE58CBC907F0252D1BA5D90A366B965",
+        "Path":  "deployment\\out-phase2\\api\\System.ClientModel.dll"
+    },
+    {
+        "SHA256":  "1691863E2C9476081AF4F50A9EE60A14ACD42E5705BA745469217930EDB7AA35",
+        "Path":  "deployment\\out-phase2\\api\\System.Configuration.ConfigurationManager.dll"
+    },
+    {
+        "SHA256":  "3D55B14EABADAF18AEFEA2C4EB085428E0485063AE3EA91CAC072E3B5F951A83",
+        "Path":  "deployment\\out-phase2\\api\\System.IdentityModel.Tokens.Jwt.dll"
+    },
+    {
+        "SHA256":  "BAE79A4FF6E8FCFB65A3D88EB53D281898E699E5471EBD780843E5616753F0C3",
+        "Path":  "deployment\\out-phase2\\api\\System.Memory.Data.dll"
+    },
+    {
+        "SHA256":  "520B3AE88B5DAA4752CD59631CD25332CAFCCFBBE24866D3FEFB162DD2034309",
+        "Path":  "deployment\\out-phase2\\api\\System.Security.Cryptography.ProtectedData.dll"
+    },
+    {
+        "SHA256":  "E170BEB9A09614AC36F46B4AD970467EDD68F4CB06B2B75BF8A904F147B9658A",
+        "Path":  "deployment\\out-phase2\\api\\web.config"
+    },
+    {
+        "SHA256":  "8F3DEC47C9D89009FD6DCEFA86EB1EA2295DA9253B8D504746725A70B0280CF4",
+        "Path":  "deployment\\out-phase2\\api\\ca\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "561FD29C842C27A97ABBFFE12400597DEC99B269BB3D26A289DD5C176A88FDAC",
+        "Path":  "deployment\\out-phase2\\api\\cs\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "E31BBEDFEE0274446DD06287B14363C229E3827E6C3DBBFD18755E61E5E48FAF",
+        "Path":  "deployment\\out-phase2\\api\\de\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "1134A7105B5C0297B861340129FF24AF672A7EB0990C70C4E4F2E8A169D843BF",
+        "Path":  "deployment\\out-phase2\\api\\de\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "862844D3A0AA9C38C55104450C9E99AD1B1347B409D60D37A2322BD5A592E0DE",
+        "Path":  "deployment\\out-phase2\\api\\es\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "7AFB4660D008F03666C041A26CFE5BB34629B6D4D1AAED98DF881AD33732AFAF",
+        "Path":  "deployment\\out-phase2\\api\\es\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "60AE525AAE9FB38F7BDFBFF07F9805F5C285D182BEB25E45787BAA2182EACB6C",
+        "Path":  "deployment\\out-phase2\\api\\fa\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "3B0BB982E18AC24D763451B6399DBCD00619314E4114AA47797BFB696AF319A6",
+        "Path":  "deployment\\out-phase2\\api\\fr\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "5A31E85A20D75E852C9DEA6BC2FA7DDAA16B43B135839BEDC52C8FBEE5F35D4C",
+        "Path":  "deployment\\out-phase2\\api\\fr\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "4662F53808935925FBC5E12C8589F5F14457599E0ADD075A6E5682933BC761FD",
+        "Path":  "deployment\\out-phase2\\api\\it\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "5A3C48D975F273893D32D068A69295617EE2DC9DCB75B60735C308D7BA6BEF38",
+        "Path":  "deployment\\out-phase2\\api\\ja\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "0F26736443BE2C377C243394AAFF627ADD036D5FC6FC05B73D1BB113C1AE8EAD",
+        "Path":  "deployment\\out-phase2\\api\\ko\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "A4B428391CE9420DBD9D67F84352C96BBA54177FCCABE2B67CC18C3319664355",
+        "Path":  "deployment\\out-phase2\\api\\nb\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "4CFABC14414CF84BB877ABE90675484E83C105E68465AA4C15C002055E31056B",
+        "Path":  "deployment\\out-phase2\\api\\nl\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "722436C4726622924B8C824EAF79699632525E617018AAF8423E78E5874C53E7",
+        "Path":  "deployment\\out-phase2\\api\\pl\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "46103E8778D5EC555E71340F37BF3F4B0CF9950D1F8E2FFDA3E47A1455F5AA62",
+        "Path":  "deployment\\out-phase2\\api\\pt\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "39567587EB52A038B4B88D2B35941B236D04DF3B0CFDC9B7D6E9680314863EC8",
+        "Path":  "deployment\\out-phase2\\api\\pt-BR\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "A6AA860D1FF1502B373E8C36F1DF669B2A25F370B7433C1713F8AFC4CD9C1D35",
+        "Path":  "deployment\\out-phase2\\api\\pt-BR\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "574F5DA6A71512F381FEF52B6F5EC71F6E9F4C08B124513D536486ACB1D58448",
+        "Path":  "deployment\\out-phase2\\api\\pt-PT\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "129040C8FFDE64DE1289BA8778F5AE19A6977D401B57DF8DBE0B180A2BFC83BE",
+        "Path":  "deployment\\out-phase2\\api\\ru\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "18C44101097613AB3F86A495B924E1A09EBB3FAF68741978737358FCB3EB6FBF",
+        "Path":  "deployment\\out-phase2\\api\\ru\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "74B3915898F387982DE19677C157E6DFF45F6E116B7FA9026E4A491BDF51D023",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\linux-x64\\native\\libmsalruntime.so"
+    },
+    {
+        "SHA256":  "1E36B7BC708C467A259B7A33DF8FD1C150027953DD8A7F550B8DA241622D2DEB",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\osx-arm64\\native\\msalruntime_arm64.dylib"
+    },
+    {
+        "SHA256":  "AA57C18B28EBA92CCAC0D18C8EBE2F782B90F84ABC7C47B1B7951A548B72D34F",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\osx-x64\\native\\msalruntime.dylib"
+    },
+    {
+        "SHA256":  "456036D24E04F605BE8A969034A7BBA670E76D93FD0CA949AA540B6D7C9932C3",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\unix\\lib\\net9.0\\Microsoft.Data.SqlClient.dll"
+    },
+    {
+        "SHA256":  "2169A8917C3CB43DD7B3E951ED51FDF0A5BF3A2B7AC42DAB16E7C1C60DD3C40D",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win\\lib\\net9.0\\Microsoft.Data.SqlClient.dll"
+    },
+    {
+        "SHA256":  "2568D3B42F7A607C9E81BDE6DE99C84C0880B2E0AACAA6122FF474F589A4356C",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win-arm64\\native\\Microsoft.Data.SqlClient.SNI.dll"
+    },
+    {
+        "SHA256":  "75A9174E5F6FDE56D113F920110DC718D651C8F3DFCDB47C0956A938330836C2",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win-arm64\\native\\msalruntime_arm64.dll"
+    },
+    {
+        "SHA256":  "4B699D5208390414848B2165F8AE442504852AFD87221169233A5D7C7BDA4FF9",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win-x64\\native\\Microsoft.Data.SqlClient.SNI.dll"
+    },
+    {
+        "SHA256":  "060FF9A4D78ED94498618B0B5255F0CC17693CD4A436A23DE759DFC79DAED21D",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win-x64\\native\\msalruntime.dll"
+    },
+    {
+        "SHA256":  "817AE569B1B00EA746CDEDA3328CCCC552F27DAEF729812E928854A1C32499AB",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win-x86\\native\\Microsoft.Data.SqlClient.SNI.dll"
+    },
+    {
+        "SHA256":  "549DBA086F8BA3D25B9D2A4784F4880C6D6E6AA353B29234CE62D95122CA28AA",
+        "Path":  "deployment\\out-phase2\\api\\runtimes\\win-x86\\native\\msalruntime_x86.dll"
+    },
+    {
+        "SHA256":  "12C544446FCD6DCCE62ADCF65B24C32BD31FECD8AE5F062B6B495F6E2A033C3C",
+        "Path":  "deployment\\out-phase2\\api\\sv\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "BD8F65A1711C7345FD3FA4745E9B482EF2205AA8C4D8C7EE0EB09CC58D074194",
+        "Path":  "deployment\\out-phase2\\api\\tr\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "09893D822AF225754C5A3AED34036373C9959E586212B879AB7FDF9FF1BF484F",
+        "Path":  "deployment\\out-phase2\\api\\tr-TR\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "A94F8A8553CAEA8430DD4CA3CC01D4E318D19828F74CB65453FFB7F5D9E2F44D",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\favicon.ico"
+    },
+    {
+        "SHA256":  "B8CB651419BFA27F0A4DA327561CA526C94A6BDA21C738C29AA52E230911FCA6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\favicon.ico.br"
+    },
+    {
+        "SHA256":  "C7D68412BFD6FB4D4654F4A77DBD493C268F7133E0E25BD96ABD50650E84D724",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\favicon.ico.gz"
+    },
+    {
+        "SHA256":  "8FA7E1252BAEC8BA4E48BB8F254D13B0357488D8E8AF94B7AC39EFC49AEDE1B8",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\css\\site.css"
+    },
+    {
+        "SHA256":  "155CC97BA4365251BCC22134C0A3F3B0D709E66F735936CA20DF6B3BC4A4CD3F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\css\\site.css.br"
+    },
+    {
+        "SHA256":  "D050B545B5642E4C0A849D688BEAF61F0E139BD6AFE83C897A8F79615BDF0376",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\css\\site.css.gz"
+    },
+    {
+        "SHA256":  "8514327ED5E2BB594B5F63FD2F2F716B88072602DE475B86379A9E814A1BB46A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\js\\site.js"
+    },
+    {
+        "SHA256":  "A1DC84802DA77ABB4744409553B1DBF12D9FD3F4A3ECC03871C5B7542610F681",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\js\\site.js.br"
+    },
+    {
+        "SHA256":  "61DABB62F414CE16E8EBCC1A2D9790BD99CF3AF993790F87C83AA3900D7086C0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\js\\site.js.gz"
+    },
+    {
+        "SHA256":  "647EA903A052C7A7EE1D9BDD68AA61D43C1427E55262294888442EF22967BEA9",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\LICENSE"
+    },
+    {
+        "SHA256":  "632E7F841A919A6536309D532B03F6697A133BAF8E8F3ACB98922C0B65B2E07F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css"
+    },
+    {
+        "SHA256":  "88D8C9618A99F13783A30D7D6B20CBF73CBD77A7F48175DFF7B2A3C720D23482",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.br"
+    },
+    {
+        "SHA256":  "8E1BCFAEF5999FC05B791E3D5BEAFE30B35C9D3785C9A497C6BCBD9F572DC32E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.gz"
+    },
+    {
+        "SHA256":  "C404FE9F6E4513986F3A38F67C6E1874EC2BD5B97822500904D83A3DB84B4F61",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map"
+    },
+    {
+        "SHA256":  "164D1E70B6C2C22E2610696E92C79F2FE54A954B1CBEBBA4AEAB58AED83B46E7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map.br"
+    },
+    {
+        "SHA256":  "00B3DFEAAB1932EF948BC97C8CF2491773214DCABABB0AD085159E5892F88B15",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map.gz"
+    },
+    {
+        "SHA256":  "E670C73068B27D91E5DD45DE3EE84B0D047D9DC3DF051D4725E64B5F224D576E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css"
+    },
+    {
+        "SHA256":  "631240A27E4803307327FFC8B4EECB3C9722A74E4CCBF4BC7998F92EDE067413",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.br"
+    },
+    {
+        "SHA256":  "CB6BD294875C2FE22628585C04C4F9BA37403F573239994764AE37E008AED0A0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.gz"
+    },
+    {
+        "SHA256":  "9202FEC7056633C20EB35E659E81EDF5D691D8B44C8811BF7188143DC290398E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map"
+    },
+    {
+        "SHA256":  "C29D079AB25634EC8D265002D86A887B414E26F6CA2CB5932E321BDFD156E8EC",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map.br"
+    },
+    {
+        "SHA256":  "513A64DB0E907F0F91519B54B14B960D5AD05D311D83321688B1DBEE00DC6597",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map.gz"
+    },
+    {
+        "SHA256":  "099C6817CCE368B97256472F5420E573C09E411D70D5132BBE0631DF472CF243",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css"
+    },
+    {
+        "SHA256":  "806FE4F8D6AF19E93C6DD178AA38724DA37DC73CC63ECEEFEF5F5FDBAB3BB211",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.br"
+    },
+    {
+        "SHA256":  "3F957B5E5DDC7822F0EB00DE3B201ECC4EA039AF6B7B707B81350DFC7FDC0EC6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.gz"
+    },
+    {
+        "SHA256":  "FEC890500F325FCDF48FE70BE1A98A1D8DF206D9F79FCCF7120F95675E5FF749",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map"
+    },
+    {
+        "SHA256":  "EEDB290B33C5C3831A3E5745D96C917EB91F1CB87E72890E1E492D5EF1B485B7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map.br"
+    },
+    {
+        "SHA256":  "7167D182881D7CE0ABE7801EFE5C58E75E453F84C9C94C1CE007BAB9E8C13C8D",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map.gz"
+    },
+    {
+        "SHA256":  "BCCC5372F902E0BCBB2E2013DC6F32132F44A53AFB1607B849CCD6A74EFFA779",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css"
+    },
+    {
+        "SHA256":  "B24B65998FEF5002130D159097B3331E564EFEEF1A7FE8377ACC43A7308840D6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.br"
+    },
+    {
+        "SHA256":  "BA38457EEED2230E1C2FC1562347B3983DBD0BB6C649EB09BE511CC929B96DE6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.gz"
+    },
+    {
+        "SHA256":  "EC674E970ED4FF083269E52D166C4FCF9FCCA6176F5523ED54E3A54E7F5CDF74",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map"
+    },
+    {
+        "SHA256":  "DA0AEF0EDAD84DA64BA6E74D8689893128E6675A6FD93177F9AA417BDD299780",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map.br"
+    },
+    {
+        "SHA256":  "C990D5E6C5DF90E8A11FD8A7A9787A0F4666945A77FDE459AD7B8F9A66865E10",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map.gz"
+    },
+    {
+        "SHA256":  "968F5823CD8E174DEFA2376EF97391DFE0D1ACB229321A7364D9876CCE420CC0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css"
+    },
+    {
+        "SHA256":  "4EE7784DF18D3C6A85D2EE05BDF41AA25BDD942EFF074B08C449C5B21E06E7A5",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.br"
+    },
+    {
+        "SHA256":  "F8421A434DD91E07D5A299EB2458F3ED98104803BD19E30E2BE6F371C4C84321",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.gz"
+    },
+    {
+        "SHA256":  "45727F4198817C75E83ED5D1D84802F9B168DA97B71AD6D93BBDB646D88B1B34",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map"
+    },
+    {
+        "SHA256":  "6EE85183BF386E733CD5DA68AB2CB6F348FA9B3F2C12F43557D1573B4533D414",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map.br"
+    },
+    {
+        "SHA256":  "BAE3D1044F8A27BAE1402FEE97F9B7DD84BB471A103C663765CB93CFAFA8A137",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map.gz"
+    },
+    {
+        "SHA256":  "97CBEDE68A33BFDE7C78C77D4C5B0F016825F4924AF5829F6D54ACF2672143CE",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css"
+    },
+    {
+        "SHA256":  "C884E84D1C35469D52B9173C2EB0634BDFA2B995F1125764AD798DDA9E9F54EA",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.br"
+    },
+    {
+        "SHA256":  "67D07F7FA031FF625E05B368DC5D68685BE63B346FB37C92D279F292DDBBD967",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.gz"
+    },
+    {
+        "SHA256":  "D1EA954FADA4A912C987DA13A8B7881F852742C92A56389BF219767D7C65E258",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map"
+    },
+    {
+        "SHA256":  "A89750E1EE54C962853FCF6E13D53C013AF68566FE32BCFDEBD32905DE275BF6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map.br"
+    },
+    {
+        "SHA256":  "F3CC9FC02075249AF0E43CD3C2DB6E0D4351835302FD0514A2F3904E7CB11870",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map.gz"
+    },
+    {
+        "SHA256":  "57CA6C9C7A094BF30F9425D6C1CFC9DED1ADA7D7378061519AAB08420A67F868",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css"
+    },
+    {
+        "SHA256":  "5637E5ED4FE9D64A6C68EDC62A275C1E6101B46FB1AABC50B373B50F50ABDB8E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.br"
+    },
+    {
+        "SHA256":  "6E1C2635A2C2FFB74E51F671A57B27ADE88DB29DA56E59515EB64B5E77581600",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.gz"
+    },
+    {
+        "SHA256":  "3A8415C21EC0AE9EDB5682B66624F1D92FFF2AB9CFAD23F33D9F770AA08C85EF",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map"
+    },
+    {
+        "SHA256":  "92DD5977941AC5F6495120DD180564104F50EB8F4A97EEA1844E5BA75F3D2EF2",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map.br"
+    },
+    {
+        "SHA256":  "B25D89E0FC9A3D2BE3A91FC79DADB3016929D51A221624AC3417F6F14C667A00",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map.gz"
+    },
+    {
+        "SHA256":  "FFC8E1F217043052B24BA8285AA9CDBBBB7713364F0867506603BAB02908F2D2",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css"
+    },
+    {
+        "SHA256":  "C3623131C5351C8333AE3D3A77CADED129AE85FAFB117D44A514D3623FB2C934",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.br"
+    },
+    {
+        "SHA256":  "A8D26744010CCA615DB668BC82F73655B56D0C393F5237929E9F95435D3E725D",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.gz"
+    },
+    {
+        "SHA256":  "F75D33C3EACC75C8342ECE3C013A7AE6F127F2B7791EF3F138A9B6C77FC20482",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map"
+    },
+    {
+        "SHA256":  "B38A31E61EC6E3F6E670C0BB8CBC4214CE918681B1C26D70AE25D65029B809E7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map.br"
+    },
+    {
+        "SHA256":  "338149287A72C382095799F36DF574570BEFEB403CC248E7AAECFA20AD36F690",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map.gz"
+    },
+    {
+        "SHA256":  "D81B9B80D50F950485FF4C0B15C45743F623CE4F6FB146C301E2B640CFA1FB2A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css"
+    },
+    {
+        "SHA256":  "C939F49002C0AC9E2F5BC02F2D238D5C251BE8996A9C997318493FB1E41F0271",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.br"
+    },
+    {
+        "SHA256":  "F3EE68C6BF76418718795DF3024F114B85E6668E98E62DD999B8895E3F4A550A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.gz"
+    },
+    {
+        "SHA256":  "35F8EB73852BF45BF6A0112CC10588C819CD0CFF7DABE2E12FECFDE79DCED1C6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map"
+    },
+    {
+        "SHA256":  "8A72011BB15A3EEBD925D7B4EFCAEE53B97BA4D3C0D48990A1DCF945179CA02C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map.br"
+    },
+    {
+        "SHA256":  "1BEBE388478FEA4493E5C225D1D320929A98547B46CD6D85A041213E6F2E5C54",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map.gz"
+    },
+    {
+        "SHA256":  "2B213DC5B28EF42B98C741D7A482A0B1622F5E401F213B62435EF68F6EB0991B",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css"
+    },
+    {
+        "SHA256":  "40B6DA9C83572083014F21589936AE47B1F79D82E4EC361A3718E850643E5334",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.br"
+    },
+    {
+        "SHA256":  "C69E4B3D9D2F96A9B142B1BE2A33E6EE28E1849FA00FB55E1F7E65394C014D63",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.gz"
+    },
+    {
+        "SHA256":  "AC70E68A9E09673B9A18E71243541242B21B1B411BDD98DAF7086A485D736085",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map"
+    },
+    {
+        "SHA256":  "437ACD94509FB8A6F7196C76953FC6ABEA49E70F6870410FE3C16B5D8E8467E7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map.br"
+    },
+    {
+        "SHA256":  "4D02B58246394F065ED0F70453DA0F08F1D629C351ECE5EA80ED007816026F75",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map.gz"
+    },
+    {
+        "SHA256":  "1FAC2405B4B08EE6B6BDE2684E1268E2ECB5EB58E9F833A2653968525719EAA4",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css"
+    },
+    {
+        "SHA256":  "CD8CA9F8698B36D47DEA81A7B38F2FE29BDA43D3AFF6CC31B136139F8D2907DA",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.br"
+    },
+    {
+        "SHA256":  "4009C373188B86B725C0455E2AD77F19111D64D6D73B6AD93F96A0A2B712E443",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.gz"
+    },
+    {
+        "SHA256":  "A74055AB955EFDDA2104875F6EB66CA1036ED36252B0A875834C1BCA242251A5",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map"
+    },
+    {
+        "SHA256":  "24246B1C7C0E11EE568CFA2A405E296827FFE543599E8B3B598EBCBBC8FF01F3",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map.br"
+    },
+    {
+        "SHA256":  "7B848A49E501600310624F5A4FA36A684AF7BD47E44EA641F0BD0A202EC43DA9",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map.gz"
+    },
+    {
+        "SHA256":  "18052E9BA163C10F07AD719AA054671D3A9040BA658D719ABD3EE6057F04F6A5",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css"
+    },
+    {
+        "SHA256":  "27404C2E41AFA49241DE38F48AF2B9CEE301A52A8BBC2A7F815112B51EA9255C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.br"
+    },
+    {
+        "SHA256":  "8572F12B13504BA86431639CD4FA39BB14CAF28BF3360D31BD10BDC0C28E6623",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.gz"
+    },
+    {
+        "SHA256":  "A3C5CADF699C63F15F70E4350F61C9BD5B99D184D74944590CB5C22B47E741E0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map"
+    },
+    {
+        "SHA256":  "C5155EDF4AC6984A2AE4A1D1DE6848B297288CA2E7D3887A0C7A3B3DBBE1CB31",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map.br"
+    },
+    {
+        "SHA256":  "70713DFCEAF2CF1DEBBC3CFAAE0EA4C1500674E1655CE0A606053F486E5F2630",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map.gz"
+    },
+    {
+        "SHA256":  "18A105D7CB38E01E5ED0CA255C092992A2E211B39594A7FA57262BFC6FC4EA9C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.css"
+    },
+    {
+        "SHA256":  "0F72494BE77F2717D3E0600709B7B1B979EB3BFA7632E10A85515651465CCF30",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.css.br"
+    },
+    {
+        "SHA256":  "A6DF963714CB2D4AAAEAF456C124D3DA0B7205908583C640EE799E4BEE7E67FB",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.css.gz"
+    },
+    {
+        "SHA256":  "2B3355477A7B51919B6BDE1D9C2B6573A8D78CAE6EAD23E267F78D9CA4E60E4C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.css.map"
+    },
+    {
+        "SHA256":  "943EF2731D0299D559C165A0C4C1DD1A481785AD6B603EE168FD527A5B9AAA00",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.css.map.br"
+    },
+    {
+        "SHA256":  "F0C46AB9B5CC7991F2986DD8F94AA7B3FA0E34D55CBD4A3130F05844D66688DB",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.css.map.gz"
+    },
+    {
+        "SHA256":  "3C8F27E6009CCFD710A905E6DCF12D0EE3C6F2AC7DA05B0572D3E0D12E736FC8",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.min.css"
+    },
+    {
+        "SHA256":  "8945FD3C422B8864EFA1857D761617881EC9EE2C1D11ECC725985DC899A69C35",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.br"
+    },
+    {
+        "SHA256":  "72DEA08776D63DA6CF21412651C09797B9B182BFD5EABA077F2A5E41A5DEAC75",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.gz"
+    },
+    {
+        "SHA256":  "F12338536350A422C64D02D6E43FF1DEA493C3156AD823FE19761CDD5D56C05B",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map"
+    },
+    {
+        "SHA256":  "B56941715AF71DC2ED4B8C6C71B88754031CD6294AD4BCD6DFDC42D7F94C5D8F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map.br"
+    },
+    {
+        "SHA256":  "F422362866A49251564768A1F617811F228D7E7506B002ED95601220945CDB90",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map.gz"
+    },
+    {
+        "SHA256":  "8F91385C88F5A7590D9C38B4C75B5E5FD457A21D7F14D94FBC230BF589918764",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css"
+    },
+    {
+        "SHA256":  "8F79A6555238CBBDF8F5BB841E60C30C03A1EE6F4036455F6A5DEBCFFD7F3DD3",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.br"
+    },
+    {
+        "SHA256":  "7ECD4E8E2843602D542F71231AC0BFC55C60B6EF2899B8E717C90E990C50F8CA",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.gz"
+    },
+    {
+        "SHA256":  "DDB61652289560C65FBF6C2AE499D722C1E540A8122ACFD57118AF823819D61A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map"
+    },
+    {
+        "SHA256":  "7315DD122789A3A88E098B0A3FFE4E66FC3BB486C73E81F08405B99BE8E20B78",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map.br"
+    },
+    {
+        "SHA256":  "BB51E9CF7B31B0EA6BFA5B41B3229BB9ED4CCFC54BF5CF20A324A5200C0F0A1F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map.gz"
+    },
+    {
+        "SHA256":  "879944ECD9BC4A4788A411C763137DF6CA4FDD5B8614A97935982CA1C8A5EF39",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css"
+    },
+    {
+        "SHA256":  "63C648445F7E1F1FC9FA6ABB3D00BC39F4A424B4616065C830551F5AA30EF5F2",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.br"
+    },
+    {
+        "SHA256":  "5B0C04FB703BC75B6B81EF1765E37DA0AC24BDDEA603439A7799806D37E632D4",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.gz"
+    },
+    {
+        "SHA256":  "AD3CD79677A971BFEF80502207E53B3834007CE9492DF337818E8853B78800D9",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map"
+    },
+    {
+        "SHA256":  "9C7B18C4A08907EEC192950DE09A546A97BFF60B96E2AF1CC8111490DCEDA5DC",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map.br"
+    },
+    {
+        "SHA256":  "8FAE2B17144B8591E650FB04FE08C83EBB943547D7B358AF8E6D5E4BD1CC7A8A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map.gz"
+    },
+    {
+        "SHA256":  "9A4A11A15DB88D5FAB08F59C1C34796B03F1F15BB3CC928DD226E1C59F7F59A3",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js"
+    },
+    {
+        "SHA256":  "692B0B58E5D825AF7E130B2F4F1E980524566CDA1C0E6630D2724C29E21C37C2",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.br"
+    },
+    {
+        "SHA256":  "1709556476AAB7F7C2A240913EB257A4FDE0F17CFCCA8C08C076336BADDEE6C0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.gz"
+    },
+    {
+        "SHA256":  "5AAE1A596D6B41D27EEA8020CB525073D2018C72FD4F730A7D74C136A3AFD367",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map"
+    },
+    {
+        "SHA256":  "8A5D1B74D5F05AEEABDF339D69A16A0A3D0F2D28112D250C7C9F0F0DC22935FF",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map.br"
+    },
+    {
+        "SHA256":  "D5ED12E663CFA3FF5069DE269D1D94547D5BBBC4DEBE2EABF89BC7000CA481F8",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map.gz"
+    },
+    {
+        "SHA256":  "0833B2E9C3A26C258476C46266E6877FC75218625162E0460BE9A3A098A61C6C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js"
+    },
+    {
+        "SHA256":  "FF2564CE265A556A26956A26F0DBA2B14F89762D5E32811CB12E2960270BAB70",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.br"
+    },
+    {
+        "SHA256":  "3D46FBAE3D632C7808A3B1F09B796FBA405C18A0EBCBB9FB5B67DAD71AF3FB36",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.gz"
+    },
+    {
+        "SHA256":  "5E3E0763164143BAAA1CA0706B6100BA0452F911D6CE9713B48E3DBE07B35125",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map"
+    },
+    {
+        "SHA256":  "92D0794A648D04A8027793B696A398C97F67D54B5C8242648223C29E8CFFFB34",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map.br"
+    },
+    {
+        "SHA256":  "BB6A3C6596978226101814A2BE2AB5F7BB6CE9E94C4CB20508CE61FEBF98CE92",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map.gz"
+    },
+    {
+        "SHA256":  "7B189764D243C2E7177EE8DEDC26D73DBB92EBE12BCB7CFDB0FFA9826BE1F270",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js"
+    },
+    {
+        "SHA256":  "56A9B95B4F9C35E3C6867D734DBDDD75E74673CAA59D4D65C613C54F4A24FFC9",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.br"
+    },
+    {
+        "SHA256":  "C2897E1D38FFC62BF5699E6B021F7585117CDE79D81C839EA8F243BA3619055E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.gz"
+    },
+    {
+        "SHA256":  "10F44B829A9691A84BC449FA0948DD33BE91218230D71747C136DE1ECB2E8FFE",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map"
+    },
+    {
+        "SHA256":  "846A6EF98E3F0B05417376A80883E68EFD9A7E547DF06D6EA9D72EBDB7E55A67",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map.br"
+    },
+    {
+        "SHA256":  "14454BA0CF0406305F343C6D37DF0D11D1091E90A3331700923A8F96FDE85C47",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map.gz"
+    },
+    {
+        "SHA256":  "4197454F564D765CB8AE681406D5E65C54BD054D454DAFAC3DEEA1EFDE2C1514",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js"
+    },
+    {
+        "SHA256":  "8F9CE6FB9C78CE8B7CD84961F9B45CF0BE51B4345DB4196D77A22C64C3A72C7B",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.br"
+    },
+    {
+        "SHA256":  "5A6367A0181E8F0721654615037A34DD038018EB8C452EFBF03797BE13FAB2EA",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.gz"
+    },
+    {
+        "SHA256":  "4EC6EFF33E9594D815113F31BF3FF22E8FEFE622474C08F62788648633F5AC73",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map"
+    },
+    {
+        "SHA256":  "4AFB8EEAAA6EEE19DF8D22CD98F3568C4E85FCF94D8C1C57B7094FC6D7ADA939",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map.br"
+    },
+    {
+        "SHA256":  "8FABBFCE7F86448551EC38C28A88F7B64AB6CC028DA5221F45D94D4A486E5AE3",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map.gz"
+    },
+    {
+        "SHA256":  "F945BCD36C2055F9E36926DDC321CB954EC056995BD164E83A5BCDD429F321A7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.js"
+    },
+    {
+        "SHA256":  "B7EC10D6A85B69738AEE89C649ACFE9B11205377DD9BF9A363FA3281EC890D88",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.js.br"
+    },
+    {
+        "SHA256":  "BF14E943FB2474668AD5F58A27A6E9B8A882B0A4791703CE657CEE56B51CCF9F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.js.gz"
+    },
+    {
+        "SHA256":  "F56AFB1F17BC802243A081E1E713F6F65757BC2DE43761A489F423F5CF2F631E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.js.map"
+    },
+    {
+        "SHA256":  "CA16D19C3EB3815192695CB748EE082ACAB624A97A9EEB32F95C99B5EB6BED3A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.js.map.br"
+    },
+    {
+        "SHA256":  "E86C4CC8AE5801EC70BE589836A7A21FAA02AA38D275FD22385A24BA7B6935C5",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.js.map.gz"
+    },
+    {
+        "SHA256":  "DE040986D9A3ED89D5D5F9AD6D5727015E9E238C2CD13AF8F1B55909386D0864",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.min.js"
+    },
+    {
+        "SHA256":  "39E66AC3912DE242460264D464997563C169D9DA24D7BB5D4743CE64765FDD65",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.br"
+    },
+    {
+        "SHA256":  "6C83E0393F3CC9C4A49475B113315054FBCDB2035BB2CDD041BC93A87868E0F0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.gz"
+    },
+    {
+        "SHA256":  "648D357BF9ECE3BDC62AF0021B831C82025DC6F15F148C38C6CA704221BC61EE",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map"
+    },
+    {
+        "SHA256":  "63E37F49879AA4C756F7AF5C664E38FCDB91456C4E0D2617D313BACFDEF87500",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map.br"
+    },
+    {
+        "SHA256":  "8EACF7CD60D59A5CB41DC55F3BA450D44C3FE8309B17D1159847B60C975C5BA6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map.gz"
+    },
+    {
+        "SHA256":  "86320192F9A0C505DB3572B707D610DEDD3A4702EE4124330BF769BEE07F94C9",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\LICENSE.txt"
+    },
+    {
+        "SHA256":  "C5C875E38B2C6872D25541AB899D7959806742A6FF6C5C94A32B784E41EE5511",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\LICENSE.txt.br"
+    },
+    {
+        "SHA256":  "24A59E1D468034DB9F7DE45AB5D739E1409BF38468C63130FE74EAF0CA29B3C6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\LICENSE.txt.gz"
+    },
+    {
+        "SHA256":  "78A85ACA2F0B110C29E0D2B137E09F0A1FB7A8E554B499F740D6744DC8962CFE",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.js"
+    },
+    {
+        "SHA256":  "086098D9198D8D4BDA855F45CE8C362A2A60702A466BBCBF044B68B24C47DBD2",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.js.br"
+    },
+    {
+        "SHA256":  "8597FED454F73E8FA21BD76B005BDA8DB8F79FFE658C6732C22B43BC2D1D91BC",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.js.gz"
+    },
+    {
+        "SHA256":  "FC9A93DD241F6B045CBFF0481CF4E1901BECD0E12FB45166A8F17F95823F0B1A",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.min.js"
+    },
+    {
+        "SHA256":  "E0B3571F3F3452F68EB6FA4054F2DE07C13C02D8FBBC3A3C97A1604211A2C41D",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.min.js.br"
+    },
+    {
+        "SHA256":  "AC95163431289B7C48621DE61F91C23E9CA1FC21A13F4621692B1A5FA20E8839",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.min.js.gz"
+    },
+    {
+        "SHA256":  "CF74D51C62D299189989130EBB423B30453532FDC8988D8E2B71B1B9165A80B8",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.min.map"
+    },
+    {
+        "SHA256":  "91C5280256BEA53D90828F371C230F64ED9030D3FC1D8FF2E28493ADD7F630A7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.min.map.br"
+    },
+    {
+        "SHA256":  "19F2FB33BE9A98A53E07E1F5A3859587BAB5DC6A620BB2FAB1CA773833B3DDA8",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.min.map.gz"
+    },
+    {
+        "SHA256":  "520BEF37CBC19203B496E3D2525DACF13225392611A061405F88E50889BD01D7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.js"
+    },
+    {
+        "SHA256":  "CBB5559EA23411BF2B55F2183B187CFD924788CDF38CCB29EED398AC5F53120E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.js.br"
+    },
+    {
+        "SHA256":  "9410B5726728D72826FDF961229E94214B8DCACA73087ABC0F5DB99AF99EC9E7",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.js.gz"
+    },
+    {
+        "SHA256":  "9261EFB3407E3A9096E4654750D8EFF6B3A663422F48845C7FBCC65034C340CF",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.min.js"
+    },
+    {
+        "SHA256":  "2897355B92AE0F19F0E36F8229F73BDB92F9FE4FCC016D2D919D32E884A43A00",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.min.js.br"
+    },
+    {
+        "SHA256":  "87AF1AE288E531E1D9D8C24D7291C6BC180445DA14C3B429C64E9AFE83C3E644",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.min.js.gz"
+    },
+    {
+        "SHA256":  "F45626720B71F2A668D4E3CF88FB7F049FECCF4108F1244D518B052D90C412DE",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.min.map"
+    },
+    {
+        "SHA256":  "91251E880252F8E42B486238680BE8BCAA65636DB950C2952FFF4659CCCBB625",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.min.map.br"
+    },
+    {
+        "SHA256":  "6D92D448CF5F461349285E321632AFBFD894FE3D9A0B5949B44A91F6EE67EB2F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery\\dist\\jquery.slim.min.map.gz"
+    },
+    {
+        "SHA256":  "81E1C4930FD618F75A1D0311AB91EE358F6C9E588DCD4FF2D8E5BCC9C9E1197C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\LICENSE.md"
+    },
+    {
+        "SHA256":  "7E249176FE4F11298EDA6948AB0E695D716CD3980AA39A1DEC21AAA7408A4CBA",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\LICENSE.md.br"
+    },
+    {
+        "SHA256":  "EDB01EDB24F7A1B7149F30F2150CAE878188E220BF34607806CE2065A6375A3E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\LICENSE.md.gz"
+    },
+    {
+        "SHA256":  "5CBEB239FE2C7C6DA0D795BC681EF8E13E0295B8831B820C1A5DA68B4B5BCEED",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\additional-methods.js"
+    },
+    {
+        "SHA256":  "26F1B5502A3AD5A107D3193C62D6BA427F7C1FBA7C39DE4DD1D008DD1720D1E9",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\additional-methods.js.br"
+    },
+    {
+        "SHA256":  "EF37D012EF53D457F3500C916DB53AC64CCF83C120B81BD904D0CD114D75CC6C",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\additional-methods.js.gz"
+    },
+    {
+        "SHA256":  "8E1BCA471668E9E5BF3F209EFB8AE304BCEA7AC26513CAE7C901848E4F25DA4F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\additional-methods.min.js"
+    },
+    {
+        "SHA256":  "A1B363E217397B8485FB383DA3CF5A222823B82814C5DBF456F687DAE4C3652E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\additional-methods.min.js.br"
+    },
+    {
+        "SHA256":  "861863920696C89936356AC5FCBCA14C80CE178D94FA4057EF6214D8AE115898",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\additional-methods.min.js.gz"
+    },
+    {
+        "SHA256":  "9112FCDB7EF6BABE58AD54E3156A7D9AE6A8F72794F00A0B889C526F97A49878",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\jquery.validate.js"
+    },
+    {
+        "SHA256":  "F99FE7E82F1A061B1D7DCE8E81DF04D1809C6FDC09F57E62644EBCAB00A2C7B6",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\jquery.validate.js.br"
+    },
+    {
+        "SHA256":  "2AE24F4EF86E02B0ECE268F6CF388DC4CFA105615B3A18B404A420791D691C6F",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\jquery.validate.js.gz"
+    },
+    {
+        "SHA256":  "BA66D3685C4FDF516FE8ED62B692D2FF7FAFE5F3805832CE533966BCE19A295E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\jquery.validate.min.js"
+    },
+    {
+        "SHA256":  "641CA6D444C39805B62BCA08F224CC67FE797BD211A9D708BEF6D1110214ACF3",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\jquery.validate.min.js.br"
+    },
+    {
+        "SHA256":  "4FF8CD53278B61D290DF39DD37CCECE74EE3220E869E410D331B81A9CD5E5ECD",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation\\dist\\jquery.validate.min.js.gz"
+    },
+    {
+        "SHA256":  "D7A68596AB69B06F51CA278A6545148E4269A9381C26D597C13DF5D88E08CF5B",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\LICENSE.txt"
+    },
+    {
+        "SHA256":  "E769CB19AA9CA72D6866AEAD5DEB344925C377CAC3B9C67ADFF0502ADCFF0F2E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\LICENSE.txt.br"
+    },
+    {
+        "SHA256":  "5A92F491BC031CE34AC14BBE7C00BA9CA417B59381636D06B2CA5C9F7DFA233E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\LICENSE.txt.gz"
+    },
+    {
+        "SHA256":  "C0941A2745F29C11367EAE827B15D78712AEEDFB2D56641CED5D8C1CD4E8F964",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\dist\\jquery.validate.unobtrusive.js"
+    },
+    {
+        "SHA256":  "FCD8E57FBE4DC3B35B367D636538909A2518DC82CEF289799232D417BA39EA75",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\dist\\jquery.validate.unobtrusive.js.br"
+    },
+    {
+        "SHA256":  "D7EAFE7BD810E37C64D247371DDB7C6A136ECCCE71808209C218AAF38A49E170",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\dist\\jquery.validate.unobtrusive.js.gz"
+    },
+    {
+        "SHA256":  "6096BB5BC12241D429924F778861238E72D25164694496D27F37D4461D64C73E",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\dist\\jquery.validate.unobtrusive.min.js"
+    },
+    {
+        "SHA256":  "115248E18F79AF4887B74E0DF7235D627DC49DBCF53C6E5F0EFFD822E2E6CEF0",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\dist\\jquery.validate.unobtrusive.min.js.br"
+    },
+    {
+        "SHA256":  "6440911B2795AE09666347F13FDC15BA3AA38D2A1E72EDC6EEBA1896F68836EB",
+        "Path":  "deployment\\out-phase2\\api\\wwwroot\\Identity\\lib\\jquery-validation-unobtrusive\\dist\\jquery.validate.unobtrusive.min.js.gz"
+    },
+    {
+        "SHA256":  "4630A6FF05A4F9043684CEB72F7D9CF4FD7B3D2C09EDFDE5B27FEF05DC800CFA",
+        "Path":  "deployment\\out-phase2\\api\\zh\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "B1433731D034FD0F558347D20F9049E88FFAC8FD3C0973451108CC363BDA3107",
+        "Path":  "deployment\\out-phase2\\api\\zh-Hans\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "E16C4E56036EDA6958F20F1ECF5A96AE879628ED89C200B1154FBAFF70FFA31A",
+        "Path":  "deployment\\out-phase2\\api\\zh-Hant\\Microsoft.Data.SqlClient.resources.dll"
+    },
+    {
+        "SHA256":  "F2EEB0D8E5A3F026C3E3D062AA5BF7272E255F5A15004D2F37B80BD82E7EF618",
+        "Path":  "deployment\\out-phase2\\api\\zh-TW\\Hangfire.Core.resources.dll"
+    },
+    {
+        "SHA256":  "F5CACC9031F18BD483652BC6A396C36C1107F02163F9FE2796E2B79661A6C195",
+        "Path":  "deployment\\out-phase2\\mvc\\PersonalFinance.AdminMvc.deps.json"
+    },
+    {
+        "SHA256":  "2D4E16B50FD4A670F0659E1E5C691410F89D38CBE3AA8CFAB3863BA8662FCC36",
+        "Path":  "deployment\\out-phase2\\mvc\\PersonalFinance.AdminMvc.dll"
+    },
+    {
+        "SHA256":  "93BEA93343E05719CD760B225A34E408854BB26ED33BB944915085974FDECE1A",
+        "Path":  "deployment\\out-phase2\\mvc\\PersonalFinance.AdminMvc.pdb"
+    },
+    {
+        "SHA256":  "41442586A8262BC96A1C80F82F4D9384C03BFD465D221CBF01FB3563170F9E65",
+        "Path":  "deployment\\out-phase2\\mvc\\PersonalFinance.AdminMvc.runtimeconfig.json"
+    },
+    {
+        "SHA256":  "8E254DE437AACF5F1833C36BA126E796DF690021F109BA5D790199D36B323884",
+        "Path":  "deployment\\out-phase2\\mvc\\PersonalFinance.AdminMvc.staticwebassets.endpoints.json"
+    },
+    {
+        "SHA256":  "6C6BF7BD599BCC8CD8BA76CBFD87AB57F944E9C23CE79254CC366CBD3ACD7DDB",
+        "Path":  "deployment\\out-phase2\\mvc\\web.config"
+    },
+    {
+        "SHA256":  "DA22D01BDFCD17DF4D2C896F7B0A7EC7327A5F6E34A2A4A4888DBF594E1F1729",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\css\\site.css"
+    },
+    {
+        "SHA256":  "CAFB5E1B5F7086A3D29D60C4873981A4A0FB144BB560845443A82AD454F42A3E",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\css\\site.css.br"
+    },
+    {
+        "SHA256":  "149717C7DD5C7BD1AF731F64C8D95961AE85969195E75FE1A09FB069F5F1BAA2",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\css\\site.css.gz"
+    },
+    {
+        "SHA256":  "F9A8E776B4B048227F2F046B8716083EB04B1539D9AD1D4B87E81C1DF28F86E3",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\fonts\\PlusJakartaSans-OFL.txt"
+    },
+    {
+        "SHA256":  "5638809F3D2476D6A0A3F6AA79EC477F7D42A38CE4751256DB61991E6A1F5851",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\fonts\\PlusJakartaSans-OFL.txt.br"
+    },
+    {
+        "SHA256":  "6A452152D350AB0E78D31121FA6C48663D03C797B934FCF70D22AA3C65EEDBBD",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\fonts\\PlusJakartaSans-OFL.txt.gz"
+    },
+    {
+        "SHA256":  "89B3FB38AA0D275D7A731D0D817A4F1622B316B4D7FBDEDCF02EE9099FF68BC8",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\fonts\\PlusJakartaSans.ttf"
+    },
+    {
+        "SHA256":  "E86E902343C7A74ED3DA5AD5212CE202070700461E3099DB92DEED8DDE696406",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\js\\owli-ui.js"
+    },
+    {
+        "SHA256":  "D2DA6A9C244B3C5637FC47302DAEC313F7ACBA7BC67EE72F800B8D726913CC43",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\js\\owli-ui.js.br"
+    },
+    {
+        "SHA256":  "6AC69C9A584D7BFD57B7833CCB01C75DF6F3F3F9D19E065D02C1AA75B68E8F17",
+        "Path":  "deployment\\out-phase2\\mvc\\wwwroot\\js\\owli-ui.js.gz"
+    }
+]

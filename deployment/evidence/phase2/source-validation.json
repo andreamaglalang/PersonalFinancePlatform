@@ -1,0 +1,846 @@
+﻿{
+    "MergeCommit":  "ad126680fb9e55a6a1da6f73348b7a3bbc307bf2",
+    "MergeTree":  "23749ba221a6a4233ed0e492e846f47114fa43c4",
+    "Parents":  [
+                    "cab4e2b61c3707b8bff2a8f4d018fa69da4ae565",
+                    "e454262b2c371dcc98631735ada36cc9df0cf948"
+                ],
+    "ValidatedSourceFiles":  [
+                                 {
+                                     "Path":  ".config/dotnet-tools.json",
+                                     "GitBlob":  "0a0fa029fe8eda585029cfe33996bde68af79623"
+                                 },
+                                 {
+                                     "Path":  ".gitignore",
+                                     "GitBlob":  "874c1b3bff87b17bb58ecf1d9d57e405830b25ff"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Authentication/AdminCookieEvents.cs",
+                                     "GitBlob":  "078c7c0a513b30b382e3b8ab28a6b77944a0d366"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Authentication/AdminSessionStore.cs",
+                                     "GitBlob":  "4bc20d8a674039e2f273618605f08b2d72815c8f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Authentication/AuthenticationCoordinator.cs",
+                                     "GitBlob":  "a312f5070071e8da588f019542a56687801e7f19"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Configuration/BackendApiOptions.cs",
+                                     "GitBlob":  "f73e7abb05dc38892537e3f8e4df977c6b7c3ca5"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Controllers/AccountController.cs",
+                                     "GitBlob":  "98b8fc4c7ebd2f3b24648f469e7a67ef85574ac6"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Controllers/BudgetsController.cs",
+                                     "GitBlob":  "f59659129346bc479aff1f6bd2557e8519958ce9"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Controllers/CategoriesController.cs",
+                                     "GitBlob":  "1d31c0cfc4ac6c74967300a27797c5f5430638dc"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Controllers/DashboardController.cs",
+                                     "GitBlob":  "b906e7a3319db316099108ba0e697b35e05bed13"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Controllers/ReportsController.cs",
+                                     "GitBlob":  "22a2cec866284d8fd004c4ccd1df4ada0b1a4d94"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/PersonalFinance.AdminMvc.csproj",
+                                     "GitBlob":  "9a04a31ebe4a98f731982c8ce0a74ba952e7b10d"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Program.cs",
+                                     "GitBlob":  "f895e4cc8bb47f07dc1fad7ff8b221bb97b4c140"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Properties/launchSettings.json",
+                                     "GitBlob":  "7b1ced67935bb9a6be461cfec9a61d1967ac3c0f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/README.md",
+                                     "GitBlob":  "b458649d837424bc0d7679866c3e5102c7f5f721"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/AuthenticationApiClient.cs",
+                                     "GitBlob":  "165bef058bcb378d0cd9e87b00b1cb7280ce42d8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/BudgetApiClient.cs",
+                                     "GitBlob":  "82426a8b66f310e0810a111d7994a564ad3c66d9"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/CategoryApiClient.cs",
+                                     "GitBlob":  "c55bb484fcc96961abfa20bd6c9b529101bfb39b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/CategoryManagementService.cs",
+                                     "GitBlob":  "752647a04323a4e480b0c57adeccd4be0f23d5fc"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/Contracts/AuthContracts.cs",
+                                     "GitBlob":  "216ac28ca8e9b355638aff4661d306470f280e32"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/Contracts/CategoryContracts.cs",
+                                     "GitBlob":  "2f31a22f0f16f12dd4f91499cae1daf182a3723b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/IAuthenticationApiClient.cs",
+                                     "GitBlob":  "99cdbea47ab4e2ffcbe002a59f7fe4a2b1b4b490"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/ICategoryApiClient.cs",
+                                     "GitBlob":  "83d1921ff06aaebc82b333623b404f5ec1009f15"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/ICategoryManagementService.cs",
+                                     "GitBlob":  "5a4707bb596a4e23a6f3d9150446591a34b462a5"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Services/ReportsApiClient.cs",
+                                     "GitBlob":  "14bcae4d72dc310b4a87482cda5a57913f6c4728"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/ViewModels/BudgetViewModels.cs",
+                                     "GitBlob":  "89a59094dda16c69f51e9819d9d1597f8597d09f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/ViewModels/CategoryViewModels.cs",
+                                     "GitBlob":  "d660891b2025bcae22700ebd7374dc940a9c6208"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/ViewModels/DashboardViewModel.cs",
+                                     "GitBlob":  "bdba2e763bdebc247bf8a6b84e2ca807fc555399"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/ViewModels/LoginViewModel.cs",
+                                     "GitBlob":  "90ddb08fc369040b546703057d7032305a7fd76f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/ViewModels/MonthlyReportsViewModel.cs",
+                                     "GitBlob":  "a70137f22febb05402fba1f72b8e741df6731c5c"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Account/AccessDenied.cshtml",
+                                     "GitBlob":  "7bd7c75b87af9a3bb50d3912856b6e8726171b34"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Account/Index.cshtml",
+                                     "GitBlob":  "c2244c70c9c6199ddccf03659b3afabc5926bac6"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Account/Login.cshtml",
+                                     "GitBlob":  "6d0cf8fb3075f03f85e970f5cb60cbad06464451"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Budgets/Create.cshtml",
+                                     "GitBlob":  "2b631d0f8084b516bb5698398519b404d90685ba"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Budgets/Delete.cshtml",
+                                     "GitBlob":  "85510edc18c6fcccdfc3ccd42e00c0697e85a3ef"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Budgets/Edit.cshtml",
+                                     "GitBlob":  "8bfab7e9714eb1d13696fc80766e2b266390ab4c"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Budgets/Error.cshtml",
+                                     "GitBlob":  "1794b26235b3e5604d3c42f261ad9a11f049e90b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Budgets/Index.cshtml",
+                                     "GitBlob":  "c619750ad154dd274e1d22d728f05af645f76fa2"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Budgets/_BudgetFields.cshtml",
+                                     "GitBlob":  "7cdcb784078eb2dfcd3ac95adacacdcc4a7272ce"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Categories/Create.cshtml",
+                                     "GitBlob":  "35e6efa32686878b6e8a9ee1e0e1328dd3871844"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Categories/Edit.cshtml",
+                                     "GitBlob":  "fd9db09ed4b5573a91ec0c78b6412edf43a7301a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Categories/Error.cshtml",
+                                     "GitBlob":  "6959cbb6cca7269ff67e77d23c18bc12d2e98495"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Categories/Index.cshtml",
+                                     "GitBlob":  "a0ccdbe2de823064be5a58304bb5e0fed4b15ae2"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Categories/_ValidationSummary.cshtml",
+                                     "GitBlob":  "9b951e0bea2abb63bc2536a0d41cf8c448d9a42e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Dashboard/Index.cshtml",
+                                     "GitBlob":  "b52609c115660d51ddd27453e14e95fb1a18a3da"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Reports/Index.cshtml",
+                                     "GitBlob":  "0ece733cf399c20d3a90f316c7779103315a00fd"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Shared/Error.cshtml",
+                                     "GitBlob":  "638111f62883c9cbe1d16f91d1fabde323790f72"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Shared/_Layout.cshtml",
+                                     "GitBlob":  "cb4e5389f12fb9d13ba314c6990c36fc16810492"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Shared/_NavIcon.cshtml",
+                                     "GitBlob":  "46bd9c44f6b776dd459262c66cf464c70d968d9a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/Shared/_OwlMark.cshtml",
+                                     "GitBlob":  "c1bc17133d60c09de28a50c21681ac1f5ded5d8b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/_ViewImports.cshtml",
+                                     "GitBlob":  "0e94e7a0dea2463ae220a9b8659e807ea6471bee"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/Views/_ViewStart.cshtml",
+                                     "GitBlob":  "820a2f6e02f108554a7392e866561bf791a3d360"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/wwwroot/css/site.css",
+                                     "GitBlob":  "14cfa5078d21eda7f6f0e48533bc550755d07348"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/wwwroot/fonts/PlusJakartaSans-OFL.txt",
+                                     "GitBlob":  "cd444675c2836662f94e266a2e5a0d40198e3ae7"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/wwwroot/fonts/PlusJakartaSans.ttf",
+                                     "GitBlob":  "0cb13a998ed525ba226d911b10d6c4c4f923a961"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.AdminMvc/wwwroot/js/owli-ui.js",
+                                     "GitBlob":  "a5565d4a8a491be2b82f9fe0ba198866d41f8e69"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/AuthTransportMiddleware.cs",
+                                     "GitBlob":  "be9cbe2955578f106855171f2a56ba6984579ab5"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/AuthenticationConfiguration.cs",
+                                     "GitBlob":  "5967787f97229816de4743f88709336fc80e344f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/CurrentUser.cs",
+                                     "GitBlob":  "4f2defed8c62331885265d66cc44a3a965adcb2a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/FinanceTransportMiddleware.cs",
+                                     "GitBlob":  "53a2513de5fd8f2c15bd498ed4ca9096ae8467ae"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/JwtSettings.cs",
+                                     "GitBlob":  "7ebd4922744503c3722bd58ff10ad0f2584384f1"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/JwtTokenIssuer.cs",
+                                     "GitBlob":  "fd2597c2777d791d8dd71b968317b82e5bf127ff"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Authentication/SafeExceptionHandler.cs",
+                                     "GitBlob":  "a564d08f193496031c0c2245f8a3f53a680d9782"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/AuthController.cs",
+                                     "GitBlob":  "a46a142d74527a076b0158031220ab466155537d"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/BudgetsController.cs",
+                                     "GitBlob":  "98cc4203296edbb44eb15921f1f300a034ae039e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/CategoriesController.cs",
+                                     "GitBlob":  "8f0980120f7c9141151e0bfee6c002f5dc0e78e8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/DevJobsController.cs",
+                                     "GitBlob":  "a041fc90cb3563932074da51f3a3e16e49d45404"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/NotificationsController.cs",
+                                     "GitBlob":  "62fbf5c659e7ae529176bbaa1ff72da24da760b1"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/RecurringBillsController.cs",
+                                     "GitBlob":  "34c5cd6b8203ebf54adfbacfdf4887c156f050f3"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/ReportsController.cs",
+                                     "GitBlob":  "977671cdc8ca630ea32f30049bf9c8489eb2698d"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/SavingsGoalsController.cs",
+                                     "GitBlob":  "d0dc19f09338f73f0e04fe74ec56ee2a6ba5d1c7"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Controllers/TransactionsController.cs",
+                                     "GitBlob":  "590463d5512712bff99c95a22f73b3a629117022"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Persistence/ApplicationDbContextFactory.cs",
+                                     "GitBlob":  "cbb9c1fc02e59e0b6622a3d83e52a6de9a8d8dc6"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/PersonalFinance.Api.csproj",
+                                     "GitBlob":  "f20958a8bac914bde00285fccadbe06aec512702"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Program.cs",
+                                     "GitBlob":  "623d4d4e591c5ecdb980ec7bc0e4969e292bd1a9"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/Properties/launchSettings.json",
+                                     "GitBlob":  "042e1d52fd8aad89a06fd059d255094340a8cb68"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Api/appsettings.json",
+                                     "GitBlob":  "b7f61d45db5e1b983207cb185827879790afd6c8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/BillPaymentReceipt.cs",
+                                     "GitBlob":  "1940c44868f7e3cb2b7597269b4d525b7a7d834e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/Budget.cs",
+                                     "GitBlob":  "63e7e018c9473a97ead4a2904374bba290291193"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/Category.cs",
+                                     "GitBlob":  "573061b8e7fd765ddee0968df8eb6ccd47774f7e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/ExchangeRate.cs",
+                                     "GitBlob":  "575ecdf78f43b5b6e70fe70f21e04e56186384b2"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/GoalContribution.cs",
+                                     "GitBlob":  "67742981d95fdf66e44e89adf0d1540790af0f16"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/GoalContributionRequest.cs",
+                                     "GitBlob":  "9f28c05577c80748e68ae153fc8fdf1204cf10b8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/MonthlySummary.cs",
+                                     "GitBlob":  "4fd25553d2530de676c4271eb2e01d888f649862"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/Notification.cs",
+                                     "GitBlob":  "d6b7bc95ff015c87dd1cda0804b36413f2a1c1e6"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/RecurringBill.cs",
+                                     "GitBlob":  "2b7b91685e7e37701e39bfc887df86f1e1d22d16"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/SavingsGoal.cs",
+                                     "GitBlob":  "442fb35fb13b11d58ce9d7c1f22f1c0085cf8d9b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Entities/Transaction.cs",
+                                     "GitBlob":  "54e21166fb16521658e1763e173786f7bd4aae9b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Enums/FinanceEnums.cs",
+                                     "GitBlob":  "9e5fac66e010318793bd0e65efefcef5fdcdfcc9"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/PersonalFinance.Domain.csproj",
+                                     "GitBlob":  "6d36c6dd67d4aff41a1e99ab5c32732d74892f23"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Policies/BillRecurrence.cs",
+                                     "GitBlob":  "f358802c4ff9904ef0339a982b18fbfaeeb5236a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Policies/BudgetStatusCalculator.cs",
+                                     "GitBlob":  "ae653883062cb13d1060228452922e2dbe7aa4c8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Policies/CurrencyConversion.cs",
+                                     "GitBlob":  "460dd81aa8cfc81f04ba46698e44b2c04b7a6660"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Policies/NotificationKeys.cs",
+                                     "GitBlob":  "6337d97863b10e34110f352d44b08b659a21050f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Domain/Policies/SavingsGoalProgressCalculator.cs",
+                                     "GitBlob":  "be1187208f8d2a0f586a72d0433b6ad044907e24"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/Abstractions.cs",
+                                     "GitBlob":  "b4a1a912cb1a3827b3f7bc9b7183ff9cb97d0f8f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/AuthRules.cs",
+                                     "GitBlob":  "ec2626a79857b728837c36258b4b7e6b68f7db07"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/AuthenticationService.cs",
+                                     "GitBlob":  "5178c451797dc77b25ee4ea842c6ea3cd8589536"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/Contracts/AuthRequests.cs",
+                                     "GitBlob":  "86a74346b7d8d665714922a256d58c021d6a57db"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/Contracts/AuthResponses.cs",
+                                     "GitBlob":  "df368f265147141df89d2ecc822f807095467dbd"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/DummyPasswordVerifier.cs",
+                                     "GitBlob":  "a6fc478db4af408ecea6414ec6003d3c8890baf6"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/RefreshTokenService.cs",
+                                     "GitBlob":  "abf3318c48154c70c0406d88e35bebb0bdc64d46"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Authentication/SqlAuthSessionStore.cs",
+                                     "GitBlob":  "057eb306961dd7d76489d8077d2aa3bbf71001ba"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/CurrencyPolicyOptions.cs",
+                                     "GitBlob":  "53a2c80375928a917049ed6af167a1ff02319021"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/DependencyInjection.cs",
+                                     "GitBlob":  "1965ba60023b60b019bdb87ccf007478e6711366"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Abstractions.cs",
+                                     "GitBlob":  "817b9d53fe43dfea1eebd80ae3390149a20e76d8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/BillPaymentIdempotency.cs",
+                                     "GitBlob":  "43b0adfa10351f4751026996043fe75da2899290"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/BillPaymentService.cs",
+                                     "GitBlob":  "a7d6a3d893fef2c6d72420e1b743f606e5a91e39"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/BudgetService.cs",
+                                     "GitBlob":  "3ed2cfe878efa5c7557251c8c156a1b04beab809"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/BudgetUsageService.cs",
+                                     "GitBlob":  "1ef350196f17bfccef472bd28b0688ca16088917"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/CategoryService.cs",
+                                     "GitBlob":  "d32c71a24af212c98399ab9b69b3ca0cd1fbcff1"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Contracts/BillPaymentContracts.cs",
+                                     "GitBlob":  "6327f2707d10c40ba52b93dcd4308e89c202beab"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Contracts/BudgetContracts.cs",
+                                     "GitBlob":  "7c0d0e27a4aaaaa1350dac024c529a2bf42c06de"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Contracts/FinanceRequests.cs",
+                                     "GitBlob":  "0ecbca6ce96804dde61c28c5ceaaba46fb2284f5"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Contracts/FinanceResponses.cs",
+                                     "GitBlob":  "732b8d28159131256132a9feccf9e2a121f7c544"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Contracts/RecurringBillContracts.cs",
+                                     "GitBlob":  "2d2d1006ec64937d0abb743fb77af79bcc53d41d"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/Contracts/SavingsGoalContracts.cs",
+                                     "GitBlob":  "b2fc1367895e09f23aa3c94cd880960bfcad324a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/ConversionService.cs",
+                                     "GitBlob":  "dce7e07de4346c3463cbb1262571369b70925a63"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/FinanceData.cs",
+                                     "GitBlob":  "e270bdaf2490363fc32fb9a20568157a8f947f5a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/FinanceServiceBase.cs",
+                                     "GitBlob":  "705a24e5ccfa57a38b025a578b9174c73478ddb1"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/FinanceValidation.cs",
+                                     "GitBlob":  "03e5518064adcad2aba1b0ad3ba3b75f69fa7a1c"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/FrankfurterClient.cs",
+                                     "GitBlob":  "2064842863b6edb3beb26696ce5dc0bc2d715176"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/GoalContributionIdempotency.cs",
+                                     "GitBlob":  "baffd76bd6616d7554abdf20e07286837056e2e1"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/NotificationService.cs",
+                                     "GitBlob":  "2ff06466b6176986022422c96ccd406aaad88f4c"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/RecurringBillService.cs",
+                                     "GitBlob":  "912c8eed7b50a7dda0ebb19adc0bf763018288bd"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/ReportService.cs",
+                                     "GitBlob":  "bd7e708e52338befb6545c0490c4782a1d47714a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/SavingsGoalService.cs",
+                                     "GitBlob":  "7c9f6fb3ccce308676647948d11744de7b774637"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/SqlFinancialWriteScope.cs",
+                                     "GitBlob":  "8dd95324dfe20aa07d91abd70ca068e37ee238fd"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Finance/TransactionService.cs",
+                                     "GitBlob":  "e0fba4dc48217e66e75f8bf3e9a3dfbfb21d7d82"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Identity/ApplicationRoles.cs",
+                                     "GitBlob":  "349458b19a6916f24fe891b64fe2db96b566a28e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Identity/ApplicationUser.cs",
+                                     "GitBlob":  "aa1f1485dc49ba3037d40ee1d7bdb1524e43eab3"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Identity/RefreshToken.cs",
+                                     "GitBlob":  "f4a07f155d5bbad9f45681e4822ab1cd37f2843a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Identity/RefreshTokenHash.cs",
+                                     "GitBlob":  "66f0536830c588f1eac5df27348e81859ecdc1a3"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Jobs/FinanceJobs.cs",
+                                     "GitBlob":  "5994e7e62e6bb815eb80e255775164e1d12d87b6"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Jobs/HangfireSetup.cs",
+                                     "GitBlob":  "f2ce53e09706b8af82aaf30a777a405866003e9f"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261031023901_InitialFinanceSchema.Designer.cs",
+                                     "GitBlob":  "6002dc155f8b686b26daf9d88c78d67c51d03c62"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261031023901_InitialFinanceSchema.cs",
+                                     "GitBlob":  "6de09188d5f550b3221030a5b8750baf40a5eb8d"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261031115500_AddCategoryNameUniqueness.Designer.cs",
+                                     "GitBlob":  "591e323e08a56deffb4b14f8f3792379bb75d64a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261031115500_AddCategoryNameUniqueness.cs",
+                                     "GitBlob":  "a496379839bd822c201c6739fe2a1c4f4a29337a"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261103141326_AddSavingsGoalContributionLedgerAndRowVersions.Designer.cs",
+                                     "GitBlob":  "80f44c4ffff430cfa6512ec7c0b00bb9d1f24e36"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261103141326_AddSavingsGoalContributionLedgerAndRowVersions.cs",
+                                     "GitBlob":  "fac45de808aec5f18eea7e904c128db26c08e20b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261107054048_AddBillPaymentReceiptsAndGuards.Designer.cs",
+                                     "GitBlob":  "70beb59f8118d183fb7803ef1b78ee963755ab47"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/20261107054048_AddBillPaymentReceiptsAndGuards.cs",
+                                     "GitBlob":  "1915b129eb3b2e0fe35915f08c7d829f4447ce19"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs",
+                                     "GitBlob":  "b7737935296fa2f91626a6100a7bb01987a11c4c"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Migrations/FinanceSchemaGuards.cs",
+                                     "GitBlob":  "5f79c03aa44b2bf5fa75296e7a335666d6a9cfa0"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/ApplicationDbContext.cs",
+                                     "GitBlob":  "2d9d42ddd462ea110fa0082002a83dca9cd4b25e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/CategoryNameNormalization.cs",
+                                     "GitBlob":  "998d3652174c81e48d1a3ad3279d2d6ce78adf07"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/BillPaymentReceiptConfiguration.cs",
+                                     "GitBlob":  "45de9f679d1aa69964041b8b82959dea63d447ac"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/BudgetConfiguration.cs",
+                                     "GitBlob":  "9fd39bc741e4da33c91e38bc19edf497bac729b2"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/CategoryConfiguration.cs",
+                                     "GitBlob":  "15ca26c8e3c56174dd57c1e0a0bf213828cabc2e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/ConfigurationRules.cs",
+                                     "GitBlob":  "f7bf60c13cb3fff46e2e82fb0f4c0831ba9302f8"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/ExchangeRateConfiguration.cs",
+                                     "GitBlob":  "46f87ff0846a8524a7e5af1103c03b86ea7cb5f2"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/GoalContributionRequestConfiguration.cs",
+                                     "GitBlob":  "005269ce05fe29ecfd800454fb588f26df67e2f2"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/IdentityConfigurations.cs",
+                                     "GitBlob":  "eb819215719ec15a0c415367fc56c50fb1fe6451"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/MonthlySummaryConfiguration.cs",
+                                     "GitBlob":  "3ba53c70c8b4552ed9a0f7f2a063a21d175acfc4"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/NotificationConfiguration.cs",
+                                     "GitBlob":  "6c616d52abd400bf855f8dc32e3fd7db7b175403"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/RecurringBillConfiguration.cs",
+                                     "GitBlob":  "27fc52b40f64931dcf6a080b47aed0dabf1fc600"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/SavingsConfigurations.cs",
+                                     "GitBlob":  "7376c29df3c566d8a42cd981d93042ffa1f7a79b"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/Configurations/TransactionConfiguration.cs",
+                                     "GitBlob":  "68a45dce989f5c2cd3d3ba914974a0167d30b01e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/Persistence/UtcDateTimeConverter.cs",
+                                     "GitBlob":  "f6440c9898a36c086ebf12ab1a47943cc7e92a9e"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinance.Infrastructure/PersonalFinance.Infrastructure.csproj",
+                                     "GitBlob":  "122d24c4166ffcaebd095c261cdd619216c31755"
+                                 },
+                                 {
+                                     "Path":  "PersonalFinancePlatform.slnx",
+                                     "GitBlob":  "1fbbecdc1a3e17725368874b357d51fe0a15f301"
+                                 },
+                                 {
+                                     "Path":  "README.md",
+                                     "GitBlob":  "7ce3c99eeed5908a790c3c38fc2496413e41ce65"
+                                 },
+                                 {
+                                     "Path":  "docs/MonthlyBudgets_Implementation_Report.md",
+                                     "GitBlob":  "d95881b437846b2226980f6823947553fa4b56c3"
+                                 },
+                                 {
+                                     "Path":  "docs/Phase3_Final_Verification.md",
+                                     "GitBlob":  "635566dfae01ac2d94323e3db6a5fe317f4c8db8"
+                                 },
+                                 {
+                                     "Path":  "docs/Phase3_Implementation_Report.md",
+                                     "GitBlob":  "cd9b411bb82f0138cb3feb39f0339ca258bd248a"
+                                 },
+                                 {
+                                     "Path":  "docs/Phase4_Connection_Preparation_Report.md",
+                                     "GitBlob":  "01a8145cbab96a54a96b598ce19944c65604e470"
+                                 },
+                                 {
+                                     "Path":  "docs/Phase5_Authorization_Verification.md",
+                                     "GitBlob":  "2041dd289f2aedf2ad5d93b5c06e1e14b16f1a1f"
+                                 },
+                                 {
+                                     "Path":  "docs/Phase5_Implementation_Report.md",
+                                     "GitBlob":  "b28f285ddd96c64c3a5bd32ab3c1f6e7378d4244"
+                                 },
+                                 {
+                                     "Path":  "docs/Phase6_Implementation_Report.md",
+                                     "GitBlob":  "a91d245860c71b994cb8798d38e4b8550bf8e131"
+                                 },
+                                 {
+                                     "Path":  "docs/Stage3_Step12B1_CategoryUniqueness_Report.md",
+                                     "GitBlob":  "0317d57a1a5540ef5fa883a83d1892c4a814e15c"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AdminMvc.UiTests/PersonalFinance.AdminMvc.UiTests.csproj",
+                                     "GitBlob":  "031f98a1543d3a55369d1a33f41972bcaa118902"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AdminMvc.UiTests/Program.cs",
+                                     "GitBlob":  "639eaa632fddc7fc1051f2def8f0584673c68245"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AdminMvc.UiTests/ReportsChecks.cs",
+                                     "GitBlob":  "60e1e68e5e22daad93ae546a38c20c2bd42e3606"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AdminProvisioningTests/PersonalFinance.AdminProvisioningTests.csproj",
+                                     "GitBlob":  "b98cd23679286549bc9ed01bf3302f9f30fc86f4"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AdminProvisioningTests/Program.cs",
+                                     "GitBlob":  "a6f3e342a253b04dce433c1c78c116683161f077"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.ApiSecurityTests/ApiFixture.cs",
+                                     "GitBlob":  "43bb4733ea7cb7274788fd66842ed2db633162b4"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.ApiSecurityTests/PersonalFinance.ApiSecurityTests.csproj",
+                                     "GitBlob":  "becc89d7f18e92985ead4c5f2a7c0613bf7fefb4"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.ApiSecurityTests/Program.cs",
+                                     "GitBlob":  "4c7ad01801a2b7223abbdf6f7406622378e3dbd8"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.ApiSecurityTests/StartupSmoke.cs",
+                                     "GitBlob":  "16e069026cb80e56b1841b1a70de85c6a34a0776"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.ApiSecurityTests/TestAuthorizationController.cs",
+                                     "GitBlob":  "85230ec2571902bcc403f4a57ad8b4e4fbc5a442"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AuthenticationTests/PersonalFinance.AuthenticationTests.csproj",
+                                     "GitBlob":  "8f0907895f09c635d780dc2e9a1518a229d7dad8"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AuthenticationTests/Program.cs",
+                                     "GitBlob":  "da55931e8f647a1b734bf980d10c9aac7dfc6791"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AuthenticationTests/SqlIntegration.cs",
+                                     "GitBlob":  "128fb0111550d941f9befd18ed7d6b7efb1a6660"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.AuthenticationTests/TestDoubles.cs",
+                                     "GitBlob":  "3aa15c1983e106a36fd314c724a3126de27d2b03"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.CategoryUniquenessTests/PersonalFinance.CategoryUniquenessTests.csproj",
+                                     "GitBlob":  "2bc01baf37ef0184c7708105d509fe0e52e28e32"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.CategoryUniquenessTests/Program.cs",
+                                     "GitBlob":  "697db6909f3784bbe6e88ea3977de87f0fb007a7"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/BillPaymentTests.cs",
+                                     "GitBlob":  "42d1062c8d1da120a55a88478aeb79ae21f07ea1"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/BudgetTests.cs",
+                                     "GitBlob":  "1e74c5d6d890ae439058dce113c907e02a13098e"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/CategoryComputedValueSimulation.cs",
+                                     "GitBlob":  "1dcc71857c3f7e8ff5a17f27a34abaffa214c23d"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/FinanceDoubles.cs",
+                                     "GitBlob":  "7a6dc4879d8e6a88a365765df53e3b1a861571ce"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/FinanceFixture.cs",
+                                     "GitBlob":  "80585aa7165eec844eab6d9dd1bb40f1406140ea"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/NotificationDevJobTests.cs",
+                                     "GitBlob":  "d80845007d78a6fbca2d2d720918227770b25c51"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/PersonalFinance.FinanceTests.csproj",
+                                     "GitBlob":  "645ab821400cbfc141a653a40e7a9e40b0e8fa7b"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/Program.cs",
+                                     "GitBlob":  "5cf91875c1e3ef19df1383028b1d299f6e7d383e"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/RecurringBillReportJobTests.cs",
+                                     "GitBlob":  "a563009f177334cd58b3c5c6c49f4456370d883d"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/ReportsOnlyTests.cs",
+                                     "GitBlob":  "99442c6b80b1a360c454bc37cdb73c029e4fe917"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/SavingsGoalTests.cs",
+                                     "GitBlob":  "bc2e335408c7faafe7bbeea61da105145ab6b218"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/SavingsRowVersionSimulation.cs",
+                                     "GitBlob":  "8a033304e4aee04f3967c3fa42e9ab988e42a7c9"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.FinanceTests/SyntheticSqlError.cs",
+                                     "GitBlob":  "68740f33960ba68f49d83269c64dbbd11eabcf00"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.SchemaValidation/PersonalFinance.SchemaValidation.csproj",
+                                     "GitBlob":  "41b92f6728a574b9e6b75c45054e53fa9da5707e"
+                                 },
+                                 {
+                                     "Path":  "tests/PersonalFinance.SchemaValidation/Program.cs",
+                                     "GitBlob":  "66f1547b1269397269f85e58a0245ed2c7d0030b"
+                                 },
+                                 {
+                                     "Path":  "tools/PersonalFinance.AdminProvisioning/AdministratorProvisioner.cs",
+                                     "GitBlob":  "57d56594edd0b663df99131c179c795ae54f2817"
+                                 },
+                                 {
+                                     "Path":  "tools/PersonalFinance.AdminProvisioning/PersonalFinance.AdminProvisioning.csproj",
+                                     "GitBlob":  "3e04b8272b54e29f37ed1ef036bf7620f58c355b"
+                                 },
+                                 {
+                                     "Path":  "tools/PersonalFinance.AdminProvisioning/Program.cs",
+                                     "GitBlob":  "aa3906320d777dc90bf442980242b864cbbdad7a"
+                                 },
+                                 {
+                                     "Path":  "tools/PersonalFinance.AdminProvisioning/SqlProvisioningDatabase.cs",
+                                     "GitBlob":  "4602b69ac619f3aa541d89dfa6e65193948d8033"
+                                 }
+                             ],
+    "ContractCheckInputs":  [
+                                {
+                                    "Path":  "deployment/checks/ReportsContract/Program.cs",
+                                    "SHA256":  "E8783AE4C2EE12D3F556E7B18CF394D0AE89003D07B54CD28BCA111D4C8690CC"
+                                },
+                                {
+                                    "Path":  "deployment/checks/ReportsContract/ReportsContract.csproj",
+                                    "SHA256":  "29F1D1C8D0652BDB68037893C02A9D096C871D7F05B1E426D96786E44E515902"
+                                }
+                            ],
+    "Evidence":  "Prior offline run: 553 numbered checks plus MVC and Reports contract checks; source unchanged since validation",
+    "LiveDeploymentApproved":  false
+}
