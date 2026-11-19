@@ -1,0 +1,48 @@
+@model MonthlyReportsViewModel
+@{
+    ViewData["Title"] = "Financial Reports";
+}
+<div class="reports">
+    <header class="reports-header">
+        <h1>Financial Reports</h1>
+        <form asp-controller="Reports" asp-action="Index" method="get" class="reports-filter">
+            <div>
+                <label for="report-month">Report month (YYYY-MM)</label>
+                <input id="report-month" name="month" type="month" value="@Model.Month"
+                       aria-invalid="@(Model.MonthError is not null ? "true" : null)"
+                       aria-describedby="@(Model.MonthError is not null ? "report-month-error" : null)" required />
+            </div>
+            <button type="submit">Apply month</button>
+        </form>
+    </header>
+    @if (Model.MonthError is not null)
+    {
+        <p id="report-month-error" class="notice" role="alert">@Model.MonthError</p>
+    }
+    <p id="report-availability" class="reports-notice" role="status">Report data unavailable until backend integration.</p>
+
+    <section class="card reports-summary" aria-labelledby="monthly-overview" aria-describedby="report-availability">
+        <h2 id="monthly-overview">Monthly overview</h2>
+        <dl class="reports-metrics">
+            <div><dt>Monthly income</dt><dd>Unavailable</dd></div>
+            <div><dt>Monthly expenses</dt><dd>Unavailable</dd></div>
+            <div><dt>Net balance</dt><dd>Unavailable</dd></div>
+            <div><dt>Transaction counts</dt><dd>Unavailable</dd></div>
+        </dl>
+    </section>
+
+    <div class="reports-details">
+        <section class="card" aria-labelledby="report-savings">
+            <h2 id="report-savings">Savings contributions</h2>
+            <p>Unavailable</p>
+        </section>
+        <section class="card" aria-labelledby="report-categories">
+            <h2 id="report-categories">Category breakdown</h2>
+            <p>Unavailable</p>
+        </section>
+        <section class="card" aria-labelledby="report-budgets">
+            <h2 id="report-budgets">Budget information and status</h2>
+            <p>Unavailable</p>
+        </section>
+    </div>
+</div>
