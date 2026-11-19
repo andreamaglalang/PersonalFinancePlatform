@@ -1,0 +1,31 @@
+@model BudgetCreateViewModel
+@{
+    ViewData["Title"] = "Create budget";
+}
+<section class="card category-form">
+    <h1>Create budget</h1>
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" role="alert"></div>
+        <label asp-for="CategoryId"></label>
+        <select asp-for="CategoryId" required>
+            <option value="">Choose an active expense category</option>
+            @foreach (var category in Model.Categories)
+            {
+                <option value="@category.CategoryId">@category.Name (#@category.CategoryId)</option>
+            }
+        </select>
+        <span asp-validation-for="CategoryId"></span>
+        @if (Model.Categories.Count == 0)
+        {
+            <p>No active expense categories are available for selection.</p>
+        }
+        <label asp-for="Month">Month (YYYY-MM)</label>
+        <input asp-for="Month" type="month" required />
+        <span asp-validation-for="Month"></span>
+        <partial name="_BudgetFields" model="Model" />
+        <div class="form-actions">
+            <button type="submit" disabled="@(Model.Categories.Count == 0)">Create budget</button>
+            <a asp-action="Index">Back to budgets</a>
+        </div>
+    </form>
+</section>

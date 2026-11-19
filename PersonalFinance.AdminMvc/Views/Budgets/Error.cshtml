@@ -1,0 +1,9 @@
+@model string
+@{
+    ViewData["Title"] = "Budget unavailable";
+}
+<section class="card">
+    <h1>Budget unavailable</h1>
+    <p class="notice" role="alert">@Model</p>
+    <a asp-action="Index">Back to budgets</a>
+</section>

@@ -2,6 +2,7 @@
     var isDashboard = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Dashboard", StringComparison.OrdinalIgnoreCase)
         && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
     var isCategories = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Categories", StringComparison.OrdinalIgnoreCase);
+    var isBudgets = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Budgets", StringComparison.OrdinalIgnoreCase);
     var showAdministratorNavigation = User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator");
 }
 <!DOCTYPE html>
@@ -21,6 +22,8 @@
             <nav aria-label="Administrator navigation">
                 <a asp-controller="Dashboard" asp-action="Index" class="nav-link"
                    aria-current="@(isDashboard ? "page" : null)">Dashboard</a>
+                <a asp-controller="Budgets" asp-action="Index" class="nav-link"
+                   aria-current="@(isBudgets ? "page" : null)">Budget Administration</a>
                 <a asp-controller="Categories" asp-action="Index" class="nav-link"
                    aria-current="@(isCategories ? "page" : null)">Default categories</a>
                 <form asp-controller="Account" asp-action="Logout" method="post">
