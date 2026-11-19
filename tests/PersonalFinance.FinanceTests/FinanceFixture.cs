@@ -47,12 +47,12 @@ internal sealed class FinanceFixture : IAsyncDisposable
     public SavingsRowVersionSimulation RowVersions { get; } = new();
     public JwtSettings Settings { get; }
     public IServiceProvider Services => host.Services; public FakeFx Fx { get; } = new();
-    public FinanceFixture()
+    public FinanceFixture(string environmentName = "Testing")
     {
         Settings = new JwtSettings { Issuer = "test-issuer", Audience = "test-audience", SigningKeyBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)) };
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            EnvironmentName = "Testing", ApplicationName = typeof(AuthController).Assembly.GetName().Name
+            EnvironmentName = environmentName, ApplicationName = typeof(AuthController).Assembly.GetName().Name
         });
         builder.Logging.ClearProviders();
         builder.Configuration.Sources.Clear();
