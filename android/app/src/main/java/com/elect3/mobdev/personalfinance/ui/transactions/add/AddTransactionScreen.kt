@@ -32,6 +32,10 @@ import com.elect3.mobdev.personalfinance.ui.components.OwliBrand
 import com.elect3.mobdev.personalfinance.ui.theme.*
 import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionAmount
 import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionDate
+import com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies
+import com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionNoticeCard
+import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencyPickerDialog
+import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencySelectorButton
 import kotlinx.coroutines.flow.Flow
 import java.time.*
 
@@ -84,6 +88,7 @@ fun AddTransactionDialog(
 fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUiState, fixed: FixedCategory? = null) {
     var categoryOpen by remember { mutableStateOf(false) }
     var dateOpen by remember { mutableStateOf(false) }
+    var currencyOpen by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     val typography = LocalOwliTypography.current
     val shapes = LocalOwliShapes.current
@@ -115,10 +120,12 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                     else if (account) R.string.form_account_notice
                     else if (offline) R.string.form_offline_notice else R.string.form_save_unavailable),
                     style = typography.caption, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                when (state.saveState) {
-                    is FormSaveState.Failed -> ErrorText(R.string.form_save_failed)
+                when (val save = state.saveState) {
+                    is FormSaveState.Failed -> ErrorText(if (state.foreignCurrency && save.reason == FinanceFailure.InvalidInput)
+                        R.string.fx_conversion_rejected else R.string.form_save_failed)
                     is FormSaveState.OutcomeUnknown -> {
-                        ErrorText(R.string.form_outcome_unknown)
+                        ErrorText(if (state.foreignCurrency && save.reason == UnknownCreationReason.ServerFailure)
+                            R.string.fx_conversion_server_failure else R.string.form_outcome_unknown)
                         if (!state.unknownEditing) TextButton(onClick = model::requestUnknownEdit) { Text(stringResource(R.string.form_edit_unknown)) }
                     }
                     is FormSaveState.Succeeded -> Text(stringResource(if (account) R.string.form_account_success else R.string.form_offline_success))
@@ -160,16 +167,30 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
             }
             Surface(shape = shapes.hero, color = MaterialTheme.colorScheme.primaryContainer) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.form_amount), style = typography.label)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(state.currency?.let { stringResource(R.string.fx_amount_in, it) } ?: stringResource(R.string.form_amount),
+                            style = typography.label, modifier = Modifier.weight(1f))
+                        if (state.currencySelectable && state.currency != null)
+                            CurrencySelectorButton(state.currency, enabled = editable, onClick = { focus.clearFocus(); currencyOpen = true })
+                    }
                     OutlinedTextField(state.amount, model::amount, enabled = editable, singleLine = true,
                         label = { Text(stringResource(R.string.form_amount)) },
+                        prefix = state.currency?.let { code -> { Text(SupportedCurrencies.symbol(code) + " ", style = typography.amountMedium) } },
+                        suffix = state.currency?.let { code -> { Text(code, style = typography.label) } },
                         textStyle = typography.heroAmount, shape = shapes.field, colors = owliFieldColors(),
                         modifier = Modifier.fillMaxWidth().onFocusChanged { if (!it.isFocused && state.amount.isNotEmpty()) model.touch(FormField.Amount) },
                         isError = FormField.Amount in state.touched && !state.amountValid,
                         supportingText = { if (FormField.Amount in state.touched && !state.amountValid) ErrorText(R.string.form_amount_error) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus(); model.touch(FormField.Amount) }))
-                    Text(state.currency?.let { stringResource(if (model.workflow == FormWorkflow.MockDemo) R.string.form_demo_currency else R.string.form_currency, it) } ?: stringResource(R.string.form_currency_unavailable),
+                    Text(state.currency?.let {
+                            when {
+                                model.workflow == FormWorkflow.MockDemo -> stringResource(R.string.fx_currency_demo_locked, it)
+                                it == state.baseCurrency -> stringResource(R.string.fx_currency_account, it)
+                                else -> SupportedCurrencies.find(it)?.name ?: it
+                            }
+                        } ?: stringResource(R.string.form_currency_unavailable),
                         style = typography.caption)
                     if (state.amountValid && state.currency != null) Text(
                         formatTransactionAmount(java.math.BigDecimal(state.amount.replace(',', '.')), state.currency),
@@ -178,6 +199,8 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                         color = if (state.type == TransactionType.Income) colors.income else colors.expense, style = typography.bodyStrong)
                 }
             }
+            if (state.foreignCurrency && state.baseCurrency != null)
+                ConversionNoticeCard(state.baseCurrency, formatTransactionDate(state.date), showOfflineNote = state.accountSaveEnabled)
             Surface(shape = shapes.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (fixed == null) OutlinedButton(onClick = { focus.clearFocus(); model.touch(FormField.Category); categoryOpen = true }, enabled = editable,
@@ -236,6 +259,9 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                 }
             })
     }
+    if (currencyOpen && state.currencySelectable) CurrencyPickerDialog(
+        options = SupportedCurrencies.options(state.baseCurrency), selected = state.currency, baseCurrency = state.baseCurrency,
+        onPick = { model.currency(it); currencyOpen = false }, onDismiss = { currencyOpen = false })
     if (dateOpen) {
         val picker = rememberDatePickerState(initialSelectedDateMillis = dateToPicker(state.date), yearRange = 1..9999)
         DatePickerDialog(onDismissRequest = { dateOpen = false },

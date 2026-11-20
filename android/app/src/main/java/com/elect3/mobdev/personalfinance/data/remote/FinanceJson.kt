@@ -129,6 +129,24 @@ internal object FinanceJson {
         require(items.map { it.categoryId }.distinct().size == items.size)
         return CategoryPage(items, query.page, query.pageSize, e.total)
     }
+    /**
+     * PUT api/transactions/{id} response: must be the edited row with exactly the submitted values, not bill-linked,
+     * and its rate snapshot must be self-consistent under the API's rule (base = round(amount × rate, 2)).
+     */
+    fun updatedTransaction(body: String, transactionId: Int, draft: TransactionDraft): Transaction {
+        val envelope = JsonObject().apply {
+            add("items", JsonArray().apply { add(root(body)) })
+            addProperty("page", 1); addProperty("pageSize", 20); addProperty("totalCount", 1)
+        }
+        return transactions(envelope.toString(), TransactionQuery()).items.single().also {
+            require(it.transactionId == transactionId && it.type == draft.type && it.categoryId == draft.categoryId &&
+                it.amount.compareTo(draft.amount) == 0 && it.currencyCode == draft.currencyCode &&
+                it.transactionDate == draft.transactionDate && it.description == draft.description &&
+                it.billId == null && it.billDueDate == null)
+            require(it.amount.multiply(it.fxRate).setScale(2, java.math.RoundingMode.HALF_UP).compareTo(it.amountBase) == 0)
+            require(it.fxRateDate <= it.transactionDate)
+        }
+    }
     fun transactions(body: String, query: TransactionQuery): TransactionPage {
         val e = envelope(root(body), query.page, query.pageSize)
         val items = e.rows.map { item ->

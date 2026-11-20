@@ -205,7 +205,9 @@ private fun FormStep(
     DisposableEffect(model) { registerBack { currentLeave() }; onDispose { registerBack(null) } }
     fun receipt(replayed: Boolean, queued: Boolean = false) = TransactionReceipt(state.type, category.name,
         formatTransactionAmount(BigDecimal(state.amount.replace(',', '.')), checkNotNull(state.currency)),
-        formatTransactionDate(state.date), demo = workflow == FormWorkflow.MockDemo, replayed = replayed, queuedOffline = queued)
+        formatTransactionDate(state.date), demo = workflow == FormWorkflow.MockDemo, replayed = replayed, queuedOffline = queued,
+        converted = if (queued) null else state.savedTransaction, baseCurrency = state.baseCurrency,
+        pendingConversion = queued && state.foreignCurrency)
     // Mock Demo: the preview completed locally; record it in the in-memory demo ledger only.
     LaunchedEffect(state.completed) {
         if (state.completed && !finished && workflow == FormWorkflow.MockDemo && isCurrent()) {

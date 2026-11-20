@@ -628,4 +628,45 @@
     <string name="local_history_pending">Pending ? saved on this device, awaiting server confirmation</string>
     <string name="local_history_synced">Synced ? previously confirmed by the server</string>
     <string name="local_history_rejected">Rejected ? not accepted by the server</string>
+
+    <!-- Transaction currency selection and server-side conversion -->
+    <string name="fx_currency_label">Currency</string>
+    <string name="fx_currency_change">Currency %1$s. Double-tap to change.</string>
+    <string name="fx_currency_picker_title">Transaction currency</string>
+    <string name="fx_currency_picker_hint">Other currencies are converted to %1$s by the server when the transaction is saved.</string>
+    <string name="fx_currency_demo_locked">%1$s · Sample data uses PHP only</string>
+    <string name="fx_currency_account">%1$s · Your account currency</string>
+    <string name="fx_amount_in">Amount in %1$s</string>
+    <string name="fx_selected">Selected</string>
+    <string name="fx_conversion_title">Converted to %1$s when saved</string>
+    <string name="fx_conversion_body">The server applies its validated exchange rate for %1$s. The rate and the %2$s amount are shown once it confirms the save. This phone never estimates a rate.</string>
+    <string name="fx_conversion_offline">Offline? It is kept on this phone unconverted and is converted when it syncs.</string>
+    <string name="fx_conversion_server_failure">The server could not confirm this save. For another currency it may not have had an exchange rate for this date yet. Retrying sends the same transaction, so it cannot be duplicated.</string>
+    <string name="fx_conversion_rejected">The server rejected this currency or date (no validated exchange rate) or another value. Nothing was saved.</string>
+    <string name="fx_equals">%1$s = %2$s</string>
+    <string name="fx_rate">Rate: 1 %1$s = %2$s %3$s</string>
+    <string name="fx_rate_date">Rate date: %1$s</string>
+    <string name="fx_same_currency">Same currency as your account: no conversion (rate 1).</string>
+    <string name="fx_receipt_title">Converted by the server</string>
+    <string name="fx_receipt_queued">Not converted yet: the server converts it to %1$s at the validated rate for its date when it syncs.</string>
+
+    <!-- Edit transaction -->
+    <string name="fx_edit_action">Edit</string>
+    <string name="fx_edit_title">Edit transaction</string>
+    <string name="fx_edit_type_fixed">%1$s · the type can\'t be changed here</string>
+    <string name="fx_edit_save">Save changes</string>
+    <string name="fx_edit_saving">Saving…</string>
+    <string name="fx_edit_no_changes">No changes yet.</string>
+    <string name="fx_edit_online_only">Edits go straight to the server and need a connection. They are never queued.</string>
+    <string name="fx_edit_rate_keeps">Amount-only change: the stored rate is kept (1 %1$s = %2$s %3$s, from %4$s).</string>
+    <string name="fx_edit_rate_expected">New %1$s amount: %2$s</string>
+    <string name="fx_edit_rate_new">Currency or date changed: the server applies its validated rate for %1$s when you save.</string>
+    <string name="fx_edit_saved">Changes saved</string>
+    <string name="fx_edit_failed_offline">Couldn\'t reach the server. Edits need a connection and are never queued. Check Activity before retrying; a retry sends the same values.</string>
+    <string name="fx_edit_failed_rejected">The server rejected this change (for example, no validated exchange rate for that currency and date). Nothing was changed.</string>
+    <string name="fx_edit_failed_conflict">This transaction changed elsewhere or can\'t be edited. Reload Activity and try again.</string>
+    <string name="fx_edit_failed_not_found">This transaction no longer exists.</string>
+    <string name="fx_edit_failed_unknown">The server couldn\'t confirm the change. Check Activity before retrying; a retry sends the same values.</string>
+    <string name="fx_edit_bill_locked">Bill payments can\'t be edited.</string>
+    <string name="fx_edit_categories_error">Categories couldn\'t be loaded. The current category is kept.</string>
 </resources>

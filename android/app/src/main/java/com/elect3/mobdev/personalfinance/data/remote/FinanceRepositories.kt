@@ -20,6 +20,8 @@ class FinanceRepositories private constructor(
     val accountId: () -> Int?,
     /** Authenticated api/budgets (read and member writes). Never handed to Mock Demo. */
     val budgets: BudgetRepository,
+    /** Authenticated PUT api/transactions/{id}. Online only; never handed to Mock Demo. */
+    val transactionUpdates: TransactionUpdateRepository,
 ) {
     constructor(configuration: ApiConfiguration, auth: InMemoryAuthRepository) : this(
         AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()),
@@ -28,6 +30,7 @@ class FinanceRepositories private constructor(
         RemoteCategoryWriteRepository(configuration, auth, PlatformFinanceWriteEngine()),
         { auth.accountId() },
         RemoteBudgetRepository(AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()), configuration, auth, PlatformFinanceWriteEngine()),
+        RemoteTransactionUpdateRepository(configuration, auth, PlatformFinanceWriteEngine()),
     )
     /** Test hosts: fake engines only. The default POST engine refuses to send, so no socket can open. */
     internal constructor(
@@ -43,6 +46,7 @@ class FinanceRepositories private constructor(
         RemoteCategoryWriteRepository(configuration, auth, writeEngine),
         { auth.accountId() },
         RemoteBudgetRepository(AuthenticatedFinanceTransport(configuration, auth, engine), configuration, auth, writeEngine),
+        RemoteTransactionUpdateRepository(configuration, auth, writeEngine),
     )
     val categories: CategoryRepository = RemoteCategoryRepository(transport)
     val transactions: RemoteTransactionRepository = RemoteTransactionRepository(transport)

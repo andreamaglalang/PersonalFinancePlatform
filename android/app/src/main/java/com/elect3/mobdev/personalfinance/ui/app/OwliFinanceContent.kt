@@ -46,6 +46,8 @@ fun OwliFinanceContent(
     authenticatedCategories: CategoryRepository? = null,
     authenticatedCurrency: () -> String? = { null },
     authenticatedCreation: TransactionCreationRepository? = null,
+    /** Signed-in online edits (PUT api/transactions/{id}); null hides Edit. Never handed to Mock Demo. */
+    authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
     /** Signed-in Dashboard renderer for this login's real data. Null keeps [dashboardContent] for every mode. */
     accountDashboard: (@Composable (DashboardViewModel) -> Unit)? = null,
     diagnostics: AuthDiagnosticSink = NoAuthDiagnostics,
@@ -160,6 +162,15 @@ fun OwliFinanceContent(
         val registered = pendingSync != null && cm != null && runCatching { cm.registerDefaultNetworkCallback(callback) }.isSuccess
         onDispose { if (registered) runCatching { cm?.unregisterNetworkCallback(callback) } }
     }
+    // Online edit (signed in only). Confirmed edits also refresh this device's copy of the row (same ClientId).
+    var editing by remember(authenticatedContentKey) { mutableStateOf<com.elect3.mobdev.personalfinance.domain.model.Transaction?>(null) }
+    val accountUpdates = remember(authenticatedContentKey, authenticatedUpdates, offlineLedger, accountId) {
+        val updates = authenticatedUpdates
+        if (authenticatedContentKey == null || updates == null) null
+        else if (offlineLedger != null && accountId != null)
+            com.elect3.mobdev.personalfinance.data.local.LedgerRecordingUpdateRepository(updates, offlineLedger, { accountId })
+        else updates
+    }
     // Same rule as before for every Add entry point: Mock Demo, or a signed-in account with categories.
     val canAdd = account == null || authenticatedCategories != null
     val openAdd: ((TransactionType?) -> Unit)? = if (canAdd) ({ type -> formInitialType = type; flowStart = FlowStart.AddTransaction; formOpen = true }) else null
@@ -206,7 +217,8 @@ fun OwliFinanceContent(
                     com.elect3.mobdev.personalfinance.ui.transactions.OfflineQueueUi(unsynced, syncing, runSync) { id ->
                         syncScope.launch { offlineLedger.discardRejected(accountId, id) }
                     } else null,
-                onAddTransaction = openAdd?.let { add -> { add(null) } })
+                onAddTransaction = openAdd?.let { add -> { add(null) } },
+                onEditTransaction = if (account != null && accountUpdates != null) ({ editing = it }) else null)
         },
         diagnostics = diagnostics,
         diagnosticInstanceId = diagnosticInstanceId,
@@ -217,6 +229,20 @@ fun OwliFinanceContent(
         planContent = if (canAdd) planContent else null,
         dashboardRequests = dashboardRequests,
     )
+    val editTarget = editing
+    val editKey = authenticatedContentKey
+    if (editTarget != null && editKey != null && accountUpdates != null) {
+        com.elect3.mobdev.personalfinance.ui.transactions.edit.EditTransactionDialog(
+            transaction = editTarget,
+            baseCurrency = authenticatedCurrency(),
+            updates = accountUpdates,
+            categories = categorySelection ?: authenticatedCategories,
+            isCurrent = { isSessionCurrent(editKey) },
+            onExpired = { if (isSessionCurrent(editKey)) onSessionExpired(editKey) },
+            onClose = { editing = null },
+            onSaved = { budgetsVm?.refresh(); account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard() },
+        )
+    }
     if (accountOpen && onLogout != null) {
         com.elect3.mobdev.personalfinance.ui.account.AccountDialog(
             mode = if (authenticatedContentKey == null) com.elect3.mobdev.personalfinance.ui.account.AccountMode.Demo

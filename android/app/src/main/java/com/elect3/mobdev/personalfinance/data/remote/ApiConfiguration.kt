@@ -15,6 +15,12 @@ class ApiConfiguration private constructor(private val base: URI?) {
 
     internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 
+    /** PUT api/transactions/{id} (member edit). */
+    internal fun transactionUpdateUrl(transactionId: Int): URL? {
+        require(transactionId > 0)
+        return base?.resolve("api/transactions/$transactionId")?.toURL()
+    }
+
     /** api/budgets (POST) and api/budgets/{id} (PUT, DELETE). */
     internal fun budgetWriteUrl(budgetId: Int?): URL? {
         require(budgetId == null || budgetId > 0)

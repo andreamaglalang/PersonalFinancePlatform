@@ -103,7 +103,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier = Modifier, isAuthenticated: Boolean = false,
     onAddTransaction: (() -> Unit)? = null, filterCategories: CategoryRepository? = null, offlineQueue: OfflineQueueUi? = null,
-    localHistory: (suspend () -> List<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction>)? = null) {
+    localHistory: (suspend () -> List<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction>)? = null,
+    onEditTransaction: ((Transaction) -> Unit)? = null) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
     var localRows by remember(localHistory) { mutableStateOf(emptyList<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction>()) }
@@ -154,6 +155,7 @@ fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier
         today = today,
         offlineQueue = offlineQueue,
         localHistory = if (unavailable) localRows else emptyList(),
+        onEditTransaction = onEditTransaction,
     )
 }
 
@@ -186,6 +188,8 @@ fun TransactionListScreen(
     today: LocalDate = LocalDate.now(),
     offlineQueue: OfflineQueueUi? = null,
     localHistory: List<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction> = emptyList(),
+    /** Signed-in only: opens the online edit for a server transaction (never shown in Mock Demo). */
+    onEditTransaction: ((Transaction) -> Unit)? = null,
 ) {
     val showingLocalHistory = isAuthenticated && localHistory.isNotEmpty()
     val content = if (showingLocalHistory) null else state as? TransactionListUiState.Content
@@ -329,7 +333,8 @@ fun TransactionListScreen(
             }
         }
     }
-    detail?.let { TransactionDetailSheet(it) { detail = null } }
+    detail?.let { TransactionDetailSheet(it, onDismiss = { detail = null },
+        onEdit = onEditTransaction?.takeIf { isAuthenticated }?.let { edit -> { t: Transaction -> detail = null; edit(t) } }) }
     if (picker && onApplyFilter != null) MonthPickerSheet(month ?: YearMonth.from(today), YearMonth.from(today),
         onPick = { picker = false; onApplyFilter(activeFilter.forMonth(it)) },
         onAllTime = { picker = false; onApplyFilter(activeFilter.allTime()) }, onDismiss = { picker = false })
@@ -723,7 +728,7 @@ private fun OutlinedAction(label: String, enabled: Boolean = true, dashed: Boole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TransactionDetailSheet(t: Transaction, onDismiss: () -> Unit) {
+private fun TransactionDetailSheet(t: Transaction, onDismiss: () -> Unit, onEdit: ((Transaction) -> Unit)? = null) {
     val owli = LocalOwliColors.current
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface) {
@@ -751,6 +756,13 @@ private fun TransactionDetailSheet(t: Transaction, onDismiss: () -> Unit) {
                     DetailRow(stringResource(R.string.act_detail_description), t.description ?: stringResource(R.string.act_detail_none))
                 }
             }
+            // Stored server snapshot only (rate with 8 decimals and its date); nothing is recalculated here.
+            if (!isPlainPhp(t)) com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionSummary(t, "PHP",
+                Modifier.fillMaxWidth().padding(top = 6.dp, start = 4.dp, end = 4.dp))
+            if (onEdit != null && t.billId == null && t.billDueDate == null)
+                Button(onClick = { onEdit(t) }, shape = LocalOwliShapes.current.button, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 6.dp)) {
+                    Text(stringResource(R.string.fx_edit_action), style = LocalOwliTypography.current.label)
+                }
             OutlinedAction(stringResource(R.string.act_close), onClick = onDismiss)
         }
     }

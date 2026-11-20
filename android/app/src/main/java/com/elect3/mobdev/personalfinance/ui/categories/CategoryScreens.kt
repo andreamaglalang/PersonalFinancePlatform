@@ -515,7 +515,12 @@ private fun IconChoice(icon: CategoryIcon, selected: Boolean, hex: String, enabl
 // ---------------------------------------------------------------- Confirmation
 
 data class TransactionReceipt(val type: TransactionType, val categoryName: String, val amountText: String, val dateText: String,
-                              val demo: Boolean, val replayed: Boolean = false, val queuedOffline: Boolean = false)
+                              val demo: Boolean, val replayed: Boolean = false, val queuedOffline: Boolean = false,
+                              /** Server-confirmed row in another currency: its authoritative rate, rate date and base amount are shown. */
+                              val converted: com.elect3.mobdev.personalfinance.domain.model.Transaction? = null,
+                              val baseCurrency: String? = null,
+                              /** Queued offline in another currency: no rate exists yet; the server converts it when it syncs. */
+                              val pendingConversion: Boolean = false)
 
 @Composable
 fun TransactionConfirmationScreen(receipt: TransactionReceipt, onDashboard: () -> Unit, onAnother: () -> Unit) {
@@ -545,6 +550,20 @@ fun TransactionConfirmationScreen(receipt: TransactionReceipt, onDashboard: () -
                 ReceiptRow(stringResource(R.string.tx_sum_date), receipt.dateText)
             }
         }
+        val converted = receipt.converted
+        if (converted != null && receipt.baseCurrency != null && converted.currencyCode != receipt.baseCurrency) {
+            Surface(Modifier.fillMaxWidth(), shape = LocalOwliShapes.current.group, color = colors.accentSoft,
+                border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f))) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.fx_receipt_title), style = LocalOwliTypography.current.label, color = colors.accent,
+                        modifier = Modifier.semantics { heading() })
+                    com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionSummary(converted, receipt.baseCurrency)
+                }
+            }
+        }
+        if (receipt.pendingConversion && receipt.baseCurrency != null)
+            Text(stringResource(R.string.fx_receipt_queued, receipt.baseCurrency), style = LocalOwliTypography.current.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Button(onClick = onDashboard, shape = LocalOwliShapes.current.button, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
             Text(stringResource(R.string.tx_back_dashboard), style = LocalOwliTypography.current.button)

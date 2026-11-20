@@ -44,12 +44,23 @@ data class AddTransactionUiState(
     val unknownEditing: Boolean = false,
     val unknownEditConfirmation: Boolean = false,
     val hasUnresolvedOutcome: Boolean = false,
+    /** The signed-in account's base currency (the form's default); amounts in other currencies are converted to it by the API. */
+    val baseCurrency: String? = null,
+    /** True only for signed-in forms; Mock Demo data is PHP only. */
+    val currencySelectable: Boolean = false,
+    /** The server-confirmed row after a successful save, carrying the API's authoritative rate, rate date and base amount. */
+    val savedTransaction: com.elect3.mobdev.personalfinance.domain.model.Transaction? = null,
 ) {
     val amountValid get() = validAmount(amount)
     val dateValid get() = date.year in 1..9999
     val categoryValid get() = categories.any { it.categoryId == selectedCategoryId && it.type == type && it.isActive }
-    val valid get() = amountValid && dateValid && categoryValid && description.length <= 200 && currency != null && !invalidated
-    val dirty get() = amount.isNotEmpty() || description.isNotEmpty() || selectedCategoryId != null || date != initialDate || type != TransactionType.Expense
+    val currencyValid get() = currency != null && (currency == baseCurrency ||
+        (currencySelectable && com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies.isSupported(currency)))
+    /** A currency other than the account's base currency: the API converts it when the transaction is saved. */
+    val foreignCurrency get() = currency != null && baseCurrency != null && currency != baseCurrency
+    val valid get() = amountValid && dateValid && categoryValid && description.length <= 200 && currencyValid && !invalidated
+    val dirty get() = amount.isNotEmpty() || description.isNotEmpty() || selectedCategoryId != null || date != initialDate ||
+        type != TransactionType.Expense || currency != baseCurrency
     val canLoadMore get() = page > 0 && categories.size.toLong() < total && !loading
     val visibleCategories get() = categories.filter { it.name.contains(search, ignoreCase = true) }
     val inputLocked get() = submitting || completed || invalidated || saveState is FormSaveState.Succeeded || saveState == FormSaveState.QueuedOffline ||
@@ -64,7 +75,7 @@ fun validAmount(raw: String): Boolean {
 }
 
 /** True when the user typed something beyond the chosen category (amount, note or a different date). */
-val AddTransactionUiState.hasUserInput get() = amount.isNotEmpty() || description.isNotEmpty() || date != initialDate
+val AddTransactionUiState.hasUserInput get() = amount.isNotEmpty() || description.isNotEmpty() || date != initialDate || currency != baseCurrency
 
 class AddTransactionViewModel(
     private val repository: CategoryRepository,
@@ -77,7 +88,9 @@ class AddTransactionViewModel(
     accountCreation: TransactionCreationRepository? = null,
 ) : ViewModel() {
     private val today = LocalDate.now(clock)
-    private val mutable = MutableStateFlow(AddTransactionUiState(currency = currency?.takeIf { it.matches(Regex("[A-Z]{3}")) }, date = today, initialDate = today))
+    private val base = currency?.takeIf { it.matches(Regex("[A-Z]{3}")) }
+    private val mutable = MutableStateFlow(AddTransactionUiState(currency = base, baseCurrency = base,
+        currencySelectable = workflow == FormWorkflow.Authenticated && base != null, date = today, initialDate = today))
     val state = mutable.asStateFlow()
     private var generation = 0L
     private var request: Job? = null
@@ -144,7 +157,7 @@ class AddTransactionViewModel(
                 if (!isSessionCurrent() || mutable.value.invalidated) { invalidate(); return@launch }
                 val unresolved = coordinator.unresolvedClientIds.isNotEmpty()
                 mutable.value = when (result) {
-                    is CreationResult.Success -> mutable.value.copy(submitting = false,
+                    is CreationResult.Success -> mutable.value.copy(submitting = false, savedTransaction = result.transaction,
                         saveState = FormSaveState.Succeeded(result.replayed), closeRequested = true, hasUnresolvedOutcome = unresolved)
                     is CreationResult.UnknownOutcome -> {
                         if (result.sessionInvalidated) { invalidate(); return@launch }
@@ -177,6 +190,13 @@ class AddTransactionViewModel(
     }
     fun touch(field: FormField) { if (editable()) mutable.value = mutable.value.copy(touched = mutable.value.touched + field) }
     fun amount(value: String) { if (editable()) mutable.value = mutable.value.copy(amount = value) }
+    /** Signed-in forms only, and only a currency the form offers (the account base currency or a supported one). */
+    fun currency(code: String) {
+        val s = mutable.value
+        if (!editable() || !s.currencySelectable) return
+        if (com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies.options(s.baseCurrency).none { it.code == code }) return
+        mutable.value = s.copy(currency = code)
+    }
     fun description(value: String) { if (editable()) mutable.value = mutable.value.copy(description = value) }
     fun date(value: LocalDate) { if (editable()) mutable.value = mutable.value.copy(date = value, touched = mutable.value.touched + FormField.Date) }
     fun search(value: String) { if (editable()) mutable.value = mutable.value.copy(search = value) }
