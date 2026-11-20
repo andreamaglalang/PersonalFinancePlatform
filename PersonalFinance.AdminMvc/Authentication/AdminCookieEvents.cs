@@ -19,11 +19,24 @@ public sealed class AdminCookieEvents(AuthenticationCoordinator coordinator) : C
         if (failure == ApiFailure.None) return;
         context.HttpContext.Items[FailureItem] = failure;
         context.RejectPrincipal();
-        await context.HttpContext.SignOutAsync(AdminSessionStore.Scheme);
+        // The coordinator removes invalid sessions. A transient validation failure leaves the ticket available.
+        if (failure is not (ApiFailure.RateLimited or ApiFailure.Unavailable))
+            await context.HttpContext.SignOutAsync(AdminSessionStore.Scheme);
     }
 
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
     {
+        if (context.HttpContext.Items[FailureItem] is ApiFailure.RateLimited)
+        {
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.Headers.RetryAfter = "60";
+            return context.Response.WriteAsync("OWLI is receiving too many requests. Wait a minute, then navigate back or reload the page.");
+        }
+        if (context.HttpContext.Items[FailureItem] is ApiFailure.Unavailable)
+        {
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return context.Response.WriteAsync("OWLI could not verify your session. Try opening the page again shortly.");
+        }
         if (context.HttpContext.Items[FailureItem] is ApiFailure.Forbidden)
             context.Response.Redirect("/Account/AccessDenied");
         else if (context.HttpContext.Items[FailureItem] is ApiFailure failure

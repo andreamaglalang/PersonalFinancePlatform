@@ -1,43 +1,30 @@
 @model DashboardViewModel
 @{ ViewData["Title"] = "Administrator Dashboard"; }
-<header class="page-heading">
-    <p class="welcome-name">Welcome, @Model.AdministratorDisplayName.</p>
-    <h1>Dashboard</h1>
+<header class="page-heading mock-heading">
+    <div><p class="welcome-name">Welcome, @Model.AdministratorDisplayName</p><h1>Dashboard</h1></div>
+    <a class="button-link" asp-controller="Categories" asp-action="Create" data-form-dialog="Create category"><partial name="_NavIcon" model='"plus"' />Create category</a>
 </header>
-<section class="card dashboard-welcome" aria-labelledby="dashboard-categories">
-    <h2 id="dashboard-categories">Default categories overview</h2>
-    <p>The API does not provide totals or a status breakdown for shared default categories.</p>
-    <dl class="reports-metrics">
-        <div><dt>Total defaults</dt><dd>Unavailable</dd></div>
-        <div><dt>Income / expense breakdown</dt><dd>Unavailable</dd></div>
-        <div><dt>Inactive defaults</dt><dd>Unavailable</dd></div>
-    </dl>
-    <div class="dashboard-category-links">
-        <a asp-controller="Categories" asp-action="Index">Browse default categories</a>
-        <a asp-controller="Categories" asp-action="Index" asp-route-state="inactive">Browse inactive defaults page by page</a>
-        <a asp-controller="Categories" asp-action="Create" data-form-dialog="Create shared default category">Create category</a>
+<div class="dashboard-grid">
+    <section class="card dashboard-welcome" aria-labelledby="dashboard-categories">
+        <img class="stars" src="~/images/dashboard-stars.svg" alt="" />
+        <div class="dashboard-panel-body">
+            <h2 id="dashboard-categories" class="eyebrow">Default categories</h2>
+            <p class="dashboard-panel-title">Category overview</p>
+            <p class="dashboard-panel-message">The API does not provide totals or a status breakdown for shared default categories.</p>
+        </div>
+        <div class="dashboard-panel-footer">
+            <span>Role: Administrator</span>
+            <a asp-controller="Categories" asp-action="Index">Manage categories <partial name="_NavIcon" model='"chev"' /></a>
+        </div>
+    </section>
+    <div class="dashboard-tools">
+        <a class="card mock-row" asp-controller="Budgets" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"budget"' /></span><span><strong>Budget Administration</strong><small>Manage monthly budgets</small></span><partial name="_NavIcon" model='"chev"' /></a>
+        <a class="card mock-row" asp-controller="Reports" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"report"' /></span><span><strong>Financial Reports</strong><small>View monthly reports</small></span><partial name="_NavIcon" model='"chev"' /></a>
     </div>
-</section>
-
-<section class="dashboard-features" aria-labelledby="features-title">
-    <div class="section-heading">
-        <h2 id="features-title">Administration</h2>
-    </div>
-    <div class="feature-grid">
-        <article class="card feature-card" aria-labelledby="categories-title">
-            <h3 id="categories-title">Default categories</h3>
-            <p>Browse, create, and edit shared default categories.</p>
-            <a class="button-link" asp-controller="Categories" asp-action="Index">Manage default categories</a>
-        </article>
-        <article class="card feature-card" aria-labelledby="budgets-title">
-            <h3 id="budgets-title">Budget Administration</h3>
-            <p>Manage monthly budgets for the signed-in account.</p>
-            <a class="button-link" asp-controller="Budgets" asp-action="Index">Manage budgets</a>
-        </article>
-        <article class="card feature-card" aria-labelledby="reports-title">
-            <h3 id="reports-title">Financial Reports</h3>
-            <p>View monthly financial reports for the signed-in account.</p>
-            <a class="button-link" asp-controller="Reports" asp-action="Index">Open Financial Reports</a>
-        </article>
-    </div>
-</section>
+    <section class="card dashboard-shortcuts">
+        <h2>Management shortcuts</h2>
+        <a class="mock-row" asp-controller="Categories" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"tag"' /></span><span><strong>Manage default categories</strong><small>Search, filter, edit, activate or deactivate</small></span><partial name="_NavIcon" model='"chev"' /></a>
+        <a class="mock-row" asp-controller="Categories" asp-action="Create" data-form-dialog="Create category"><span class="mock-tile"><partial name="_NavIcon" model='"plus"' /></span><span><strong>Create a category</strong><small>Add an income or expense category</small></span><partial name="_NavIcon" model='"chev"' /></a>
+        <a class="mock-row" asp-controller="Categories" asp-action="Index" asp-route-state="inactive"><span class="mock-tile"><partial name="_NavIcon" model='"power"' /></span><span><strong>Review inactive categories</strong><small>Browse inactive defaults page by page</small></span><partial name="_NavIcon" model='"chev"' /></a>
+    </section>
+</div>

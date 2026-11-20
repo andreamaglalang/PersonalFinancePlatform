@@ -1,7 +1,10 @@
+@using System.Security.Claims
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var sidebarIcon = "sidebar";
+    var displayName = User.Identity?.Name ?? "Administrator";
+    var email = User.FindFirstValue(ClaimTypes.Email);
     var authenticated = User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator");
     var page = new (string Controller, string Label, string Icon)[]
     {
@@ -19,17 +22,21 @@
     <title>@ViewData["Title"] — OWLI Administrator</title>
     <script src="~/js/owli-ui.js" asp-append-version="true"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/owlight.css" asp-append-version="true" />
 </head>
-<body class="@(authenticated ? "administrator-shell" : null)">
+<body class="@(authenticated ? "administrator-shell" : "public-shell")">
     <a class="skip-link" href="#main">Skip to main content</a>
+    @if (authenticated)
+    {
     <aside class="topbar" id="sidebar-slot">
         <div id="sidebar-content">
             <a class="brand" asp-controller="Dashboard" asp-action="Index">
                 <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
-                <span class="brand-name">OWLI <small>Administrator</small></span>
+                <span class="brand-name"><b>OWLI</b><small>Administrator</small></span>
             </a>
             @if (authenticated)
             {
+                <div class="nav-heading">Manage</div>
                 <nav id="administrator-nav" aria-label="Administrator navigation">
                     @foreach (var item in page)
                     {
@@ -39,38 +46,38 @@
                         </a>
                     }
                 </nav>
+                <div class="sidebar-actions">
                 <button type="button" class="secondary sidebar-toggle" data-sidebar-toggle aria-controls="administrator-nav"
                         aria-expanded="true" aria-label="Collapse sidebar" title="Collapse sidebar" hidden>
                     <partial name="_NavIcon" model="sidebarIcon" /><span class="nav-label">Collapse sidebar</span>
                 </button>
+                <form asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…" data-confirm-logout>
+                    <button type="submit" class="nav-link"><partial name="_NavIcon" model='"logout"' /><span class="nav-label">Log out</span></button>
+                </form>
+                </div>
             }
         </div>
-        @if (!authenticated)
-        {
-            <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>Dark theme</button>
-        }
     </aside>
-    @if (authenticated)
-    {
         <header class="workspace-bar">
-            <button type="button" class="secondary drawer-toggle" data-drawer-open aria-expanded="false" aria-controls="navigation-drawer" hidden>Menu</button>
+            <button type="button" class="secondary drawer-toggle" data-drawer-open aria-expanded="false" aria-controls="navigation-drawer" aria-label="Open navigation" hidden><partial name="_NavIcon" model='"menu"' /></button>
             <nav aria-label="Breadcrumb" class="breadcrumbs">
                 <a asp-controller="Dashboard" asp-action="Index">Administrator</a>
-                <span aria-hidden="true">›</span>
+                <span aria-hidden="true">/</span>
                 @if (action != "Index" && current.Controller is not null)
                 {
                     <a asp-controller="@current.Controller" asp-action="Index">@current.Label</a>
-                    <span aria-hidden="true">›</span>
+                    <span aria-hidden="true">/</span>
                 }
                 <span aria-current="page">@(action == "Index" ? current.Label : ViewData["Title"])</span>
             </nav>
-            <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>Dark theme</button>
+            <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden><span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span><span class="sun-icon"><partial name="_NavIcon" model='"sun"' /></span></button>
             <details class="account-menu">
-                <summary><span class="brand-mark"><partial name="_OwlMark" /></span><span>Account</span></summary>
+                <summary aria-label="Account menu for @displayName"><span class="brand-mark"><partial name="_OwlMark" /></span><span class="profile-name">@displayName</span><partial name="_NavIcon" model='"chevd"' /></summary>
                 <div class="account-menu-content">
-                    <a asp-controller="Account" asp-action="Index">Administrator Account</a>
-                    <form asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…">
-                        <button type="submit" class="secondary">Sign out</button>
+                    <div class="profile-identity"><strong>@displayName</strong><span>@email</span></div>
+                    <a asp-controller="Account" asp-action="Index"><partial name="_NavIcon" model='"account"' />Account</a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…" data-confirm-logout>
+                        <button type="submit" class="secondary"><partial name="_NavIcon" model='"logout"' />Log out</button>
                     </form>
                 </div>
             </details>
@@ -78,19 +85,26 @@
         <dialog id="navigation-drawer" class="navigation-drawer" aria-labelledby="drawer-title">
             <div class="dialog-header">
                 <h2 id="drawer-title">Navigation</h2>
-                <button type="button" class="secondary" data-dialog-close autofocus>Close</button>
+                <button type="button" class="secondary" data-dialog-close aria-label="Close" autofocus><partial name="_NavIcon" model='"x"' /></button>
             </div>
             <div data-drawer-content></div>
         </dialog>
         <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-dialog-title">
             <div class="dialog-header">
                 <h2 id="form-dialog-title" data-dialog-title>Administrator action</h2>
-                <button type="button" class="secondary" data-dialog-close autofocus>Close</button>
+                <button type="button" class="secondary" data-dialog-close aria-label="Close" autofocus><partial name="_NavIcon" model='"x"' /></button>
             </div>
             <div data-dialog-content></div>
         </dialog>
+        <dialog id="logout-dialog" aria-labelledby="logout-title">
+            <h2 id="logout-title">Log out?</h2>
+            <p>You’ll need to sign in again to access the administrator portal.</p>
+            <form method="dialog" class="form-actions">
+                <button class="secondary" autofocus value="cancel">Stay signed in</button>
+                <button value="confirm">Log out</button>
+            </form>
+        </dialog>
     }
-    <main id="main" tabindex="-1">@RenderBody()</main>
-    <footer>OWLI — Your Wise Money Companion</footer>
+    <main id="main" tabindex="-1"><div class="workspace-content">@RenderBody()</div></main>
 </body>
 </html>

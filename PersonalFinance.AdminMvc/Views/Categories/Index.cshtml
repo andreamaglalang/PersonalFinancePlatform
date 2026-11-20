@@ -1,52 +1,84 @@
 @model PersonalFinance.AdminMvc.ViewModels.CategoryIndexViewModel
 @{ ViewData["Title"] = "Shared default categories"; }
-<section class="card category-list" aria-labelledby="categories-title">
-    <header class="category-heading">
+<header class="page-heading mock-heading">
         <div>
-            <p class="eyebrow">OWLI administration</p>
-            <h1 id="categories-title">Shared default categories</h1>
+            <p class="welcome-name">Administrator</p>
+            <h1 id="categories-title">Default Categories</h1>
         </div>
-        <a class="button-link" asp-action="Create" data-form-dialog="Create shared default category">Create category</a>
-    </header>
-    <p class="muted">Search, status, and sorting apply to shared defaults on the current API page. The API paginates shared and personal categories together.</p>
+        <a class="button-link" asp-action="Create" data-form-dialog="Create category"><partial name="_NavIcon" model='"plus"' />Create category</a>
+</header>
+@if (TempData["CategoryNotice"] is string notice)
+{
+    <p class="success-notice" role="status">@notice</p>
+}
+<section class="card category-list default-category-list" aria-labelledby="categories-title">
     <form asp-action="Index" method="get" class="category-filters" data-busy="Loading categories…">
-        <div><label asp-for="Search">Search this page</label><input asp-for="Search" type="search" maxlength="50" /></div>
-        <div><label asp-for="Type">Type</label><select asp-for="Type"><option value="">All types</option><option value="Income">Income</option><option value="Expense">Expense</option></select></div>
-        <div><label asp-for="State">Status on this page</label><select asp-for="State"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-        <div><label asp-for="Sort">Sort this page</label><select asp-for="Sort"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option><option value="type">Type</option><option value="state">Active first</option></select></div>
-        <div><label asp-for="Page">API page</label><input asp-for="Page" type="number" min="1" /></div>
-        <div><label asp-for="PageSize">Page size</label><input asp-for="PageSize" type="number" min="1" max="100" /></div>
-        <button type="submit">Apply filters</button>
+        <label class="category-search"><partial name="_NavIcon" model='"search"' /><span class="visually-hidden">Search categories on this API page</span><input asp-for="Search" type="search" maxlength="50" placeholder="Search categories" /></label>
+        <div class="filter-group">
+            <span class="eyebrow" id="type-filter">Type</span>
+            <div class="mock-chips" role="group" aria-labelledby="type-filter">
+                @foreach (var option in new[] { (Value: "", Label: "All"), (Value: "Income", Label: "Income"), (Value: "Expense", Label: "Expense") })
+                {
+                    <a asp-action="Index" asp-route-Type="@option.Value" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@Model.Sort" asp-route-PageSize="@Model.PageSize"
+                       aria-current="@((Model.Type ?? "") == option.Value ? "true" : null)">@option.Label</a>
+                }
+            </div>
+        </div>
+        <div class="filter-group">
+            <span class="eyebrow" id="status-filter">Status</span>
+            <div class="mock-chips" role="group" aria-labelledby="status-filter">
+                @foreach (var option in new[] { (Value: "", Label: "All"), (Value: "active", Label: "Active"), (Value: "inactive", Label: "Inactive") })
+                {
+                    <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@option.Value" asp-route-Sort="@Model.Sort" asp-route-Page="@Model.Page" asp-route-PageSize="@Model.PageSize"
+                       aria-current="@((Model.State ?? "") == option.Value ? "true" : null)">@option.Label</a>
+                }
+            </div>
+        </div>
+        <input asp-for="Type" type="hidden" />
+        <input asp-for="State" type="hidden" />
+        <details class="category-options">
+            <summary>API page options</summary>
+            <label asp-for="Sort">Sort this page</label><select asp-for="Sort"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option><option value="type">Type</option><option value="state">Active first</option></select>
+            <label asp-for="Page">API page</label><input asp-for="Page" type="number" min="1" />
+            <label asp-for="PageSize">Page size</label><input asp-for="PageSize" type="number" min="1" max="100" />
+        </details>
+        <button type="submit" class="filter-submit">Apply filters</button>
     </form>
     @if (Model.Error is not null)
     {
-        <p class="notice category-error" role="alert">@Model.Error</p>
+        <div class="category-empty" role="alert"><partial name="_NavIcon" model='"alert"' /><h2>We couldn’t load categories</h2><p>@Model.Error</p><a class="button-link" asp-action="Index">Reset filters</a></div>
     }
     else
     {
-        <h2>Shared defaults on API page @Model.Page</h2>
         @if (Model.Categories.Count == 0)
         {
-            <p class="category-empty">No shared default categories match on this API page.</p>
+            <div class="category-empty"><partial name="_NavIcon" model='"search"' /><h2>No categories match on this page</h2><p>Try a different name or browse another API page.</p><a class="button-link" asp-action="Index" asp-route-Page="@Model.Page" asp-route-PageSize="@Model.PageSize">Clear search and filters</a></div>
         }
         else
         {
             <div class="table-scroll" tabindex="0" role="region" aria-label="Shared defaults on this API page">
-                <table><caption>Shared defaults from the current mixed API page</caption>
-                    <thead><tr><th scope="col" aria-sort="@(Model.Sort switch { "name-desc" => "descending", null or "name" => "ascending", _ => null })">Name</th><th scope="col" aria-sort="@(Model.Sort == "type" ? "ascending" : null)">Type</th><th scope="col">Color</th><th scope="col" aria-sort="@(Model.Sort == "state" ? "other" : null)">Status</th><th scope="col">Action</th></tr></thead>
+                <table><caption class="visually-hidden">Shared defaults from the current mixed API page</caption>
+                    <thead><tr>
+                        @foreach (var column in new[] { (Label: "Category", Sort: Model.Sort is null or "name" ? "name-desc" : "name", Direction: Model.Sort switch { "name-desc" => "descending", null or "name" => "ascending", _ => null }), (Label: "Type", Sort: "type", Direction: Model.Sort == "type" ? "ascending" : null), (Label: "Status", Sort: "state", Direction: Model.Sort == "state" ? "other" : null) })
+                        {
+                            <th scope="col" aria-sort="@column.Direction">
+                                <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@column.Sort" asp-route-Page="@Model.Page" asp-route-PageSize="@Model.PageSize">@column.Label <partial name="_NavIcon" model='@(column.Direction == "ascending" ? "sortu" : column.Direction == "descending" ? "sortd" : "sortn")' /></a>
+                            </th>
+                        }
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr></thead>
                     <tbody>
                     @foreach (var category in Model.Categories)
                     {
                         <tr>
-                            <th scope="row">@category.Name</th>
-                            <td>@category.Type</td>
-                            <td>@(category.ColorHEX ?? "Not set")</td>
-                            <td><span class="category-state @(category.IsActive ? "category-state-active" : "category-state-inactive")">@(category.IsActive ? "Active" : "Inactive")</span></td>
-                            <td>
+                            <th scope="row" class="category-name">@category.Name @if (category.ColorHEX is not null) { <small>@category.ColorHEX</small> }</th>
+                            <td class="category-type"><span class="type-pill @(category.Type == "Income" ? "income" : "expense")"><partial name="_NavIcon" model='@(category.Type == "Income" ? "up" : "down")' />@category.Type</span></td>
+                            <td class="category-status"><span class="category-state @(category.IsActive ? "category-state-active" : "category-state-inactive")">@(category.IsActive ? "Active" : "Inactive")</span></td>
+                            <td class="category-actions">
                                 <div class="table-actions">
-                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" aria-label="Edit @category.Name" data-form-dialog="Edit shared default category">Edit</a>
-                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" asp-fragment="IsActive" aria-label="Change status for @category.Name"
-                                       data-form-dialog="Change category status" data-dialog-status>Change status</a>
+                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" aria-label="Edit @category.Name" data-form-dialog="Edit category"><partial name="_NavIcon" model='"edit"' /><span>Edit</span></a>
+                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" asp-fragment="IsActive" aria-label="@(category.IsActive ? "Deactivate" : "Activate") @category.Name"
+                                       data-form-dialog="@(category.IsActive ? "Deactivate category" : "Activate category")" data-dialog-status><partial name="_NavIcon" model='"power"' /><span>@(category.IsActive ? "Deactivate" : "Activate")</span></a>
                                 </div>
                             </td>
                         </tr>
@@ -56,11 +88,11 @@
             </div>
         }
         <nav class="category-pagination" aria-label="Mixed API pagination">
+            <span>API page @Model.Page · @Model.Categories.Count shared results</span>
             @if (Model.HasPrevious)
             { <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@Model.Sort" asp-route-Page="@(Model.Page - 1)" asp-route-PageSize="@Model.PageSize">Previous page</a> }
             @if (Model.HasNext)
             { <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@Model.Sort" asp-route-Page="@(Model.Page + 1)" asp-route-PageSize="@Model.PageSize">Next page</a> }
         </nav>
-        <p class="muted">A page may contain no shared defaults even when other API pages do. Pages can shift while categories are being changed. No default-only total is available.</p>
     }
 </section>

@@ -10,9 +10,17 @@
     const save = (key, value) => {
         try { localStorage.setItem(key, value); } catch { /* Preferences are optional. */ }
     };
-    root.dataset.theme = read(themeKey) === "dark" ? "dark" : "light";
+    const preferredTheme = read(themeKey);
+    root.dataset.theme = preferredTheme === "dark" || preferredTheme === "light"
+        ? preferredTheme : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
     document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("change", event => {
+            const choice = event.target;
+            if (!choice.matches('[data-category-palette] input[type="radio"]:checked')) return;
+            choice.form.querySelector("[data-category-color-value]").value = choice.value;
+        });
+
         const themeButtons = document.querySelectorAll("[data-theme-toggle], [data-theme-choice]");
         function setTheme(theme) {
             root.dataset.theme = theme;
@@ -20,6 +28,9 @@
                 button.hidden = false;
                 const choice = button.dataset.themeChoice ?? "dark";
                 button.setAttribute("aria-pressed", String(theme === choice));
+                if (button.hasAttribute("data-theme-toggle")) {
+                    button.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+                }
             }
         }
         setTheme(root.dataset.theme);
@@ -101,6 +112,7 @@
             const content = formDialog.querySelector("[data-dialog-content]");
             const title = formDialog.querySelector("[data-dialog-title]");
             formDialog.addEventListener("close", () => {
+                if (formDialog.open) return;
                 formRequest?.abort();
                 formRequest = null;
                 content.replaceChildren();
@@ -113,6 +125,7 @@
                     || event.ctrlKey || event.shiftKey || event.altKey || link.origin !== location.origin) return;
                 event.preventDefault();
                 if (formDialog.open) return;
+                formRequest?.abort();
                 formTrigger = link;
                 const request = new AbortController();
                 formRequest = request;
@@ -135,7 +148,14 @@
                     if (!panel) { location.assign(link.href); return; }
                     panel.querySelector("h1")?.classList.add("visually-hidden");
                     content.replaceChildren(panel);
-                    panel.querySelector(link.hasAttribute("data-dialog-status") ? "[data-category-active]" : "[data-dialog-focus]")?.focus();
+                    const active = panel.querySelector("[data-category-active]");
+                    if (link.hasAttribute("data-dialog-status") && active?.form
+                        && typeof active.form.requestSubmit === "function") {
+                        active.checked = active.form.dataset.originalActive !== "true";
+                        active.form.requestSubmit();
+                    } else {
+                        panel.querySelector("[data-dialog-focus]")?.focus();
+                    }
                 } catch {
                     if (formRequest === request && formDialog.open) location.assign(link.href);
                 }
@@ -155,10 +175,26 @@
 
         const busyForms = new Map();
         const confirmedForms = new WeakSet();
+        const logoutDialog = document.querySelector("#logout-dialog");
         document.addEventListener("submit", event => {
             const form = event.target;
             if (form.method === "dialog") return;
             if (busyForms.has(form)) { event.preventDefault(); return; }
+
+            if (form.hasAttribute("data-confirm-logout") && typeof logoutDialog?.showModal === "function"
+                && !confirmedForms.delete(form)) {
+                event.preventDefault();
+                if (logoutDialog.open) return;
+                logoutDialog.returnValue = "";
+                logoutDialog.addEventListener("close", () => {
+                    if (logoutDialog.returnValue === "confirm") {
+                        confirmedForms.add(form);
+                        form.requestSubmit(event.submitter ?? undefined);
+                    }
+                }, { once: true });
+                logoutDialog.showModal();
+                return;
+            }
 
             const active = form.querySelector("[data-category-active]");
             const confirmation = active?.checked ? form.parentElement.querySelector("[data-confirm-activate]")
@@ -169,7 +205,8 @@
                 confirmation.returnValue = "";
                 confirmation.addEventListener("close", () => {
                     if (confirmation.returnValue !== "confirm") {
-                        active.focus();
+                        if (formTrigger?.hasAttribute("data-dialog-status")) formDialog.close();
+                        else active.focus();
                         return;
                     }
                     if (!active.checked) form.querySelector("[name=ConfirmDeactivation][type=checkbox]").checked = true;
@@ -183,7 +220,7 @@
             const message = form.dataset.busy;
             if (!message) return;
             const button = event.submitter;
-            busyForms.set(form, { button, text: button?.textContent });
+            busyForms.set(form, { button, content: button ? [...button.childNodes] : [] });
             form.setAttribute("aria-busy", "true");
             if (button) {
                 button.textContent = message;
@@ -197,10 +234,10 @@
             form.after(status);
         });
         window.addEventListener("pageshow", () => {
-            for (const [form, { button, text }] of busyForms) {
+            for (const [form, { button, content }] of busyForms) {
                 form.removeAttribute("aria-busy");
                 if (button) {
-                    button.textContent = text;
+                    button.replaceChildren(...content);
                     button.removeAttribute("aria-disabled");
                 }
                 if (form.nextElementSibling?.hasAttribute("data-submit-status")) form.nextElementSibling.remove();

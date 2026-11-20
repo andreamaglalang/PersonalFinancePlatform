@@ -1,30 +1,39 @@
 @model LoginViewModel
 @{ ViewData["Title"] = "Administrator sign in"; }
-<section class="card login" aria-labelledby="login-title">
-    <div class="login-branding">
-        <span class="login-moon" aria-hidden="true"></span>
-        <span class="login-crest" aria-hidden="true"><partial name="_OwlMark" /></span>
-        <p class="login-wordmark">OWLI</p>
-        <p class="muted">Your Wise Money Companion</p>
-        <p class="eyebrow">Administrator portal</p>
+<section class="login" aria-labelledby="login-title">
+    <button class="public-theme" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>
+        <span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span>
+        <span class="sun-icon"><partial name="_NavIcon" model='"sun"' /></span>
+    </button>
+    <div class="lg-art">
+        <img class="stars" src="~/images/login-stars.svg" alt="" />
+        <span class="crest" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <p class="lg-word">OWLI</p>
+        <p class="lg-tag">Your Wise Money Companion</p>
+        <p class="lg-portal"><partial name="_NavIcon" model='"lock"' />Administrator portal</p>
+        <p class="lg-blurb">Manage OWLI’s default categories for the whole platform.</p>
     </div>
-    <div class="login-content">
-        <h1 id="login-title">Administrator sign in</h1>
-        <p class="muted">Use your authorized OWLI administrator account.</p>
+    <div class="lg-form"><div class="lg-card">
+        <h1 id="login-title">Administrator sign-in</h1>
+        <p class="sub">Sign in to manage default categories.</p>
         @if (!string.IsNullOrEmpty(Model.Message))
         {
-            <p class="notice" role="alert">@Model.Message</p>
+            <p class="notice login-notice" role="alert"><partial name="_NavIcon" model='"alert"' />@Model.Message</p>
         }
         <form asp-controller="Account" asp-action="Login" method="post" data-busy="Signing in…">
             <input type="hidden" asp-for="ReturnUrl" />
-            <label asp-for="Email"></label>
-            <input asp-for="Email" type="email" autocomplete="username" required maxlength="256" />
+            <label asp-for="Email">Email address</label>
+            <div class="box"><partial name="_NavIcon" model='"mail"' />
+            <input asp-for="Email" type="email" autocomplete="username" placeholder="admin@example.com" required maxlength="256" /></div>
+            <span asp-validation-for="Email"></span>
             <label asp-for="Password"></label>
-            <div class="password-control">
-                <input name="Password" id="Password" type="password" autocomplete="current-password" required maxlength="128" />
-                <button type="button" class="secondary" data-password-toggle aria-label="Show password" aria-pressed="false" aria-controls="Password" hidden>Show</button>
+            <div class="box"><partial name="_NavIcon" model='"lock"' />
+                <input name="Password" id="Password" type="password" autocomplete="current-password" placeholder="Enter your password" required maxlength="128" />
+                <button type="button" class="show" data-password-toggle aria-label="Show password" aria-pressed="false" aria-controls="Password" hidden>Show</button>
             </div>
-            <button type="submit">Sign in securely</button>
+            <span asp-validation-for="Password"></span>
+            <button class="btn block" type="submit">Sign in</button>
         </form>
-    </div>
+        <div class="lg-foot"><p><partial name="_NavIcon" model='"lock"' />Access is limited to authorized administrators. Administrator accounts are not created on this page.</p></div>
+    </div></div>
 </section>

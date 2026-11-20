@@ -38,6 +38,8 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
                 // Held across the request AND atomic replacement. Never retry an ambiguous rotation.
                 var oldRefresh = session.Tokens.RefreshToken;
                 var refresh = await api.RefreshAsync(new RefreshRequest { RefreshToken = oldRefresh }, ct);
+                // The limiter rejects this request before rotation. Other refresh failures may be ambiguous.
+                if (refresh.Failure == ApiFailure.RateLimited) return ApiFailure.RateLimited;
                 if (!refresh.Succeeded) return Fail(session, refresh.Failure);
                 var replacement = refresh.Value!;
                 if (!store.IsCurrent(session) || replacement.User.Id != session.User.Id
@@ -49,6 +51,8 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
                 session.Tokens = replacement;
             }
             var me = await api.GetCurrentUserAsync(session.Tokens.AccessToken, ct);
+            // A failed read cannot authorize this request, but does not revoke the session.
+            if (me.Failure is ApiFailure.RateLimited or ApiFailure.Unavailable) return me.Failure;
             if (!me.Succeeded) return Fail(session, me.Failure);
             if (!store.IsCurrent(session) || me.Value!.Id != session.User.Id
                 || !ContractValidation.Administrator(me.Value))
