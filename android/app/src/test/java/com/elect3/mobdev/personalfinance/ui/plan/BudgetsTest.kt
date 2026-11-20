@@ -163,13 +163,16 @@ class BudgetsTest {
     private val store = ViewModelStore()
     @After fun clear() = store.clear()
     private var n = 0
-    private fun vm(repo: BudgetRepository, cats: CategoryRepository, expired: () -> Unit = {}) = ViewModelProvider(store, object : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T { @Suppress("UNCHECKED_CAST") return BudgetsViewModel(repo, cats, nov, onSessionExpired = expired) as T }
+    private val clock = java.time.Clock.fixed(Instant.parse("2026-11-20T03:45:00Z"), java.time.ZoneOffset.UTC)
+    private fun vm(repo: BudgetRepository, cats: CategoryRepository, expired: () -> Unit = {}, currency: () -> String? = { null }) = ViewModelProvider(store, object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T { @Suppress("UNCHECKED_CAST") return BudgetsViewModel(repo, cats, nov, onSessionExpired = expired, accountCurrency = currency, clock = clock) as T }
     })["b${n++}", BudgetsViewModel::class.java]
 
     private class FakeBudgets(var items: MutableList<Budget>) : BudgetRepository {
         var failNext: FinanceFailure? = null; var listFailure: FinanceFailure? = null; val calls = mutableListOf<String>()
-        override suspend fun list(month: YearMonth) = listFailure?.let { FinanceResult.Failure(it) } ?: FinanceResult.Success(items.toList())
+        val listed = mutableListOf<YearMonth>()
+        override suspend fun list(month: YearMonth): FinanceResult<List<Budget>> { listed += month
+            return listFailure?.let { FinanceResult.Failure(it) } ?: FinanceResult.Success(items.filter { it.periodMonth == month }) }
         override suspend fun create(categoryId: Int, month: YearMonth, limits: BudgetLimits): FinanceResult<Budget> { calls += "create:$categoryId:${limits.limitAmount}"
             failNext?.let { failNext = null; return FinanceResult.Failure(it) }
             val b = Budget(99, categoryId, "New", true, month, limits.limitAmount, limits.alertThresholdPct, BigDecimal.ZERO, limits.limitAmount, BudgetStatus.OK, "PHP")
@@ -212,9 +215,122 @@ class BudgetsTest {
         repo.listFailure = null; model.refresh(); advanceUntilIdle()
         assertTrue(model.state.value.loaded && model.state.value.budgets.isEmpty())
         var expired = 0
-        val gone = vm(FakeBudgets(mutableListOf()).apply { listFailure = FinanceFailure.SessionExpired }, DemoSession().categories) { expired++ }
+        val gone = vm(FakeBudgets(mutableListOf()).apply { listFailure = FinanceFailure.SessionExpired }, DemoSession().categories, expired = { expired++ })
         advanceUntilIdle()
         assertEquals(1, expired); assertTrue(gone.state.value.invalidated); assertTrue(gone.state.value.budgets.isEmpty())
+    }
+
+    // ---------- Month navigation ----------
+    @Test fun monthNavigationLoadsOnlyThatMonthAndStaysInRange() = runTest(main.dispatcher) {
+        val oct = nov.minusMonths(1)
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00"), budget(2, "50.00", "5.00").copy(periodMonth = oct)))
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        assertEquals(listOf(1), model.state.value.budgets.map { it.budgetId })
+        model.selectMonth(oct)
+        // The previous month's figures are never shown under the new label.
+        assertEquals(oct, model.state.value.month); assertTrue(model.state.value.loading && model.state.value.budgets.isEmpty())
+        advanceUntilIdle()
+        assertEquals(listOf(2), model.state.value.budgets.map { it.budgetId })
+        assertEquals(listOf(nov, oct), repo.listed)
+        // Create targets the month on screen.
+        model.create(4, "10", 80); advanceUntilIdle()
+        assertEquals(oct, repo.items.last().periodMonth)
+        // Bounds: 24 months back, 12 ahead.
+        model.selectMonth(nov.minusMonths(BUDGET_MONTHS_BACK + 1)); model.selectMonth(nov.plusMonths(BUDGET_MONTHS_AHEAD + 1))
+        assertEquals(oct, model.state.value.month)
+        model.selectMonth(nov.plusMonths(BUDGET_MONTHS_AHEAD)); advanceUntilIdle()
+        assertFalse(model.state.value.canGoForward); assertTrue(model.state.value.canGoBack)
+    }
+
+    @Test fun monthCannotChangeWhileSaving() = runTest(main.dispatcher) {
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00")))
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        model.update(1, "200", 80)
+        assertTrue(model.state.value.saving)
+        model.selectMonth(nov.plusMonths(1))
+        assertEquals(nov, model.state.value.month)
+        advanceUntilIdle()
+    }
+
+    // ---------- Offline / stale ----------
+    @Test fun failedReloadKeepsLastFiguresReadOnlyUntilARefreshSucceeds() = runTest(main.dispatcher) {
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00")))
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        assertEquals(java.time.LocalDateTime.of(2026, 11, 20, 3, 45), model.state.value.loadedAt)
+        repo.listFailure = FinanceFailure.Unavailable
+        model.refresh(); advanceUntilIdle()
+        with(model.state.value) {
+            assertTrue(loaded); assertTrue(stale); assertEquals(FinanceFailure.Unavailable, staleReason)
+            assertEquals(1, budgets.size); assertFalse(canWrite)
+        }
+        // Nothing is sent or queued while the figures are stale.
+        model.update(1, "200", 80); model.create(4, "10", 80); model.delete(1); advanceUntilIdle()
+        assertTrue(repo.calls.isEmpty()); assertEquals(BudgetFormError.Stale, model.state.value.formError)
+        repo.listFailure = null
+        model.refresh(); advanceUntilIdle()
+        assertFalse(model.state.value.stale); assertTrue(model.state.value.canWrite)
+    }
+
+    @Test fun firstLoadFailureIsAnErrorNotStaleData() = runTest(main.dispatcher) {
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00"))).apply { listFailure = FinanceFailure.Timeout }
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        assertEquals(FinanceFailure.Timeout, model.state.value.error); assertFalse(model.state.value.stale)
+        assertTrue(model.state.value.budgets.isEmpty())
+    }
+
+    // ---------- Conflicts ----------
+    @Test fun updateConflictMeansChangedElsewhereAndReloads() = runTest(main.dispatcher) {
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00")))
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        val reads = repo.listed.size
+        repo.failNext = FinanceFailure.Conflict; model.update(1, "150", 80); advanceUntilIdle()
+        assertEquals(BudgetFormError.Changed, model.state.value.formError)
+        assertEquals(reads + 1, repo.listed.size)
+    }
+
+    @Test fun blockedDeleteReloadsTheList() = runTest(main.dispatcher) {
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00")))
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        val reads = repo.listed.size
+        repo.failNext = FinanceFailure.Conflict; model.delete(1); advanceUntilIdle()
+        assertEquals(BudgetNotice.DeleteBlocked, model.state.value.notice); assertEquals(reads + 1, repo.listed.size)
+    }
+
+    @Test fun alertThresholdOutsideApiRangeIsNotSent() = runTest(main.dispatcher) {
+        val repo = FakeBudgets(mutableListOf(budget(1, "100.00", "20.00")))
+        val model = vm(repo, DemoSession().categories); advanceUntilIdle()
+        model.update(1, "100", 0); model.create(4, "100", 101); advanceUntilIdle()
+        assertTrue(repo.calls.isEmpty()); assertEquals(BudgetFormError.Rejected, model.state.value.formError)
+    }
+
+    // ---------- Categories and currency ----------
+    private fun cat(id: Int, active: Boolean = true, type: TransactionType = TransactionType.Expense) = Category(id, "Cat$id", type, null, active, false)
+
+    @Test fun categoryFailureIsReportedAndEveryPageIsRead() = runTest(main.dispatcher) {
+        val failing = object : CategoryRepository {
+            override suspend fun list(query: CategoryQuery): FinanceResult<CategoryPage> = FinanceResult.Failure(FinanceFailure.Unavailable) }
+        val down = vm(FakeBudgets(mutableListOf()), failing); advanceUntilIdle()
+        assertTrue(down.state.value.loaded); assertTrue(down.state.value.categoriesFailed); assertTrue(down.state.value.availableCategories.isEmpty())
+
+        val all = (1..150).map { cat(it, active = it != 7) }
+        val pages = mutableListOf<Int>()
+        val paged = object : CategoryRepository {
+            override suspend fun list(query: CategoryQuery): FinanceResult<CategoryPage> { pages += query.page
+                val slice = all.drop((query.page - 1) * query.pageSize).take(query.pageSize)
+                return FinanceResult.Success(CategoryPage(slice, query.page, query.pageSize, all.size.toLong())) } }
+        val model = vm(FakeBudgets(mutableListOf(budget(1, "100.00", "0.00", cat = 3))), paged); advanceUntilIdle()
+        assertEquals(listOf(1, 2), pages)
+        assertFalse(model.state.value.categoriesFailed)
+        assertEquals(148, model.state.value.availableCategories.size) // 150 - inactive #7 - budgeted #3
+    }
+
+    @Test fun createFormUsesServerCurrencyThenAccountCurrencyAndNeverGuesses() = runTest(main.dispatcher) {
+        val none = vm(FakeBudgets(mutableListOf()), DemoSession().categories); advanceUntilIdle()
+        assertNull(none.state.value.formCurrency)
+        val account = vm(FakeBudgets(mutableListOf()), DemoSession().categories, currency = { "USD" }); advanceUntilIdle()
+        assertEquals("USD", account.state.value.formCurrency)
+        val server = vm(FakeBudgets(mutableListOf(budget(1, "1.00", "0", currency = "EUR"))), DemoSession().categories, currency = { "USD" }); advanceUntilIdle()
+        assertEquals("EUR", server.state.value.formCurrency)
     }
 
     @Test fun demoAndAccountStoresAreSeparate() = runTest(main.dispatcher) {

@@ -176,20 +176,27 @@ fun OwliFinanceContent(
                 @Suppress("UNCHECKED_CAST")
                 return com.elect3.mobdev.personalfinance.ui.plan.BudgetsViewModel(budgetRepo, budgetCategories, java.time.YearMonth.now(),
                     isSessionCurrent = { key == null || isSessionCurrent(key) },
-                    onSessionExpired = { if (key != null && isSessionCurrent(key)) onSessionExpired(key) }) as T
+                    onSessionExpired = { if (key != null && isSessionCurrent(key)) onSessionExpired(key) },
+                    accountCurrency = if (key == null) ({ "PHP" }) else authenticatedCurrency) as T
             }
         })[com.elect3.mobdev.personalfinance.ui.plan.BudgetsViewModel::class.java]
     }
+    // Unsynced local transactions (signed in): read through State so the stable Plan lambda sees changes.
+    val pendingLocal = androidx.compose.runtime.rememberUpdatedState(if (authenticatedContentKey == null) 0 else unsynced.size)
     // Stable Plan content for this session (a new lambda each recomposition would churn navigation).
     val planContent: @Composable () -> Unit = remember(authenticatedContentKey, budgetsVm) {
         {
             val budgetState = budgetsVm?.state?.collectAsStateWithLifecycle()?.value
-            // Re-read each time Plan opens, so budgets reflect transactions added elsewhere (demo or account).
-            LaunchedEffect(budgetsVm) { budgetsVm?.consumeNotice(); budgetsVm?.refresh() }
+            val pending = pendingLocal.value
+            LaunchedEffect(budgetsVm) { budgetsVm?.consumeNotice() }
+            // Re-read each time Plan opens (and when the unsynced queue changes, e.g. after a sync), so budgets
+            // reflect transactions added elsewhere (demo or account).
+            LaunchedEffect(budgetsVm, pending) { budgetsVm?.refresh() }
             com.elect3.mobdev.personalfinance.ui.plan.PlanScreen(demo = authenticatedContentKey == null,
                 month = java.time.YearMonth.now(), sections = com.elect3.mobdev.personalfinance.ui.plan.PlanSections(
                     budgets = if (budgetsVm != null && budgetState != null) ({
-                        com.elect3.mobdev.personalfinance.ui.plan.BudgetsSection(budgetState, budgetsVm, demo = authenticatedContentKey == null)
+                        com.elect3.mobdev.personalfinance.ui.plan.BudgetsSection(budgetState, budgetsVm, demo = authenticatedContentKey == null,
+                            pendingLocalCount = pending)
                     }) else null,
                     budgetCount = budgetState?.budgets?.size ?: 0))
         }
