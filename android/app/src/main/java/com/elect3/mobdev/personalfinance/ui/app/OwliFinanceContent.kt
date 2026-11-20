@@ -48,6 +48,8 @@ fun OwliFinanceContent(
     authenticatedCreation: TransactionCreationRepository? = null,
     /** Signed-in online edits (PUT api/transactions/{id}); null hides Edit. Never handed to Mock Demo. */
     authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
+    /** Signed-in read-only live exchange-rate quotes for the Currency converter; null keeps the "no live quote" state. */
+    authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
     /** Signed-in Dashboard renderer for this login's real data. Null keeps [dashboardContent] for every mode. */
     accountDashboard: (@Composable (DashboardViewModel) -> Unit)? = null,
     diagnostics: AuthDiagnosticSink = NoAuthDiagnostics,
@@ -299,6 +301,9 @@ fun OwliFinanceContent(
             // Signed in only: hand off to the existing Add Transaction flow (the converter itself never writes).
             onRecordTransaction = if (account != null && openAdd != null) ({ converterOpen = false; accountOpen = false; openAdd(null) }) else null,
             onClose = { converterOpen = false },
+            quotes = if (authenticatedContentKey == null) null else authenticatedQuotes,
+            isCurrent = { authenticatedContentKey == null || isSessionCurrent(authenticatedContentKey) },
+            onExpired = { authenticatedContentKey?.let { if (isSessionCurrent(it)) onSessionExpired(it) } },
         )
     }
     if (formOpen) {

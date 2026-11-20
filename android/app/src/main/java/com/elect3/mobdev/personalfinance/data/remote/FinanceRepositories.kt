@@ -50,6 +50,8 @@ class FinanceRepositories private constructor(
     )
     val categories: CategoryRepository = RemoteCategoryRepository(transport)
     val transactions: RemoteTransactionRepository = RemoteTransactionRepository(transport)
+    /** Authenticated read-only GET api/exchange-rates/quote (no writes). Never handed to Mock Demo. */
+    val exchangeRateQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository = RemoteExchangeRateQuoteRepository(transport)
     val baseCurrency: () -> String? = currency
 }
 internal fun queryString(vararg pairs: Pair<String, Any?>) = pairs.filter { it.second != null }.joinToString("&") {

@@ -69,6 +69,8 @@ class LoginViewModel(
     val authenticatedBudgets: com.elect3.mobdev.personalfinance.domain.repository.BudgetRepository? = null,
     /** Authenticated online transaction edits; exposed only to authenticated content, never to Mock Demo. */
     val authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
+    /** Authenticated read-only exchange-rate quotes; exposed only to authenticated content, never to Mock Demo. */
+    val authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
 ) : ViewModel() {
     val diagnosticId = AuthDiagnosticIds.next()
     private fun record(event: AuthDiagnosticEvent) = diagnostics.record(event, diagnosticId, null)
@@ -251,6 +253,7 @@ class LoginViewModel(
         private val authenticatedAccountId: () -> Int? = { null },
         private val authenticatedBudgets: com.elect3.mobdev.personalfinance.domain.repository.BudgetRepository? = null,
         private val authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
+        private val authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == LoginViewModel::class.java)
@@ -259,7 +262,8 @@ class LoginViewModel(
                 authenticatedTransactions = authenticatedTransactions, authenticatedCategories = authenticatedCategories,
                 authenticatedCurrency = authenticatedCurrency, authenticatedCreation = authenticatedCreation,
                 authenticatedCategoryWrites = authenticatedCategoryWrites, authenticatedAccountId = authenticatedAccountId,
-                authenticatedBudgets = authenticatedBudgets, authenticatedUpdates = authenticatedUpdates) as T
+                authenticatedBudgets = authenticatedBudgets, authenticatedUpdates = authenticatedUpdates,
+                authenticatedQuotes = authenticatedQuotes) as T
         }
     }
 }

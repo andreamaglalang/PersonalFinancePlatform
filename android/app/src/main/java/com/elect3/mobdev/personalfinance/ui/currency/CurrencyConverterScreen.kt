@@ -51,6 +51,10 @@ fun CurrencyConverterDialog(
     /** Signed-in only: closes the converter and opens Add Transaction. Null hides the action. */
     onRecordTransaction: (() -> Unit)?,
     onClose: () -> Unit,
+    /** Signed-in only: the OWLI server's read-only quote endpoint. Null keeps the honest "no live quote" state. */
+    quotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
+    isCurrent: () -> Boolean = { true },
+    onExpired: () -> Unit = {},
 ) {
     val store = remember { ViewModelStore() }
     val model = remember {
@@ -58,7 +62,8 @@ fun CurrencyConverterDialog(
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 require(modelClass == CurrencyConverterViewModel::class.java)
                 @Suppress("UNCHECKED_CAST")
-                return CurrencyConverterViewModel(baseCurrency, demo, confirmed, onRecordTransaction != null) as T
+                return CurrencyConverterViewModel(baseCurrency, demo, confirmed, onRecordTransaction != null,
+                    quotes = if (demo) null else quotes, isSessionCurrent = isCurrent, onSessionExpired = onExpired) as T
             }
         })[CurrencyConverterViewModel::class.java]
     }
@@ -115,7 +120,7 @@ fun CurrencyConverterScreen(model: CurrencyConverterViewModel, state: CurrencyCo
                     CurrencyLine(stringResource(R.string.cur_to), state.to) { focus.clearFocus(); picking = "to" }
                 }
             }
-            ResultCard(state)
+            ResultCard(state, model)
             if (onRecordTransaction != null) Button(onClick = onRecordTransaction, shape = shapes.button,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.cur_record_action), textAlign = TextAlign.Center) }
             HowItWorks(state.baseCurrency)
@@ -154,7 +159,7 @@ private fun CurrencyLine(label: String, code: String, onPick: () -> Unit) {
 }
 
 @Composable
-private fun ResultCard(state: CurrencyConverterUiState) {
+private fun ResultCard(state: CurrencyConverterUiState, model: CurrencyConverterViewModel) {
     val colors = LocalOwliColors.current
     val typography = LocalOwliTypography.current
     Surface(Modifier.fillMaxWidth(), shape = LocalOwliShapes.current.group, color = colors.accentSoft, border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f))) {
@@ -167,18 +172,67 @@ private fun ResultCard(state: CurrencyConverterUiState) {
                     Text(formatTransactionAmount(r.amount, r.currencyCode), style = typography.amountMedium)
                     Text(stringResource(R.string.cur_result_same), style = typography.caption)
                 }
-                is ConverterResult.QuoteUnavailable -> {
-                    Text(stringResource(R.string.cur_result_unavailable_title), style = typography.bodyStrong)
-                    Text(stringResource(R.string.cur_result_unavailable_body, state.baseCurrency), style = typography.caption)
-                    r.reference?.let { ref ->
-                        Text(stringResource(R.string.cur_result_reference, ref.currencyCode, formatRate(ref.rate), ref.baseCurrency,
-                            formatTransactionDate(ref.rateDate)), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+                is ConverterResult.QuoteUnavailable -> LiveQuoteSection(state, model, r.reference)
             }
         }
     }
 }
+
+/** Live quote from the OWLI server, or the honest "no live quote" state when quotes are not available. */
+@Composable
+private fun LiveQuoteSection(state: CurrencyConverterUiState, model: CurrencyConverterViewModel, reference: ConfirmedRate?) {
+    val typography = LocalOwliTypography.current
+    val colors = LocalOwliColors.current
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    @Composable fun Action(label: Int, onClick: () -> Unit) {
+        Button(onClick = onClick, enabled = state.canRequestQuote, shape = LocalOwliShapes.current.button,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 4.dp)) { Text(stringResource(label)) }
+    }
+    @Composable fun Problem(message: Int) {
+        Text(stringResource(message), style = typography.body, color = MaterialTheme.colorScheme.error)
+        Action(R.string.cur_live_retry, model::requestQuote)
+    }
+    if (!state.liveQuotesAvailable) {
+        Text(stringResource(R.string.cur_result_unavailable_title), style = typography.bodyStrong)
+        Text(stringResource(if (state.demo) R.string.cur_live_signin else R.string.cur_result_unavailable_body, state.baseCurrency), style = typography.caption)
+    } else when (val live = state.liveQuote) {
+        LiveQuote.Idle -> {
+            Text(stringResource(R.string.cur_live_prompt), style = typography.body)
+            Action(R.string.cur_live_get, model::requestQuote)
+        }
+        LiveQuote.Loading -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.5.dp, color = colors.accent)
+            Text(stringResource(R.string.cur_live_loading), style = typography.body)
+        }
+        is LiveQuote.Ready -> {
+            val q = live.quote
+            Text(formatTransactionAmount(q.convertedAmount, q.to), style = typography.heroAmount.copy(fontSize = typography.heroAmount.fontSize * 0.8f))
+            Text(stringResource(R.string.fx_equals, formatTransactionAmount(q.amount, q.from), formatTransactionAmount(q.convertedAmount, q.to)), style = typography.bodyStrong)
+            Text(stringResource(R.string.cur_confirmed_row, q.from, formatRate(q.rate), q.to), style = typography.body)
+            Text(stringResource(R.string.cur_live_rate_date, formatTransactionDate(q.rateDate)), style = typography.caption, color = muted)
+            if (q.rateDate < q.requestedDate) Text(stringResource(R.string.cur_live_rate_earlier), style = typography.caption, color = muted)
+            Text(stringResource(R.string.cur_live_source, q.source, formatRetrieved(q.retrievedAt)), style = typography.caption, color = muted)
+            Text(stringResource(R.string.cur_live_quote_only), style = typography.caption, color = colors.accent)
+            OutlinedButton(onClick = model::refresh, enabled = state.canRequestQuote, shape = LocalOwliShapes.current.button,
+                border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 4.dp)) { Text("↻  " + stringResource(R.string.cur_live_refresh)) }
+        }
+        LiveQuote.Offline -> Problem(R.string.cur_live_offline)
+        LiveQuote.ProviderUnavailable -> Problem(R.string.cur_live_provider)
+        LiveQuote.NotSupported -> Problem(R.string.cur_live_not_supported)
+        LiveQuote.NotDeployed -> Problem(R.string.cur_live_not_deployed)
+        LiveQuote.Failed -> Problem(R.string.cur_live_failed)
+    }
+    // A historical rate from the account stays a labelled reference, never a stand-in for a live quote.
+    if (state.liveQuote !is LiveQuote.Ready) reference?.let { ref ->
+        Text(stringResource(R.string.cur_result_reference, ref.currencyCode, formatRate(ref.rate), ref.baseCurrency,
+            formatTransactionDate(ref.rateDate)), style = typography.caption, color = muted)
+    }
+}
+
+/** Local time and date the quote was retrieved (device time zone). */
+private fun formatRetrieved(at: java.time.Instant): String =
+    java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.SHORT).withZone(java.time.ZoneId.systemDefault()).format(at)
 
 @Composable
 private fun HowItWorks(base: String) {
