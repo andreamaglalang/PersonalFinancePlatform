@@ -166,11 +166,21 @@ class FinanceRepositoriesTest {
             IllegalStateException("private") to FinanceFailure.InvalidResponse)) {
             val f = Fixture(); f.login(); f.http.response = { throw exception }
             val result = f.repos.categories.list()
-            failure(expected, result); assertFalse(result.toString().contains("private"))
+            if (exception is IOException && expected == FinanceFailure.Unavailable)
+                assertEquals(FinanceResult.Failure(expected, isConnectivityFailure = true), result)
+            else failure(expected, result)
+            assertFalse(result.toString().contains("private"))
         }
         val f = Fixture(); f.login()
         f.http.response = { throw CancellationException("fixture cancellation") }
         try { f.repos.categories.list(); fail("Cancellation must propagate") } catch (_: CancellationException) { }
+    }
+    @Test fun networkIoIsDistinguishedFromReachableServerFailureForOfflineCache() = runTest {
+        val f = Fixture(); f.login()
+        f.http.response = { FinanceHttpResponse(503, "") }
+        assertEquals(FinanceResult.Failure(FinanceFailure.Unavailable), f.repos.categories.list())
+        f.http.response = { throw IOException("synthetic network failure") }
+        assertEquals(FinanceResult.Failure(FinanceFailure.Unavailable, isConnectivityFailure = true), f.repos.categories.list())
     }
     @Test fun malformedJsonAndIncorrectWireTypesAreRejected() = runTest {
         for (body in listOf("{", "null", "[]", categories() + "{}", categories().replace("\"page\":1", "\"page\":\"1\""),

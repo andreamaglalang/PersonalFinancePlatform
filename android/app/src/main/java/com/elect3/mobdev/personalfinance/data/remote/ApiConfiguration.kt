@@ -15,6 +15,18 @@ class ApiConfiguration private constructor(private val base: URI?) {
 
     internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 
+    /** api/budgets (POST) and api/budgets/{id} (PUT, DELETE). */
+    internal fun budgetWriteUrl(budgetId: Int?): URL? {
+        require(budgetId == null || budgetId > 0)
+        return base?.resolve(if (budgetId == null) "api/budgets" else "api/budgets/$budgetId")?.toURL()
+    }
+
+    /** Member category writes only: POST api/categories, PUT/DELETE api/categories/{id}. Never the admin defaults route. */
+    internal fun categoryWriteUrl(categoryId: Int?): URL? {
+        require(categoryId == null || categoryId > 0)
+        return base?.resolve(if (categoryId == null) "api/categories" else "api/categories/$categoryId")?.toURL()
+    }
+
     companion object {
         fun unconfigured() = ApiConfiguration(null)
 

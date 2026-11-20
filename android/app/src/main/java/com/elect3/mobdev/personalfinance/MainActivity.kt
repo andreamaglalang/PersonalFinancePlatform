@@ -5,6 +5,8 @@ import android.content.Intent
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.remember
@@ -32,6 +34,14 @@ import com.elect3.mobdev.personalfinance.ui.theme.PersonalFinanceTheme
 import com.elect3.mobdev.personalfinance.ui.transactions.TransactionListViewModel
 import kotlinx.coroutines.flow.map
 import java.time.YearMonth
+import androidx.lifecycle.lifecycleScope
+import com.elect3.mobdev.personalfinance.data.mock.DemoSession
+import com.elect3.mobdev.personalfinance.ui.auth.EntryMode
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+
+/** Activity-retained holder for the Mock Demo session; cleared with the activity's ViewModels. */
+class DemoSessionHolder : ViewModel() { val session = DemoSession() }
 
 class MainActivity : ComponentActivity() {
     private val diagnosticId = AuthDiagnosticIds.next()
@@ -54,6 +64,8 @@ class MainActivity : ComponentActivity() {
         // Provider retains the ViewModel across configuration changes. Repositories are
         // created only when its factory is invoked, never during recomposition.
         val factory = object : ViewModelProvider.Factory {
+            /** Mock Demo session store, retained with the activity's ViewModels (memory only). */
+            fun demoLedger() = ViewModelProvider(this@MainActivity, this)[DemoSessionHolder::class.java].session.ledger
             override fun <T : ViewModel> create(modelClass: Class<T>): T = when (modelClass) {
                 LoginViewModel::class.java -> {
                     val repository = InMemoryAuthRepository(authConfiguration, AuthDiagnostics)
@@ -65,18 +77,24 @@ class MainActivity : ComponentActivity() {
                         authenticatedCategories = finance.categories,
                         authenticatedCurrency = finance.baseCurrency,
                         authenticatedCreation = finance.creation,
+                        authenticatedCategoryWrites = finance.categoryWrites,
+                        authenticatedAccountId = finance.accountId,
+                        authenticatedBudgets = finance.budgets,
                     ).create(modelClass)
                 }
                 DashboardViewModel::class.java -> DashboardViewModel.Factory(
-                    loader = LoadDashboardSummary(MockTransactionRepository(MockScenario.Normal)),
+                    loader = LoadDashboardSummary(MockTransactionRepository(MockScenario.Normal, demoLedger())),
                     // Used only for an empty demo; nonempty data selects its latest month.
                     fallbackMonth = YearMonth.of(2026, 11),
                 ).create(modelClass)
                 // This branch creates nothing until Transactions is first visited.
                 TransactionListViewModel::class.java -> TransactionListViewModel.Factory(
-                    repository = MockTransactionRepository(MockScenario.Normal),
-                    replacementFactory = { MockTransactionRepository(MockScenario.Normal) },
+                    repository = MockTransactionRepository(MockScenario.Normal, demoLedger()),
+                    replacementFactory = { MockTransactionRepository(MockScenario.Normal, demoLedger()) },
+                    // Activity opens on the current month (read completely), like a signed-in account.
+                    initialFilter = com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter().forMonth(YearMonth.now()),
                 ).create(modelClass)
+                DemoSessionHolder::class.java -> modelClass.cast(DemoSessionHolder())!!
                 else -> throw IllegalArgumentException("Unsupported ViewModel class")
             }
         }
@@ -87,8 +105,43 @@ class MainActivity : ComponentActivity() {
         recordLifecycle(ActivityLifecyclePhase.VIEW_MODEL_ATTACHED)
         val dashboardViewModel = provider
             .get(DashboardViewModel::class.java)
+        val demoSession = provider[DemoSessionHolder::class.java].session
+        val refreshDemoData = {
+            dashboardViewModel.refresh()
+            provider.get(TransactionListViewModel::class.java).refreshAfterConfirmedCreation()
+        }
+        // Leaving Mock Demo discards everything added during it (memory only), then reloads the sample views.
+        lifecycleScope.launch {
+            var previous: EntryMode? = null
+            loginViewModel.state.map { it.entryMode }.distinctUntilChanged().collect { mode ->
+                if (previous == EntryMode.MockDemo && mode != EntryMode.MockDemo) { demoSession.reset(); refreshDemoData() }
+                previous = mode
+            }
+        }
+        // Account > Appearance: device-local theme choice (System keeps the previous behaviour).
+        val localDatabase = com.elect3.mobdev.personalfinance.data.local.room.OwliDatabase.get(this)
+        val offlineLedger = com.elect3.mobdev.personalfinance.data.local.RoomLedger(localDatabase.transactions())
+        val categoryCache = com.elect3.mobdev.personalfinance.data.local.RoomCategoryCache(localDatabase.categories())
+        val appearanceStore = com.elect3.mobdev.personalfinance.data.local.AppearanceStore(
+            getSharedPreferences(com.elect3.mobdev.personalfinance.data.local.AppearanceStore.FILE, MODE_PRIVATE))
         setContent {
-            PersonalFinanceTheme {
+            val appearance by appearanceStore.preference.collectAsState()
+            val dark = when (appearance) {
+                com.elect3.mobdev.personalfinance.data.local.AppearancePreference.Light -> false
+                com.elect3.mobdev.personalfinance.data.local.AppearancePreference.Dark -> true
+                com.elect3.mobdev.personalfinance.data.local.AppearancePreference.System -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            // System bars follow the app theme (same colours as values/ and values-night/ themes.xml).
+            androidx.compose.runtime.SideEffect {
+                val bar = if (dark) 0xFF0C0E21.toInt() else 0xFFF7F4FD.toInt()
+                window.statusBarColor = bar
+                window.navigationBarColor = bar
+                androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = !dark
+                    isAppearanceLightNavigationBars = !dark
+                }
+            }
+            PersonalFinanceTheme(darkTheme = dark) {
                 LaunchedEffect(Unit) {
                     ApiEnvironment.checkConnectionIfRequested(
                         intent.getBooleanExtra("owli.debug.CHECK_HTTPS", false),
@@ -112,6 +165,21 @@ class MainActivity : ComponentActivity() {
                         dashboardContent = { DashboardRoute(viewModel = dashboardViewModel) },
                         accountDashboard = { DashboardRoute(viewModel = it, source = DashboardSource.Account) },
                         demoTransactions = { provider.get(TransactionListViewModel::class.java) },
+                        authenticatedCategoryWrites = loginViewModel.authenticatedCategoryWrites,
+                        authenticatedAccountId = loginViewModel.authenticatedAccountId,
+                        demoSession = demoSession,
+                        onDemoDataChanged = refreshDemoData,
+                        appearance = appearance,
+                        onAppearance = appearanceStore::set,
+                        accountProfile = loginViewModel::accountProfile,
+                        authenticatedBudgets = loginViewModel.authenticatedBudgets,
+                        // Room (app-private, this device): signed-in offline-first recording and pending sync.
+                        offlineLedger = offlineLedger,
+                        offlineCategoryCache = categoryCache,
+                        // Signed in: the existing logout (server revocation attempt + local session clear). Demo: the existing exit.
+                        onLogout = {
+                            if (loginViewModel.state.value.isSignedIn) loginViewModel.logout() else loginViewModel.returnToLogin()
+                        },
                     )
                 }
                 OwliEntryGate(viewModel = loginViewModel,

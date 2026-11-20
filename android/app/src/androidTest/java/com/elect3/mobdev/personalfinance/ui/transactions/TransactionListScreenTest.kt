@@ -71,11 +71,12 @@ class TransactionListScreenTest {
         assertProgress()
     }
 
-    @Test fun contentShowsBrandHeadingDemoAndRow() {
+    @Test fun contentShowsHeadingDemoLabelAndRowWithoutAnAddButton() {
         show(content())
-        reveal(R.string.app_name).assertIsDisplayed()
-        reveal(R.string.app_tagline).assertIsDisplayed()
         reveal(R.string.transactions_demo_data).assertIsDisplayed()
+        // The central (+) is the Add entry; Activity has none while history exists.
+        compose.onNodeWithText(text(R.string.form_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.act_add_first)).assertDoesNotExist()
         reveal(R.string.transactions_title).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(TransactionFixtures.items.first().description!!, substring = true))
         compose.onNodeWithText(TransactionFixtures.items.first().description!!, substring = true).assertIsDisplayed()
@@ -99,12 +100,13 @@ class TransactionListScreenTest {
 
     @Test fun refreshingRetainsRowsAndDisablesRefreshAndAppend() {
         show(content(refreshing = true))
-        reveal(R.string.transactions_refresh).assertIsNotEnabled()
         reveal(R.string.transactions_refreshing).assertIsDisplayed()
         assertProgress()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(TransactionFixtures.items.first().description!!, substring = true))
         compose.onNodeWithText(TransactionFixtures.items.first().description!!, substring = true).assertIsDisplayed()
-        reveal(R.string.transactions_load_more).assertIsNotEnabled()
+        val more = text(R.string.act_show_more, 20, 44)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(more))
+        compose.onNodeWithText(more).assertIsNotEnabled()
     }
 
     @Test fun refreshFailureShowsSafeMessageAndRetry() {
@@ -139,12 +141,14 @@ class TransactionListScreenTest {
         compose.onRoot().assertExists("Compose root unavailable immediately after show()")
         compose.onNodeWithText(text(R.string.transactions_title), substring = false)
             .assertExists("Transaction heading missing before scrolling")
-        compose.onNodeWithText(text(R.string.transactions_refresh), substring = false)
-            .assertExists("Refresh action missing before scrolling")
-            .assertHasClickAction()
         compose.onNode(hasScrollAction())
             .assertExists("Scrollable transaction list missing before scrolling")
-        reveal(R.string.transactions_load_more).assertIsEnabled().performClick()
+        // Refresh is offered as pull-to-refresh and as an accessibility action on the list.
+        val list = compose.onNode(hasScrollAction())
+        list.assert(SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsActions.CustomActions))
+        val more = text(R.string.act_show_more, 20, 44)
+        list.performScrollToNode(hasText(more))
+        compose.onNodeWithText(more).assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(1, actions.more) }
     }
 
@@ -152,7 +156,7 @@ class TransactionListScreenTest {
         show(content(append = TransactionAppendState.Loading))
         reveal(R.string.transactions_loading_more).assertIsDisplayed()
         assertProgress()
-        compose.onNodeWithText(text(R.string.transactions_load_more)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.act_show_more, 20, 44)).assertDoesNotExist()
     }
 
     @Test fun appendErrorInvokesRetry() {
@@ -165,8 +169,10 @@ class TransactionListScreenTest {
 
     @Test fun appendEndHasNoLoadMoreAction() {
         show(content(append = TransactionAppendState.End))
-        reveal(R.string.transactions_end).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.transactions_load_more)).assertDoesNotExist()
+        val end = text(R.string.act_end_all, 45)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(end))
+        compose.onNodeWithText(end).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.act_show_more, 20, 44)).assertDoesNotExist()
     }
 
     @Test fun availableSessionRestartInvokesCallback() {
@@ -197,7 +203,9 @@ class TransactionListScreenTest {
         val last = TransactionFixtures.items.last()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(last.description!!, substring = true))
         compose.onNodeWithText(last.description!!, substring = true).assertIsDisplayed()
-        reveal(R.string.transactions_end).assertIsDisplayed()
+        val end = text(R.string.act_end_all, 45)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(end))
+        compose.onNodeWithText(end).assertIsDisplayed()
     }
 
     private fun themeRendering(night: Boolean) {

@@ -22,11 +22,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /** Construction and actions are confined to the main thread, like viewModelScope state updates. */
+/** Client-side amount order, only over a complete period; compares base-currency amounts. */
+enum class AmountOrder { Largest, Smallest }
+
 class TransactionListViewModel @MainThread constructor(
     initialRepository: TransactionRepository,
     private val replacementFactory: (() -> TransactionRepository)? = null,
     private val isSessionCurrent: () -> Boolean = { true },
     private val onSessionExpired: () -> Unit = {},
+    /** Starting filter. The app opens Activity on the current month; the default shows all time. */
+    initialFilter: TransactionFilter = TransactionFilter(),
 ) : ViewModel() {
     private var invalidated = false
     private var repository = initialRepository
@@ -37,7 +42,7 @@ class TransactionListViewModel @MainThread constructor(
     private var request: Job? = null
 
     /** Server-side filter applied to every page, refresh and load-more. Default: all transactions, newest first. */
-    private var filter = TransactionFilter()
+    private var filter = initialFilter
     private val mutableFilter = MutableStateFlow(filter)
     val activeFilter: StateFlow<TransactionFilter> = mutableFilter.asStateFlow()
 
@@ -58,6 +63,14 @@ class TransactionListViewModel @MainThread constructor(
         supersedeRequest()
         loadFirstPage()
     }
+
+    /** Client-side order and search, applied only to a complete period (see TransactionListUiState.Content.complete). */
+    private val mutableAmountOrder = MutableStateFlow<AmountOrder?>(null)
+    val amountOrder: StateFlow<AmountOrder?> = mutableAmountOrder.asStateFlow()
+    private val mutableSearch = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = mutableSearch.asStateFlow()
+    fun setAmountOrder(order: AmountOrder?) { mutableAmountOrder.value = order }
+    fun setSearch(query: String) { mutableSearch.value = query.take(100) }
 
     init {
         loadFirstPage()
@@ -152,8 +165,12 @@ class TransactionListViewModel @MainThread constructor(
                     mutableState.value = if (items.isEmpty()) {
                         TransactionListUiState.Empty
                     } else {
-                        TransactionListUiState.Content(items, page.page, page.totalCount, appendState(items, page))
+                        TransactionListUiState.Content(items, page.page, page.totalCount, appendState(items, page),
+                            isRefreshing = snapshotWanted(page),
+                            complete = isBoundedFilter() && items.size.toLong() == page.totalCount)
                     }
+                    val content = mutableState.value as? TransactionListUiState.Content
+                    if (content != null && !content.complete && snapshotWanted(page)) completePeriod(content, page.totalCount)
                 }
                 is TransactionPageResult.Failure -> {
                     mutableState.value = when {
@@ -168,6 +185,39 @@ class TransactionListViewModel @MainThread constructor(
                 }
             }
         }
+    }
+
+    private fun isBoundedFilter() = filter.isBounded && repository is FilterableTransactionRepository
+    private fun snapshotWanted(page: TransactionPage) = isBoundedFilter() && page.totalCount in 1..SNAPSHOT_CAP &&
+        page.items.size.toLong() < page.totalCount
+
+    /**
+     * Bounded period: read its remaining pages so totals and search cover the whole period. Each page must report
+     * the same total; any change or failure leaves the normal paged list (never a partial complete view).
+     */
+    private fun completePeriod(first: TransactionListUiState.Content, expected: Long) {
+        fun step(current: TransactionListUiState.Content) {
+            readPage(current.lastSuccessfulPage + 1) { result ->
+                if (result is TransactionPageResult.Failure && result.reason == TransactionFailure.SessionExpired) {
+                    mutableState.value = expiredState(); return@readPage
+                }
+                val page = (result as? TransactionPageResult.Success)?.page
+                if (page == null || page.totalCount != expected || page.items.isEmpty()) {
+                    // Keep what was read, as an ordinary paged list.
+                    mutableState.value = snapshot(current, append = if (current.items.size.toLong() < current.totalCount)
+                        TransactionAppendState.Ready else TransactionAppendState.End,
+                        refreshError = (result as? TransactionPageResult.Failure)?.reason)
+                    return@readPage
+                }
+                val items = orderedUnique(current.items + page.items)
+                val done = items.size.toLong() == expected
+                val next = TransactionListUiState.Content(items, page.page, expected, appendState(items, page),
+                    isRefreshing = !done, complete = done)
+                mutableState.value = next
+                if (!done) step(next)
+            }
+        }
+        step(first)
     }
 
     private fun appendPage(previous: TransactionListUiState.Content) {
@@ -197,14 +247,16 @@ class TransactionListViewModel @MainThread constructor(
         val token = generation
         val source = repository
         val activeFilter = filter
+        // Bounded periods use the largest API page so a whole month needs few requests.
+        val size = if (activeFilter.isBounded && source is FilterableTransactionRepository) PERIOD_PAGE_SIZE else PAGE_SIZE
         // Assign before starting: an immediate mock response cannot leave a stale active-job handle.
         val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             try {
                 val result = try {
                     (if (!activeFilter.isDefault && source is FilterableTransactionRepository)
-                        source.readPage(page, PAGE_SIZE, activeFilter) else source.readPage(page, PAGE_SIZE)).also { response ->
+                        source.readPage(page, size, activeFilter) else source.readPage(page, size)).also { response ->
                         if (response is TransactionPageResult.Success) {
-                            require(response.page.page == page && response.page.pageSize == PAGE_SIZE)
+                            require(response.page.page == page && response.page.pageSize == size)
                         }
                     }
                 } catch (cancelled: CancellationException) {
@@ -269,7 +321,7 @@ class TransactionListViewModel @MainThread constructor(
         isRefreshing: Boolean = false,
         refreshError: TransactionFailure? = null,
     ) = TransactionListUiState.Content(
-        content.items, content.lastSuccessfulPage, content.totalCount, append, isRefreshing, refreshError,
+        content.items, content.lastSuccessfulPage, content.totalCount, append, isRefreshing, refreshError, content.complete,
     )
 
     class Factory(
@@ -277,15 +329,19 @@ class TransactionListViewModel @MainThread constructor(
         private val replacementFactory: (() -> TransactionRepository)? = null,
         private val isSessionCurrent: () -> Boolean = { true },
         private val onSessionExpired: () -> Unit = {},
+        private val initialFilter: TransactionFilter = TransactionFilter(),
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == TransactionListViewModel::class.java) { "Unsupported ViewModel class" }
             @Suppress("UNCHECKED_CAST")
-            return TransactionListViewModel(repository, replacementFactory, isSessionCurrent, onSessionExpired) as T
+            return TransactionListViewModel(repository, replacementFactory, isSessionCurrent, onSessionExpired, initialFilter) as T
         }
     }
 
-    private companion object {
+    companion object {
         const val PAGE_SIZE = 20
+        const val PERIOD_PAGE_SIZE = 100
+        /** Largest period read completely (at most 5 requests). Bigger periods stay paged, without totals or search. */
+        const val SNAPSHOT_CAP = 500L
     }
 }

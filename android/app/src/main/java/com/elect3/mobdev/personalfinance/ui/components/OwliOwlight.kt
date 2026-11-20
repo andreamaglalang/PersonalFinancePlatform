@@ -91,7 +91,8 @@ fun OwliMidnightPanel(modifier: Modifier = Modifier, content: @Composable Column
  * the caller computes it from exact values and supplies the rounded [label].
  */
 @Composable
-fun OwliEyeRing(fraction: Float, color: Color, label: String, modifier: Modifier = Modifier, size: Dp = 64.dp) {
+fun OwliEyeRing(fraction: Float, color: Color, label: String, modifier: Modifier = Modifier, size: Dp = 64.dp,
+                labelColor: Color? = null, trackColor: Color? = null) {
     val colors = LocalOwliColors.current
     val typography = LocalOwliTypography.current
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
@@ -99,12 +100,12 @@ fun OwliEyeRing(fraction: Float, color: Color, label: String, modifier: Modifier
             val stroke = 6.dp.toPx()
             val inset = stroke / 2
             val arc = Size(this.size.width - stroke, this.size.height - stroke)
-            drawArc(colors.panelTrack, 0f, 360f, false, Offset(inset, inset), arc, style = Stroke(stroke))
+            drawArc(trackColor ?: colors.panelTrack, 0f, 360f, false, Offset(inset, inset), arc, style = Stroke(stroke))
             val sweep = 360f * fraction.coerceIn(0f, 1f)
             if (sweep > 0f) drawArc(color, -90f, sweep, false, Offset(inset, inset), arc,
                 style = Stroke(stroke, cap = StrokeCap.Round))
         }
-        Text(label, style = typography.label.copy(fontFeatureSettings = "tnum"), color = colors.onPanel)
+        Text(label, style = typography.label.copy(fontFeatureSettings = "tnum"), color = labelColor ?: colors.onPanel)
     }
 }
 

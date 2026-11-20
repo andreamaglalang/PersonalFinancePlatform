@@ -5,7 +5,6 @@ import com.elect3.mobdev.personalfinance.domain.model.Transaction
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionPageResult
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionRepository
-import java.math.BigDecimal
 import java.time.YearMonth
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -14,7 +13,7 @@ sealed interface DashboardSummaryResult {
     data class Success(val summary: DashboardSummary) : DashboardSummaryResult
     data class RepositoryFailure(val reason: TransactionFailure) : DashboardSummaryResult
     data class InvalidSnapshot(val detail: String) : DashboardSummaryResult
-    /** Account mode only: totals would mix or convert currencies, so none are produced. */
+    /** Account reporting remains unavailable unless its base currency is known to be PHP. */
     data object UnsupportedCurrency : DashboardSummaryResult
 }
 
@@ -24,9 +23,9 @@ sealed interface DashboardSummaryResult {
  * requires a snapshot token or authoritative summary API before using this loader.
  * Unexpected repository exceptions propagate, including coroutine cancellation.
  *
- * Account mode ([accountCurrency] non-null): the summary is produced only for a PHP account whose every
- * record is a plain PHP amount (FX 1, base equal to amount). Anything else yields [DashboardSummaryResult.UnsupportedCurrency]
- * instead of totals; amounts are never converted or combined across currencies.
+ * Account mode ([accountCurrency] non-null): only PHP accounts are supported. Validated server amountBase
+ * snapshots supply totals; original transaction amounts, source currencies and FX metadata are retained.
+ * Demo mode keeps the unconverted PHP fixture contract. No exchange rates are fetched or replaced.
  */
 class LoadDashboardSummary(
     private val repository: TransactionRepository,
@@ -75,11 +74,12 @@ class LoadDashboardSummary(
             }
         }
         currentCoroutineContext().ensureActive()
-        if (accountCurrency != null && records.values.any { !isPlainPhp(it) }) {
+        if (accountCurrency != null && accountCurrency.invoke() != SUPPORTED_CURRENCY) {
             return DashboardSummaryResult.UnsupportedCurrency
         }
         val summary = try {
-            calculator.calculate(records.values.toList(), fallbackMonth)
+            if (accountCurrency == null) calculator.calculate(records.values.toList(), fallbackMonth)
+            else calculator.calculatePhpAccount(records.values.toList(), fallbackMonth)
         } catch (exception: IllegalArgumentException) {
             return invalid(exception.message ?: "Invalid transaction data")
         }
@@ -88,10 +88,6 @@ class LoadDashboardSummary(
     }
 
     private fun invalid(detail: String) = DashboardSummaryResult.InvalidSnapshot(detail)
-
-    /** Mirrors the calculator's unconverted-PHP contract so currency issues are reported distinctly. */
-    private fun isPlainPhp(t: Transaction) = t.currencyCode == SUPPORTED_CURRENCY &&
-        t.fxRate.compareTo(BigDecimal.ONE) == 0 && t.amountBase.compareTo(t.amount) == 0 && t.fxRateDate == t.transactionDate
 
     private companion object {
         const val SUPPORTED_CURRENCY = "PHP"

@@ -1,5 +1,13 @@
 package com.elect3.mobdev.personalfinance.ui.dashboard
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -265,11 +273,13 @@ private fun DashboardPeriodTabs(allTime: Boolean, onSelect: (Boolean) -> Unit) {
 
 /** Quick actions under the panel; each is shown only when its action exists. */
 @Composable
-internal fun DashboardQuickActions(onAddExpense: (() -> Unit)?, onAddIncome: (() -> Unit)?, onOpenFilter: (() -> Unit)?) {
+internal fun DashboardQuickActions(onAddExpense: (() -> Unit)?, onAddIncome: (() -> Unit)?, onOpenFilter: (() -> Unit)?,
+                                   onOpenCategories: (() -> Unit)? = null) {
     val actions = listOfNotNull(
         onAddExpense?.let { Triple(R.drawable.ic_owli_minus, R.string.dashboard_quick_expense to R.string.dashboard_quick_expense_action, it) },
         onAddIncome?.let { Triple(R.drawable.ic_owli_plus, R.string.dashboard_quick_income to R.string.dashboard_quick_income_action, it) },
         onOpenFilter?.let { Triple(R.drawable.ic_owli_filter, R.string.dashboard_quick_filter to R.string.dashboard_quick_filter_action, it) },
+        onOpenCategories?.let { Triple(R.drawable.ic_cat_sliders, R.string.dashboard_quick_categories to R.string.dashboard_quick_categories_action, it) },
     )
     if (actions.isEmpty()) return
     val stacked = LocalConfiguration.current.fontScale > 1.3f
@@ -305,7 +315,12 @@ internal fun DashboardQuickActions(onAddExpense: (() -> Unit)?, onAddIncome: (()
         }
     }
     if (stacked) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { actions.forEach { button(Modifier.fillMaxWidth(), it) } }
-    else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { actions.forEach { button(Modifier.weight(1f), it) } }
+    // Four actions: a 2 x 2 grid so every label keeps a full, unbroken word.
+    else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        actions.chunked(if (actions.size > 3) 2 else 3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { button(Modifier.weight(1f), it) } }
+        }
+    }
 }
 
 /** Overview group: entries for the selected period and the reporting-month top category (unchanged rules). */
@@ -360,6 +375,15 @@ internal fun categoryShareLabel(categoryTotal: BigDecimal, periodExpenses: BigDe
 /** Number of categories shown in "Where it went". */
 internal const val WHERE_IT_WENT_LIMIT = 5
 
+/** Row tap selects (or clears) the matching donut slice; other rows dim while one is selected. */
+@Composable
+private fun Modifier.whereRowSelection(index: Int, selected: Int?, onSelect: (Int?) -> Unit): Modifier {
+    val label = stringResource(R.string.dashboard_where_select_action)
+    return this.clickable(onClickLabel = label, role = androidx.compose.ui.semantics.Role.Button) { onSelect(if (selected == index) null else index) }
+        .semantics(mergeDescendants = true) { this.selected = selected == index }
+        .alpha(if (selected != null && selected != index) 0.55f else 1f)
+}
+
 /**
  * Panel footer: entry count, completeness wording (only "all recorded" for the verified complete snapshot),
  * the rounding note for the rings, and the Insights shortcut, which stays unavailable until Insights exists.
@@ -409,6 +433,11 @@ internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, s
     val periodExpenses = if (allTime) summary.totalExpenses else summary.monthlyExpenses
     val periodLabel = if (allTime) stringResource(R.string.dashboard_where_period_all_time)
         else stringResource(R.string.dashboard_where_period_month, month)
+    // Chart and list share one data source: the ranked totals and expense total of the selected period.
+    val slices = remember(ranked, periodExpenses) { whereSlices(ranked, periodExpenses) }
+    // Local selection; cleared when the period or the figures change (e.g. after a refresh or a new demo expense).
+    var selected by rememberSaveable(allTime, ranked.hashCode(), periodExpenses.toPlainString()) { mutableStateOf<Int?>(null) }
+    val select: (Int?) -> Unit = { selected = it?.takeIf { i -> i in slices.indices } }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         com.elect3.mobdev.personalfinance.ui.components.OwliSectionHeader(
             stringResource(R.string.dashboard_where_title), trailing = periodLabel)
@@ -422,12 +451,17 @@ internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, s
             }
             val shown = ranked.take(WHERE_IT_WENT_LIMIT)
             val highest = shown.first().total
+            WhereDonut(slices, periodExpenses, shown.size, ranked.size - shown.size, selected, select,
+                if (allTime) stringResource(R.string.dashboard_where_scope_all_time) else month)
+            OwliGroupDivider()
             shown.forEachIndexed { index, category ->
                 if (index > 0) OwliGroupDivider()
                 val isTop = category.total.compareTo(highest) == 0
                 val share = categoryShareLabel(category.total, periodExpenses)
                 val barFraction = category.total.divide(highest, 4, RoundingMode.HALF_UP).toFloat()
-                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                val sliceTint = sliceColor(slices[index].hex)
+                Column(Modifier.fillMaxWidth().whereRowSelection(index, selected, select)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(String.format(java.util.Locale.ROOT, "%02d", index + 1),
@@ -435,6 +469,8 @@ internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, s
                             modifier = Modifier.padding(top = 2.dp))
                         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            // Colour key for the donut slice (the rank number is the non-colour key).
+                            Box(Modifier.size(9.dp).clip(androidx.compose.foundation.shape.CircleShape).background(sliceTint))
                             Text(category.categoryName, style = typography.bodyStrong, modifier = Modifier.weight(1f, fill = false))
                             if (isTop) Text(stringResource(R.string.dashboard_where_top_badge),
                                 style = typography.overline.copy(fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)),
@@ -451,7 +487,25 @@ internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, s
                     Box(Modifier.padding(start = 26.dp).fillMaxWidth().height(3.dp)
                         .clip(LocalOwliShapes.current.chip).background(owli.hairline)) {
                         Box(Modifier.fillMaxWidth(barFraction).height(3.dp)
-                            .background(if (isTop) owli.accent else owli.accent.copy(alpha = 0.35f)))
+                            .background(if (selected == index) sliceTint else if (isTop) owli.accent else owli.accent.copy(alpha = 0.35f)))
+                    }
+                }
+            }
+            // Remainder beyond the top five: one row matching the donut's grey slice.
+            slices.getOrNull(shown.size)?.takeIf { it.rank == null }?.let { other ->
+                val index = shown.size
+                OwliGroupDivider()
+                Row(Modifier.fillMaxWidth().whereRowSelection(index, selected, select).padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("+" + other.otherCount, style = typography.micro.copy(fontFeatureSettings = "tnum"),
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp))
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Box(Modifier.size(9.dp).clip(androidx.compose.foundation.shape.CircleShape).background(sliceColor(other.hex)))
+                        Text(stringResource(R.string.dashboard_where_other_row), style = typography.bodyStrong, modifier = Modifier.weight(1f, fill = false))
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(formatPhpAmount(other.total), style = typography.amountRow, textAlign = TextAlign.End)
+                        Text(other.share, style = typography.caption.copy(fontFeatureSettings = "tnum"), color = scheme.onSurfaceVariant)
                     }
                 }
             }

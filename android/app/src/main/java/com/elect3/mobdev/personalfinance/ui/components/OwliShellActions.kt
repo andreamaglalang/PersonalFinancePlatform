@@ -16,6 +16,10 @@ data class OwliShellActions(
     val openActivity: (() -> Unit)? = null,
     /** Opens Activity and asks it to show its filter sheet once. */
     val openActivityFilter: (() -> Unit)? = null,
+    /** Opens Category settings (Mock Demo, or a signed-in account with categories). */
+    val openCategories: (() -> Unit)? = null,
+    /** Opens the Account screen from the Dashboard avatar. */
+    val openAccount: (() -> Unit)? = null,
 )
 
 val LocalOwliShellActions = staticCompositionLocalOf { OwliShellActions() }

@@ -31,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -71,6 +72,7 @@ import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 private enum class OwliDestination(val route: String, val label: Int, val icon: Int) {
     Dashboard("dashboard", R.string.navigation_dashboard, R.drawable.ic_owli_home),
     Transactions("transactions", R.string.navigation_transactions, R.drawable.ic_owli_transactions_list),
+    Plan("plan", R.string.navigation_plan, R.drawable.ic_owli_plan),
 }
 
 /**
@@ -86,17 +88,25 @@ fun OwliApp(
     diagnostics: AuthDiagnosticSink = NoAuthDiagnostics,
     diagnosticInstanceId: Int = 0,
     onAddTransaction: ((TransactionType?) -> Unit)? = null,
+    onOpenCategories: (() -> Unit)? = null,
+    onOpenAccount: (() -> Unit)? = null,
+    /** Plan destination content; null keeps Plan as an unavailable "Soon" item. */
+    planContent: (@Composable () -> Unit)? = null,
+    /** Each increment asks the shell to show the Dashboard tab (e.g. "Back to Dashboard" after a save). */
+    dashboardRequests: Int = 0,
 ) {
     val navController = rememberNavController()
+    val currentPlan by androidx.compose.runtime.rememberUpdatedState(planContent)
     val backStackEntry by navController.currentBackStackEntryAsState()
     val selectedRoute = backStackEntry?.destination?.route
 
     fun navigateTo(destination: OwliDestination) {
         if (destination.route == navController.currentDestination?.route) return
-        if (diagnostics.enabled) diagnostics.record(when (destination) {
+        if (diagnostics.enabled) when (destination) {
             OwliDestination.Dashboard -> AuthDiagnosticEvent.NAV_DASHBOARD_SELECTED
             OwliDestination.Transactions -> AuthDiagnosticEvent.NAV_TRANSACTIONS_SELECTED
-        }, diagnosticInstanceId, null)
+            OwliDestination.Plan -> null // no diagnostic event exists for Plan
+        }?.let { diagnostics.record(it, diagnosticInstanceId, null) }
         navController.navigate(destination.route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
@@ -106,10 +116,12 @@ fun OwliApp(
         }
     }
     var filterRequested by remember { mutableStateOf(false) }
-    val shellActions = remember(onAddTransaction) {
+    val shellActions = remember(onAddTransaction, onOpenCategories, onOpenAccount) {
         OwliShellActions(addTransaction = onAddTransaction, openActivity = { navigateTo(OwliDestination.Transactions) },
-            openActivityFilter = { filterRequested = true; navigateTo(OwliDestination.Transactions) })
+            openActivityFilter = { filterRequested = true; navigateTo(OwliDestination.Transactions) },
+            openCategories = onOpenCategories, openAccount = onOpenAccount)
     }
+    LaunchedEffect(dashboardRequests) { if (dashboardRequests > 0) navigateTo(OwliDestination.Dashboard) }
     val filterRequest = OwliFilterRequest(pending = filterRequested, consume = { filterRequested = false })
 
     Scaffold(
@@ -121,6 +133,7 @@ fun OwliApp(
                 selectedRoute = selectedRoute,
                 onSelect = { navigateTo(it) },
                 onAdd = onAddTransaction?.let { add -> { add(null) } },
+                planAvailable = planContent != null,
             )
         },
     ) { innerPadding ->
@@ -148,6 +161,12 @@ fun OwliApp(
                             }
                         }
                     }
+                    // Always registered so the graph never changes shape between recompositions.
+                    composable(OwliDestination.Plan.route) {
+                        currentPlan?.invoke()
+                        // Same rule as Activity: Back from Plan returns to Home.
+                        BackHandler(enabled = selectedRoute == OwliDestination.Plan.route) { navigateTo(OwliDestination.Dashboard) }
+                    }
                 }
             }
         }
@@ -165,6 +184,7 @@ private fun OwliFloatingNavigation(
     selectedRoute: String?,
     onSelect: (OwliDestination) -> Unit,
     onAdd: (() -> Unit)?,
+    planAvailable: Boolean = false,
 ) {
     val owli = LocalOwliColors.current
     val background = MaterialTheme.colorScheme.background
@@ -190,7 +210,8 @@ private fun OwliFloatingNavigation(
                 if (onAdd != null) {
                     if (raised) Box(Modifier.width(68.dp)) else OwliAddButton(onAdd, raised = false)
                 }
-                OwliUnavailableNavItem(R.string.navigation_plan, R.drawable.ic_owli_plan, Modifier.weight(1f))
+                if (planAvailable) OwliNavItem(OwliDestination.Plan, selectedRoute, onSelect, Modifier.weight(1f))
+                else OwliUnavailableNavItem(R.string.navigation_plan, R.drawable.ic_owli_plan, Modifier.weight(1f))
                 OwliUnavailableNavItem(R.string.navigation_insights, R.drawable.ic_owli_insights, Modifier.weight(1f))
             }
         }

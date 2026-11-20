@@ -51,12 +51,17 @@ class AccountDashboardSummaryTest {
         assertEquals(DashboardSummaryResult.UnsupportedCurrency, LoadDashboardSummary(repo, accountCurrency = { null })(fallback))
     }
 
-    @Test fun convertedRecordIsReportedAsUnsupportedNotAsTotals() = runTest {
+    @Test fun convertedRecordUsesServerPhpBaseAmountAndRetainsOriginalRow() = runTest {
         val converted = row(2, "2026-11-03", "10.00").copy(currencyCode = "USD", fxRate = BigDecimal("56.00000000"),
             amountBase = BigDecimal("560.00"))
         val repo = Scripted { p, s -> page(listOf(row(1, "2026-11-02", "50.00"), converted), p, s, 2) }
-        assertEquals(DashboardSummaryResult.UnsupportedCurrency,
-            LoadDashboardSummary(repo, accountCurrency = { "PHP" })(fallback))
+        val summary = (LoadDashboardSummary(repo, accountCurrency = { "PHP" })(fallback)
+            as DashboardSummaryResult.Success).summary
+        money("610.00", summary.totalExpenses)
+        assertSame(converted, summary.recentTransactions.first())
+        money("10.00", converted.amount)
+        money("560.00", converted.amountBase)
+        assertEquals("USD", converted.currencyCode)
     }
 
     @Test fun phpAccountReadsEveryPageAtTheConfiguredSizeBeforeProducingTotals() = runTest {

@@ -1,5 +1,7 @@
 package com.elect3.mobdev.personalfinance.domain.repository
 
+import java.time.YearMonth
+
 import com.elect3.mobdev.personalfinance.domain.model.TransactionType
 import java.time.LocalDate
 
@@ -37,6 +39,19 @@ data class TransactionFilter(
 
     /** True when any criterion narrows the dataset (sort alone does not). */
     val narrows: Boolean get() = type != null || categoryId != null || fromDate != null || toDate != null
+
+    /** Both ends set: a bounded period (a month or a custom range) that may be read completely. */
+    val isBounded: Boolean get() = fromDate != null && toDate != null
+
+    /** The calendar month this filter covers exactly, or null. */
+    val month: YearMonth? get() = fromDate?.let { from ->
+        YearMonth.from(from).takeIf { from.dayOfMonth == 1 && toDate == it.atEndOfMonth() }
+    }
+
+    fun forMonth(month: YearMonth) = copy(fromDate = month.atDay(1), toDate = month.atEndOfMonth())
+    fun allTime() = copy(fromDate = null, toDate = null)
+    /** Removes the type, category and order criteria but keeps the period. */
+    fun withoutCriteria() = TransactionFilter(fromDate = fromDate, toDate = toDate)
 }
 
 /**

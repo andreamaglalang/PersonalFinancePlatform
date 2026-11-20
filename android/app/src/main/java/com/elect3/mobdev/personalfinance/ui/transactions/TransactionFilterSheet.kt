@@ -91,8 +91,12 @@ fun TransactionFilterSheet(
     onApply: (TransactionFilter) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
+    /** Client-side amount order; offered only for a bounded period, which Activity reads completely. */
+    amountOrder: AmountOrder? = null,
+    onApplyOrder: (AmountOrder?) -> Unit = {},
 ) {
     val typography = LocalOwliTypography.current
+    var order by remember { mutableStateOf(amountOrder) }
     val owli = LocalOwliColors.current
     val scheme = MaterialTheme.colorScheme
     var type by remember { mutableStateOf(current.type) }
@@ -214,8 +218,13 @@ fun TransactionFilterSheet(
 
             section(R.string.filter_sort)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                chip(sort == TransactionListSort.Newest, stringResource(R.string.filter_sort_newest)) { sort = TransactionListSort.Newest }
-                chip(sort == TransactionListSort.Oldest, stringResource(R.string.filter_sort_oldest)) { sort = TransactionListSort.Oldest }
+                chip(sort == TransactionListSort.Newest && order == null, stringResource(R.string.filter_sort_newest)) { sort = TransactionListSort.Newest; order = null }
+                chip(sort == TransactionListSort.Oldest && order == null, stringResource(R.string.filter_sort_oldest)) { sort = TransactionListSort.Oldest; order = null }
+                // Amount order is calculated on the device over a fully loaded month or range, never over a partial page.
+                if (preset != TransactionDatePreset.AllTime) {
+                    chip(order == AmountOrder.Largest, stringResource(R.string.filter_sort_largest)) { order = AmountOrder.Largest; sort = TransactionListSort.Newest }
+                    chip(order == AmountOrder.Smallest, stringResource(R.string.filter_sort_smallest)) { order = AmountOrder.Smallest; sort = TransactionListSort.Newest }
+                }
             }
             Text(stringResource(R.string.filter_unsupported_note), style = typography.caption, color = scheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 12.dp))
@@ -231,6 +240,7 @@ fun TransactionFilterSheet(
                     Text(stringResource(R.string.filter_cancel), style = typography.bodyStrong)
                 }
                 Button(onClick = {
+                    onApplyOrder(if (from != null && to != null) order else null)
                     onApply(TransactionFilter(type = type, categoryId = categoryId, categoryName = categoryName,
                         fromDate = from, toDate = to, sort = sort))
                 }, enabled = !rangeInvalid && load != CategoryLoad.Loading,

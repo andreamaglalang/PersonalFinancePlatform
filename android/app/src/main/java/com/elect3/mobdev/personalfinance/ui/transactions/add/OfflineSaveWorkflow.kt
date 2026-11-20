@@ -19,4 +19,6 @@ sealed interface FormSaveState {
     data class Succeeded(val replayed: Boolean) : FormSaveState
     data class Failed(val reason: FinanceFailure) : FormSaveState
     data class OutcomeUnknown(val reason: UnknownCreationReason) : FormSaveState
+    /** Saved on this device only, waiting to sync. Never presented as saved to the account. */
+    data object QueuedOffline : FormSaveState
 }

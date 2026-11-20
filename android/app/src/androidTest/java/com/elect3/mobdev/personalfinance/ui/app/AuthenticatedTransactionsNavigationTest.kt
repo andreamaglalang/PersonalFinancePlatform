@@ -36,7 +36,12 @@ class AuthenticatedTransactionsNavigationTest {
         override suspend fun logout(refreshToken: String): ApiResult<Unit> = ApiResult.Success(Unit)
     })
     private val finance = FinanceRepositories(ApiConfiguration.https("https://localhost:7027/"), auth,
-        FinanceHttpEngine { requests += it; FinanceHttpResponse(status, body) })
+        FinanceHttpEngine { request ->
+            requests += request
+            // Echo the requested page size (Activity reads a month with pages of 100).
+            val size = Regex("pageSize=(\\d+)").find(request.url.query.orEmpty())?.groupValues?.get(1) ?: "20"
+            FinanceHttpResponse(status, body.replace("\"pageSize\":20", "\"pageSize\":$size"))
+        })
     private fun text(id: Int) = compose.activity.getString(id)
     private fun show() {
         compose.setContent {
@@ -102,9 +107,13 @@ class AuthenticatedTransactionsNavigationTest {
         compose.onNodeWithText(text(R.string.transactions_account_unavailable_message)).assertIsDisplayed()
         status = 200; body = """{"items":[],"page":1,"pageSize":20,"totalCount":0}"""
         compose.onNodeWithText(text(R.string.transactions_retry)).performClick()
+        // Activity opens on the current month: an empty month offers all time and the previous month.
+        compose.onNodeWithText(text(R.string.act_empty_month_message)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.act_show_all_time)).performClick()
         compose.onNodeWithText(text(R.string.transactions_account_empty_message)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.transactions_empty_message)).assertDoesNotExist()
-        assertEquals(2, requests.size)
+        assertEquals(3, requests.size)
+        assertTrue(requests.last().url.query.orEmpty().let { !it.contains("fromDate") && !it.contains("toDate") })
     }
     companion object {
         private const val transaction = """{"items":[{"transactionId":1,"clientId":"5bdb163e-8c0a-4fb9-ade4-e45d94368bfc",

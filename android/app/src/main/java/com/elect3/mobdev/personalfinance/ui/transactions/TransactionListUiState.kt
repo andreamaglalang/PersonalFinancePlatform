@@ -18,6 +18,11 @@ sealed interface TransactionListUiState {
         val append: TransactionAppendState,
         val isRefreshing: Boolean = false,
         val refreshError: TransactionFailure? = null,
+        /**
+         * True only when every transaction of a bounded period (month or date range) is loaded and the server count
+         * stayed the same across pages. Period totals, day bars, search and amount order use only this.
+         */
+        val complete: Boolean = false,
     ) : TransactionListUiState {
         val items: List<Transaction> = Collections.unmodifiableList(ArrayList(items))
 

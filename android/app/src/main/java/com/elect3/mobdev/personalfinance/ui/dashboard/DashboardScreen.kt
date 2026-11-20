@@ -9,6 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,6 +40,8 @@ fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier,
         onAddIncome = shell.addTransaction?.let { add -> { add(TransactionType.Income) } },
         onOpenActivity = shell.openActivity,
         onOpenFilter = shell.openActivityFilter,
+        onOpenCategories = shell.openCategories,
+        onOpenAccount = shell.openAccount,
     )
 }
 
@@ -55,6 +62,8 @@ fun DashboardScreen(
     onAddIncome: (() -> Unit)? = null,
     onOpenActivity: (() -> Unit)? = null,
     onOpenFilter: (() -> Unit)? = null,
+    onOpenCategories: (() -> Unit)? = null,
+    onOpenAccount: (() -> Unit)? = null,
 ) {
     val copy = dashboardCopy(source)
     val typography = LocalOwliTypography.current
@@ -77,7 +86,13 @@ fun DashboardScreen(
                 Column(contentWidth, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OwliOwlAvatar()
+                        // The owl avatar opens Account (48 dp touch target).
+                        if (onOpenAccount != null) {
+                            val accountLabel = stringResource(R.string.account_open)
+                            Box(Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                                .clickable(onClickLabel = accountLabel, role = androidx.compose.ui.semantics.Role.Button, onClick = onOpenAccount)
+                                .semantics { contentDescription = accountLabel }, contentAlignment = Alignment.Center) { OwliOwlAvatar() }
+                        } else OwliOwlAvatar()
                         Column(Modifier.weight(1f)) {
                             Text(greeting, style = typography.greeting, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(stringResource(R.string.dashboard_title), style = typography.screenTitle,
@@ -118,8 +133,8 @@ fun DashboardScreen(
                         }
                     } }
                     item(key = "net") { Box(contentWidth) { DashboardNetFlowPanel(state.summary, allTime, copy) { allTime = it } } }
-                    if (onAddExpense != null || onAddIncome != null || onOpenFilter != null) item(key = "quick") {
-                        Box(contentWidth) { DashboardQuickActions(onAddExpense, onAddIncome, onOpenFilter) }
+                    if (onAddExpense != null || onAddIncome != null || onOpenFilter != null || onOpenCategories != null) item(key = "quick") {
+                        Box(contentWidth) { DashboardQuickActions(onAddExpense, onAddIncome, onOpenFilter, onOpenCategories) }
                     }
                     item(key = "where") {
                         Box(contentWidth.padding(top = 6.dp)) { DashboardWhereItWent(state.summary, allTime, source) }

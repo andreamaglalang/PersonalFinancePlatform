@@ -26,12 +26,13 @@ class AccountDashboardViewModelTest {
     private val stores = mutableListOf<ViewModelStore>()
     private val repo = ControlledTransactionRepository()
     private val row = TransactionFixtures.items.first()
+    private var currency: String? = "PHP"
     private var current = true
     private var expired = 0
 
     private fun model(): DashboardViewModel {
         val store = ViewModelStore().also { stores += it }
-        return ViewModelProvider(store, DashboardViewModel.Factory(LoadDashboardSummary(repo, accountCurrency = { "PHP" }),
+        return ViewModelProvider(store, DashboardViewModel.Factory(LoadDashboardSummary(repo, accountCurrency = { currency }),
             YearMonth.of(2026, 11), isSessionCurrent = { current }, onSessionExpired = { expired++ }))
             .get(DashboardViewModel::class.java)
     }
@@ -79,13 +80,24 @@ class AccountDashboardViewModelTest {
         val vm = model(); runCurrent()
         repo.requests.single().complete(); runCurrent()
         assertTrue(vm.state.value is DashboardUiState.Content)
+        currency = "USD"
+        vm.refresh(); runCurrent()
+        assertEquals(DashboardUiState.InitialFailure(DashboardError.UnsupportedCurrency), vm.state.value)
+        assertEquals(1, repo.requests.size)
+    }
+
+    @Test fun convertedRefreshPublishesPhpBaseTotalsAndRetainsSourceRows() = verify {
+        val vm = model(); runCurrent()
+        repo.requests.single().complete(); runCurrent()
         vm.refresh(); runCurrent()
         val converted = row.copy(transactionId = 999, currencyCode = "USD", fxRate = BigDecimal("56.00000000"),
             amountBase = row.amount.multiply(BigDecimal("56")))
         repo.requests.last().complete(listOf(row, converted)); runCurrent()
-        assertEquals(DashboardUiState.InitialFailure(DashboardError.UnsupportedCurrency), vm.state.value)
+        val content = vm.state.value as DashboardUiState.Content
+        assertEquals(0, row.amountBase.add(converted.amountBase).compareTo(content.summary.totalExpenses))
+        assertSame(converted, content.summary.recentTransactions.first())
+        assertFalse(content.isRefreshing)
     }
-
     @Test fun emptyAccountIsEmptyNotSampleContent() = verify {
         val vm = model(); runCurrent()
         repo.requests.single().complete(emptyList()); runCurrent()

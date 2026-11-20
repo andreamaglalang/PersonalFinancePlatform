@@ -14,6 +14,8 @@ import kotlinx.coroutines.ensureActive
 /** One instance represents one mock session; recreate it to reset failure-once scenarios. */
 class MockTransactionRepository(
     private val scenario: MockScenario = MockScenario.Normal,
+    /** Demo-session additions (in memory only); null keeps the fixed fixtures alone. */
+    private val ledger: DemoLedger? = null,
 ) : FilterableTransactionRepository {
     private val failureConsumed = AtomicBoolean(false)
 
@@ -36,8 +38,10 @@ class MockTransactionRepository(
             return TransactionPageResult.Failure(TransactionFailure.Unavailable)
         }
 
-        val all = if (scenario == MockScenario.Empty) emptyList() else TransactionFixtures.items
-        val source = if (filter.isDefault) all else all.filter { t ->
+        val fixtures = if (scenario == MockScenario.Empty) emptyList() else TransactionFixtures.items
+        val added = ledger?.snapshot().orEmpty()
+        val all = fixtures + added
+        val source = if (filter.isDefault && added.isEmpty()) all else all.filter { t ->
             (filter.type == null || t.type == filter.type) &&
                 (filter.categoryId == null || t.categoryId == filter.categoryId) &&
                 (filter.fromDate == null || !t.transactionDate.isBefore(filter.fromDate)) &&

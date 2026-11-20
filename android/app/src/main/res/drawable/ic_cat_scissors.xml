@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OWLI category icon "scissors" (24dp line family) from the approved Owlight category extension mockup. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4.0,7.0a2.5,2.5 0 1,0 5.0,0a2.5,2.5 0 1,0 -5.0,0Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4.0,17.0a2.5,2.5 0 1,0 5.0,0a2.5,2.5 0 1,0 -5.0,0Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M8.5 8.5 20 18M8.5 15.5 20 6" />
+</vector>

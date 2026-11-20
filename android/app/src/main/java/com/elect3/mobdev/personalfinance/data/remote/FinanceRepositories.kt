@@ -14,11 +14,20 @@ class FinanceRepositories private constructor(
     currency: () -> String?,
     /** Authenticated POST api/transactions. Never handed to Mock Demo. */
     val creation: TransactionCreationRepository,
+    /** Authenticated member category writes (api/categories). Never handed to Mock Demo. */
+    val categoryWrites: CategoryWriteRepository,
+    /** Signed-in account ID for device-only presentation preferences; null without an active session. */
+    val accountId: () -> Int?,
+    /** Authenticated api/budgets (read and member writes). Never handed to Mock Demo. */
+    val budgets: BudgetRepository,
 ) {
     constructor(configuration: ApiConfiguration, auth: InMemoryAuthRepository) : this(
         AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()),
         { auth.accountBaseCurrency() },
         RemoteTransactionCreationRepository(configuration, auth),
+        RemoteCategoryWriteRepository(configuration, auth, PlatformFinanceWriteEngine()),
+        { auth.accountId() },
+        RemoteBudgetRepository(AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()), configuration, auth, PlatformFinanceWriteEngine()),
     )
     /** Test hosts: fake engines only. The default POST engine refuses to send, so no socket can open. */
     internal constructor(
@@ -26,10 +35,14 @@ class FinanceRepositories private constructor(
         auth: InMemoryAuthRepository,
         engine: FinanceHttpEngine,
         postEngine: FinancePostEngine = FinancePostEngine { throw IllegalStateException("No POST engine in this host") },
+        writeEngine: FinanceWriteEngine = FinanceWriteEngine { throw IllegalStateException("No write engine in this host") },
     ) : this(
         AuthenticatedFinanceTransport(configuration, auth, engine),
         { auth.accountBaseCurrency() },
         RemoteTransactionCreationRepository(auth, postEngine, configuration),
+        RemoteCategoryWriteRepository(configuration, auth, writeEngine),
+        { auth.accountId() },
+        RemoteBudgetRepository(AuthenticatedFinanceTransport(configuration, auth, engine), configuration, auth, writeEngine),
     )
     val categories: CategoryRepository = RemoteCategoryRepository(transport)
     val transactions: RemoteTransactionRepository = RemoteTransactionRepository(transport)

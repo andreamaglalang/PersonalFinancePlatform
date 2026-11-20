@@ -10,7 +10,7 @@ import javax.net.ssl.SSLException
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 
-internal enum class FinanceResource(val path: String) { Categories("categories"), Transactions("transactions") }
+internal enum class FinanceResource(val path: String) { Categories("categories"), Transactions("transactions"), Budgets("budgets") }
 internal class FinanceSessionLease(
     private val token: String, val lifetime: Job, private val valid: () -> Boolean,
 ) {
@@ -114,7 +114,7 @@ internal class AuthenticatedFinanceTransport(
         } catch (_: SocketTimeoutException) { FinanceResult.Failure(FinanceFailure.Timeout)
         } catch (_: SSLException) { FinanceResult.Failure(FinanceFailure.SecureConnection)
         } catch (_: InvalidFinanceResponse) { FinanceResult.Failure(FinanceFailure.InvalidResponse)
-        } catch (_: IOException) { FinanceResult.Failure(FinanceFailure.Unavailable)
+        } catch (_: IOException) { FinanceResult.Failure(FinanceFailure.Unavailable, isConnectivityFailure = true)
         } catch (_: Exception) { FinanceResult.Failure(FinanceFailure.InvalidResponse) }
     }
 }

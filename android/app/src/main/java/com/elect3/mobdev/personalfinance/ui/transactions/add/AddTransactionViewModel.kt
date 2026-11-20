@@ -52,7 +52,7 @@ data class AddTransactionUiState(
     val dirty get() = amount.isNotEmpty() || description.isNotEmpty() || selectedCategoryId != null || date != initialDate || type != TransactionType.Expense
     val canLoadMore get() = page > 0 && categories.size.toLong() < total && !loading
     val visibleCategories get() = categories.filter { it.name.contains(search, ignoreCase = true) }
-    val inputLocked get() = submitting || completed || invalidated || saveState is FormSaveState.Succeeded ||
+    val inputLocked get() = submitting || completed || invalidated || saveState is FormSaveState.Succeeded || saveState == FormSaveState.QueuedOffline ||
         (saveState is FormSaveState.OutcomeUnknown && !unknownEditing)
 }
 fun validAmount(raw: String): Boolean {
@@ -62,6 +62,9 @@ fun validAmount(raw: String): Boolean {
         amount.signum() > 0 && amount <= BigDecimal("9999999999999999.99")
     } catch (_: NumberFormatException) { false }
 }
+
+/** True when the user typed something beyond the chosen category (amount, note or a different date). */
+val AddTransactionUiState.hasUserInput get() = amount.isNotEmpty() || description.isNotEmpty() || date != initialDate
 
 class AddTransactionViewModel(
     private val repository: CategoryRepository,
@@ -149,6 +152,8 @@ class AddTransactionViewModel(
                         mutable.value.copy(submitting = false, saveState = FormSaveState.OutcomeUnknown(result.reason),
                             unknownEditing = false, hasUnresolvedOutcome = true)
                     }
+                    is CreationResult.Queued -> mutable.value.copy(submitting = false, saveState = FormSaveState.QueuedOffline,
+                        closeRequested = true, hasUnresolvedOutcome = false)
                     is CreationResult.Failure -> {
                         if (result.reason == FinanceFailure.MissingSession || result.reason == FinanceFailure.SessionExpired) {
                             invalidate(); onSessionExpired(); return@launch
@@ -165,7 +170,8 @@ class AddTransactionViewModel(
         }
     }
     internal fun consumeSaveCompletion(): Boolean {
-        if (mutable.value.invalidated || !isSessionCurrent() || mutable.value.saveState !is FormSaveState.Succeeded || savedNavigationHandled) return false
+        val done = mutable.value.saveState is FormSaveState.Succeeded || mutable.value.saveState == FormSaveState.QueuedOffline
+        if (mutable.value.invalidated || !isSessionCurrent() || !done || savedNavigationHandled) return false
         savedNavigationHandled = true
         return true
     }
@@ -177,6 +183,16 @@ class AddTransactionViewModel(
     fun category(id: Int) {
         if (editable() && mutable.value.categories.any { it.categoryId == id && it.type == mutable.value.type && it.isActive })
             mutable.value = mutable.value.copy(selectedCategoryId = id, touched = mutable.value.touched + FormField.Category)
+    }
+    /**
+     * Category-first flow: the category was chosen on the picker screen. Applies its type and selects it.
+     * Only active categories are accepted (the API rejects inactive ones for new transactions).
+     */
+    fun preselect(category: Category) {
+        if (!editable() || !category.isActive) return
+        if (mutable.value.type != category.type) type(category.type)
+        val merged = (listOf(category) + mutable.value.categories).distinctBy { it.categoryId }
+        mutable.value = mutable.value.copy(categories = Collections.unmodifiableList(merged), selectedCategoryId = category.categoryId)
     }
     fun type(value: TransactionType) {
         if (!editable() || mutable.value.type == value) return
@@ -246,7 +262,7 @@ class AddTransactionViewModel(
     }
     fun back() {
         if (mutable.value.submitting) return
-        val succeeded = mutable.value.completed || mutable.value.saveState is FormSaveState.Succeeded
+        val succeeded = mutable.value.completed || mutable.value.saveState is FormSaveState.Succeeded || mutable.value.saveState == FormSaveState.QueuedOffline
         mutable.value = mutable.value.copy(discardConfirmation = mutable.value.dirty && !succeeded,
             closeRequested = !mutable.value.dirty || succeeded)
     }

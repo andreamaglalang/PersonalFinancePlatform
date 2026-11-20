@@ -29,6 +29,10 @@ import java.time.format.DateTimeFormatter
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithText
+import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -108,7 +112,8 @@ class DashboardScreenTest {
         for (amount in amounts) {
             val formatted = formatPhpAmount(amount)
             list.performScrollToNode(hasText(formatted, substring = true))
-            compose.onNodeWithText(formatted, useUnmergedTree = true).assertIsDisplayed()
+            // The panel figure comes first; the expense total also appears in the "Where your money went" chart centre.
+            compose.onAllNodesWithText(formatted, useUnmergedTree = true).onFirst().assertIsDisplayed()
         }
     }
 
@@ -292,5 +297,47 @@ class DashboardScreenTest {
         compose.onNodeWithText(text(R.string.dashboard_footer_all_time, count)).assertIsDisplayed()
         compose.onNodeWithContentDescription(text(R.string.dashboard_footer_insights_unavailable))
             .assertIsNotEnabled().assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+    }
+
+    @Test fun whereYourMoneyWentChartUsesTheListTotalsAndSelectionIsSharedWithRows() {
+        show(DashboardUiState.Content(summary))
+        selectPeriod(R.string.dashboard_period_month)
+        reveal(R.string.dashboard_where_hint).assertIsDisplayed()
+        // Centre shows the same period total the section's percentages use.
+        compose.onAllNodesWithText(com.elect3.mobdev.personalfinance.ui.transactions.formatPhpAmount(summary.monthlyExpenses))
+            .onFirst().assertExists()
+        val second = summary.monthlyExpenseCategoryTotals[1]
+        val share = categoryShareLabel(second.total, summary.monthlyExpenses)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(second.categoryName) and hasClickAction())
+        compose.onNode(hasText(second.categoryName) and hasClickAction()).performClick()
+        compose.onNodeWithText(text(R.string.dashboard_where_center_share, share), useUnmergedTree = true).assertExists()
+        compose.onNode(hasText(second.categoryName) and hasClickAction()).assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.dashboard_where_show_all)))
+        compose.onNodeWithText(text(R.string.dashboard_where_show_all)).performClick()
+        compose.onNodeWithText(text(R.string.dashboard_where_center_share, share), useUnmergedTree = true).assertDoesNotExist()
+        reveal(R.string.dashboard_where_hint).assertIsDisplayed()
+    }
+
+    @Test fun moreThanFiveCategoriesAddAnOtherCategoriesRowMatchingTheChart() {
+        val extra = TransactionFixtures.items.filter { it.type == com.elect3.mobdev.personalfinance.domain.model.TransactionType.Expense }.take(3)
+            .mapIndexed { i, t -> t.copy(transactionId = 900 + i, categoryId = 50 + i, categoryName = "Extra ${i + 1}") }
+        val many = DashboardSummaryCalculator().calculate(TransactionFixtures.items + extra, YearMonth.of(2026, 11))
+        show(DashboardUiState.Content(many))
+        val ranked = many.expenseCategoryTotals
+        assertTrue(ranked.size > 5)
+        val other = text(R.string.dashboard_where_other_row)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(other))
+        compose.onNodeWithText(other, useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithText("+" + (ranked.size - 5), useUnmergedTree = true).onFirst().assertExists()
+        // The existing note about unlisted categories is kept.
+        compose.onAllNodesWithText(text(R.string.dashboard_where_more,
+            text(R.string.dashboard_where_source_demo), ranked.size - 5)).onFirst().assertExists()
+    }
+
+    @Test fun whereYourMoneyWentChartRendersInDarkThemeAtTwiceTheFontSize() {
+        show(DashboardUiState.Content(summary), night = true, fontScale = 2f)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.dashboard_where_hint)))
+        compose.onNodeWithText(text(R.string.dashboard_where_hint)).assertExists()
+        compose.onAllNodesWithText(text(R.string.dashboard_where_top_badge), useUnmergedTree = true).onFirst().assertExists()
     }
 }

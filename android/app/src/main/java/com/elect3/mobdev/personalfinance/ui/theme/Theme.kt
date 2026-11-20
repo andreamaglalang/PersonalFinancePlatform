@@ -342,8 +342,11 @@ private val OwliShapes = Shapes(
 )
 
 @Composable
-fun PersonalFinanceTheme(content: @Composable () -> Unit) {
-    val darkTheme = isSystemInDarkTheme()
+fun PersonalFinanceTheme(
+    /** Defaults to the phone setting; the app passes the Account > Appearance choice. */
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
     CompositionLocalProvider(
         LocalOwliColors provides if (darkTheme) OwliDarkExtensionColors else OwliLightExtensionColors,
         LocalOwliTypography provides DefaultOwliTypographyTokens,

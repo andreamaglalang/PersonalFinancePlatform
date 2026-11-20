@@ -63,6 +63,10 @@ class LoginViewModel(
     val authenticatedCurrency: () -> String? = { null },
     /** Authenticated save path; exposed only to authenticated content, never to Mock Demo. */
     val authenticatedCreation: TransactionCreationRepository? = null,
+    /** Authenticated category management; exposed only to authenticated content, never to Mock Demo. */
+    val authenticatedCategoryWrites: com.elect3.mobdev.personalfinance.domain.repository.CategoryWriteRepository? = null,
+    val authenticatedAccountId: () -> Int? = { null },
+    val authenticatedBudgets: com.elect3.mobdev.personalfinance.domain.repository.BudgetRepository? = null,
 ) : ViewModel() {
     val diagnosticId = AuthDiagnosticIds.next()
     private fun record(event: AuthDiagnosticEvent) = diagnostics.record(event, diagnosticId, null)
@@ -167,6 +171,10 @@ class LoginViewModel(
         mutableState.value = LoginUiState(isExploringDemo = true)
     }
 
+    /** Signed-in user's display profile from the in-memory session; null in Mock Demo or without a session. */
+    fun accountProfile(): com.elect3.mobdev.personalfinance.data.auth.AccountProfile? =
+        if (mutableState.value.isSignedIn) (repository as? com.elect3.mobdev.personalfinance.data.auth.InMemoryAuthRepository)?.accountProfile() else null
+
     fun returnToLogin() {
         if (mutableState.value.isExploringDemo) mutableState.value = LoginUiState()
     }
@@ -237,13 +245,18 @@ class LoginViewModel(
         private val authenticatedCategories: CategoryRepository? = null,
         private val authenticatedCurrency: () -> String? = { null },
         private val authenticatedCreation: TransactionCreationRepository? = null,
+        private val authenticatedCategoryWrites: com.elect3.mobdev.personalfinance.domain.repository.CategoryWriteRepository? = null,
+        private val authenticatedAccountId: () -> Int? = { null },
+        private val authenticatedBudgets: com.elect3.mobdev.personalfinance.domain.repository.BudgetRepository? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == LoginViewModel::class.java)
             @Suppress("UNCHECKED_CAST")
             return LoginViewModel(repository, diagnostics = diagnostics,
                 authenticatedTransactions = authenticatedTransactions, authenticatedCategories = authenticatedCategories,
-                authenticatedCurrency = authenticatedCurrency, authenticatedCreation = authenticatedCreation) as T
+                authenticatedCurrency = authenticatedCurrency, authenticatedCreation = authenticatedCreation,
+                authenticatedCategoryWrites = authenticatedCategoryWrites, authenticatedAccountId = authenticatedAccountId,
+                authenticatedBudgets = authenticatedBudgets) as T
         }
     }
 }

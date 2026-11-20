@@ -80,6 +80,40 @@ internal object FinanceJson {
         require(items.size().toLong() <= (total - (page - 1L) * size).coerceAtLeast(0))
         return Envelope(items, total)
     }
+    /** Single CategoryResponse from a member POST/PUT; must echo the submitted draft. */
+    fun category(body: String, draft: CategoryDraft, expectedId: Int? = null): Category {
+        val row = root(body)
+        return Category(row.int("categoryId"), row.text("name"), TransactionType.fromWireValue(row.text("type")),
+            row.nullableText("colorHEX"), row.bool("isActive"), row.bool("isSystemDefault")).also {
+            require(it.categoryId > 0 && (expectedId == null || it.categoryId == expectedId))
+            require(it.name == draft.trimmedName && it.type == draft.type && !it.isSystemDefault && it.isActive == draft.isActive)
+            require(it.colorHex.equals(draft.colorHex, ignoreCase = true))
+        }
+    }
+    /** One page of api/budgets for [month]; every row must belong to that month. */
+    fun budgetPage(body: String, page: Int, size: Int, month: java.time.YearMonth): Pair<List<Budget>, Long> {
+        val e = envelope(root(body), page, size)
+        val items = e.rows.map { it.asJsonObject.toBudget() }
+        require(items.all { it.periodMonth == month })
+        require(items.map { it.budgetId }.distinct().size == items.size)
+        return items to e.total
+    }
+    /** Single BudgetResponse from POST/PUT. */
+    fun budget(body: String): Budget = root(body).toBudget()
+    private fun JsonObject.toBudget(): Budget {
+        val month = date("periodMonth").also { require(it.dayOfMonth == 1) }
+        val limit = money("limitAmount").also { require(it.signum() > 0) }
+        val spent = money("spentAmount")
+        val remaining = number("remainingAmount")
+        // The server defines remaining as limit minus spent; anything else is not trusted.
+        require(remaining.compareTo(limit.subtract(spent)) == 0)
+        val alert = int("alertThresholdPct").also { require(it in 1..100) }
+        val status = BudgetStatus.entries.firstOrNull { it.name == text("status") } ?: error("Invalid status")
+        val currency = text("baseCurrency").also { require(it.matches(Regex("[A-Z]{3}"))) }
+        return Budget(int("budgetId").also { require(it > 0) }, int("categoryId").also { require(it > 0) },
+            text("categoryName").also { require(it.isNotBlank()) }, bool("isCategoryActive"), java.time.YearMonth.from(month),
+            limit, alert, spent, remaining, status, currency)
+    }
     fun categories(body: String, query: CategoryQuery): CategoryPage {
         val e = envelope(root(body), query.page, query.pageSize)
         val items = e.rows.map { item ->

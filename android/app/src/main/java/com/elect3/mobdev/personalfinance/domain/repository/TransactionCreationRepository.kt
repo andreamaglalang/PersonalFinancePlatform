@@ -41,6 +41,8 @@ sealed interface CreationResult {
     data object Busy : CreationResult
     data object UnresolvedPrevious : CreationResult
     data object AttemptLimit : CreationResult
+    /** Kept on this device (server unreachable); will be sent later with the same ClientId. Not yet a server record. */
+    data class Queued(val clientId: java.util.UUID) : CreationResult
 }
 fun interface TransactionCreationRepository {
     suspend fun create(request: CreateTransactionRequest): CreationResult

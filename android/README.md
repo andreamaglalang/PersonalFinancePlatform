@@ -1,42 +1,40 @@
-# PersonalFinanceAndroid
+# OWLI Android — ELECT3 / MOBDEV
 
-Initial ELECT3/MOBDEV Personal Finance and Budget Monitoring Platform Android scaffold. The single Compose activity displays a static welcome screen only.
+The single-module Kotlin/Compose application uses Material 3, MVVM, StateFlow, coroutines and Navigation Compose. MainActivity supplies retained ViewModels and repositories through manual factories. Screens do not construct repositories during composition.
 
-## Configuration
+## Implemented
 
-- Namespace and application ID: `com.elect3.mobdev.personalfinance`.
-- Minimum SDK 26; compile/target SDK 36; Build Tools 36.0.0.
-- Gradle 9.1.0 all distribution; AGP 9.0.1 with built-in Kotlin 2.2.10.
-- Compose compiler plugin 2.2.10; Compose BOM 2025.08.00.
-- Activity Compose 1.10.1; Lifecycle ViewModel Compose and Runtime Compose 2.9.2; Coroutines Android 1.10.2.
-- Java and Kotlin bytecode target 17. JDK 17 is the proposed Gradle runtime; a usable local installation has not been verified. No automatic JDK provisioning is configured.
+- Login, Mock Demo entry and logout; authenticated sessions remain in memory.
+- Activity transaction listing, bounded pagination, filters, search, ordering, retry and refresh.
+- DemoSession shares an in-memory synthetic transaction ledger between creation, Activity and Dashboard. Leaving demo resets the session.
+- Demo income/expense forms save locally; authenticated creation uses the existing API repository and refreshes account-owned views.
+- Dashboard income, expense, net flow, recent records and spending presentation. Net flow is not an account balance. PHP amounts use BigDecimal.
+- Category selection/management and local category presentation preferences.
+- Lavender & Midnight theme. Concurrent account/appearance work exists but is outside this verification milestone.
 
-Dependency versions are declared in `gradle/libs.versions.toml`. AGP supplies Kotlin support; the standalone `org.jetbrains.kotlin.android` plugin is intentionally absent.
+Networking currently uses native HTTPS transport and Gson. Retrofit, OkHttp and Room are not installed. Local preferences are presentation settings, not a financial database or credential store. Debug uses existing development configuration; release API configuration remains unconfigured. Never commit credentials or machine-specific configuration.
 
-## Scope and verification
+## Remaining work and limits
 
-Dependency resolution, compilation, lint, tests, and runtime behavior remain unverified. No Gradle sync, wrapper execution, build, application launch, or dependency download was performed to create this scaffold. These actions require separate approval.
+Budgets, Savings Goals, Insights and registration are not completed Android workflows. Planned screens do not establish implemented functionality. Remote bounded pagination does not prove an atomic server snapshot. Live API integration and concurrent account/appearance changes are not certified by the mock tests.
 
-There is no network permission, API configuration, authentication, transaction implementation, or database. MVVM, StateFlow, Coroutines-based behavior, and Room persistence are future work; dependency declarations alone do not implement those features. Room, KSP, and Retrofit are not included.
+## Build configuration
 
-Do not commit machine-specific `local.properties`, credentials, signing material, or generated output. Existing repository ignore rules cover these local artifacts. This Android project is separate from the .NET solution.
+Minimum SDK 26; compile/target SDK 36; Build Tools 36.0.0. Gradle 9.1.0, AGP 9.0.1 with built-in Kotlin 2.2.10, Compose compiler 2.2.10 and Compose BOM 2025.08.00. Java/Kotlin target 17; local Adoptium JDK 17 was available for this verification. Versions reside in gradle/libs.versions.toml. Existing wrapper checksum pins remain unchanged.
 
-## Wrapper provenance
+## Verification — 2026-11-19
 
-The wrapper scripts were copied byte-for-byte from previously verified temporary downloads of the official `gradle/gradle` repository at tag `v9.1.0`, resolved to commit `e45a8dbf2470c2e2474ccc25be9f49331406a07e`:
+AuthenticatedSaveNavigationTest now uses a shared DemoSession and the real Dashboard route. Its new mock expense test checks ledger persistence, Activity visibility, Dashboard totals, repeated tab navigation, synthetic-data labels and zero calls through injected authentication/GET/POST/category-write engines. Transport is fake; no API or real credentials are used.
 
-- `https://raw.githubusercontent.com/gradle/gradle/v9.1.0/gradlew`
-- `https://raw.githubusercontent.com/gradle/gradle/v9.1.0/gradlew.bat`
+Executed offline from android/:
 
-SHA-256 values:
-
-```text
-gradlew: b2fe376b143a459ba5d0bd290dc89beed5399fc6d159cd1214bd642ea94bcf07
-gradlew.bat: 9386e790d58b9368ca8e034536a5baa688643d51cb37bfa462503d36fd0291a6
-gradle-wrapper.jar: 76805e32c009c0cf0dd5d206bddc9fb22ea42e84db904b764f3047de095493f3
-gradle-9.1.0-all.zip: b84e04fa845fecba48551f425957641074fcc00a88a84d2aae5808743b35fc85
+```powershell
+.\gradlew.bat --offline --no-daemon :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:compileDebugAndroidTestKotlin --console=plain
+.\gradlew.bat --offline --no-daemon :app:testDebugUnitTest --rerun :app:testReleaseUnitTest --rerun --console=plain
 ```
 
-The wrapper JAR came from the checksum-verified local Gradle 9.1.0 distribution. The distribution checksum is pinned in wrapper properties. Wrapper files were not executed.
+Both commands succeeded. Fresh JVM XML reports: debug 341 tests, release 343 tests; zero failures/errors. Debug APK assembly passed; focused instrumentation source compiled. The first command reused cached unit-test results; the second explicitly reran the JVM tasks.
 
-Backend migration `20261107054048_AddBillPaymentReceiptsAndGuards` remains **UNSAFE TO APPLY**. Android scaffolding does not authorize backend or database operations.
+The new instrumentation test has NOT executed on-device. One physical device is available; APK deployment is awaiting clarification of the no-new-installation restriction. Historical retained instrumentation evidence covers 23 Activity/list tests and does not verify this new workflow. Complete save → Activity → Dashboard behavior therefore remains NOT YET DEVICE-VERIFIED. No production defect was demonstrated or fixed.
+
+Concurrent working-tree changes mean results describe the tested snapshot. No clean operation, dependency addition, SQL/API startup, live authentication or Git mutation was performed. Device execution requires accepted standard app/test APK deployment without clearing app data.

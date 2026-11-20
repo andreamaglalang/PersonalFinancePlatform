@@ -9,18 +9,32 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
 
-/** Pure PHP mock-contract calculation. Caller must supply a complete snapshot. */
+/** Complete-snapshot PHP summaries; demo source amounts and authenticated server base amounts stay distinct. */
 class DashboardSummaryCalculator {
     /** Defaults to the latest transaction month; an explicit month also supports historical reports. */
     fun calculate(
         transactions: List<Transaction>,
         fallbackMonth: YearMonth,
         reportingMonth: YearMonth? = null,
+    ): DashboardSummary = summarize(transactions, fallbackMonth, reportingMonth, useBaseAmounts = false)
+
+    /** PHP account only: aggregate the validated server snapshot, retaining original rows and FX metadata. */
+    fun calculatePhpAccount(
+        transactions: List<Transaction>,
+        fallbackMonth: YearMonth,
+        reportingMonth: YearMonth? = null,
+    ): DashboardSummary = summarize(transactions, fallbackMonth, reportingMonth, useBaseAmounts = true)
+
+    private fun summarize(
+        transactions: List<Transaction>,
+        fallbackMonth: YearMonth,
+        reportingMonth: YearMonth?,
+        useBaseAmounts: Boolean,
     ): DashboardSummary {
         require(transactions.map { it.transactionId }.toSet().size == transactions.size) {
             "Repeated transaction ID"
         }
-        transactions.forEach(::validate)
+        transactions.forEach { if (useBaseAmounts) validatePhpAccount(it) else validate(it) }
         val month = reportingMonth ?: transactions.maxOfOrNull { it.transactionDate }
             ?.let(YearMonth::from) ?: fallbackMonth
         val start = month.atDay(1)
@@ -33,19 +47,20 @@ class DashboardSummaryCalculator {
         val monthlyExpenseByCategory = LinkedHashMap<Int, BigDecimal>()
         val expenseByCategory = LinkedHashMap<Int, BigDecimal>()
         for (transaction in transactions) {
+            val reportingAmount = if (useBaseAmounts) transaction.amountBase else transaction.amount
             val inMonth = transaction.transactionDate >= start && transaction.transactionDate < end
             if (inMonth) monthlyCount++
             when (transaction.type) {
                 TransactionType.Income -> {
-                    income += transaction.amount
-                    if (inMonth) monthlyIncome += transaction.amount
+                    income += reportingAmount
+                    if (inMonth) monthlyIncome += reportingAmount
                 }
                 TransactionType.Expense -> {
-                    expenses += transaction.amount
-                    expenseByCategory.merge(transaction.categoryId, transaction.amount, BigDecimal::add)
+                    expenses += reportingAmount
+                    expenseByCategory.merge(transaction.categoryId, reportingAmount, BigDecimal::add)
                     if (inMonth) {
-                        monthlyExpenses += transaction.amount
-                        monthlyExpenseByCategory.merge(transaction.categoryId, transaction.amount, BigDecimal::add)
+                        monthlyExpenses += reportingAmount
+                        monthlyExpenseByCategory.merge(transaction.categoryId, reportingAmount, BigDecimal::add)
                     }
                 }
             }
@@ -114,6 +129,31 @@ class DashboardSummaryCalculator {
             .sortedWith(compareBy<DashboardCategoryTotal> { it.categoryName }.thenBy { it.categoryId })
     }
 
+    private fun validatePhpAccount(transaction: Transaction) {
+        val maximumMoney = BigDecimal("9999999999999999.99")
+        val maximumRate = BigDecimal("9999999999.99999999")
+        require(transaction.currencyCode.matches(Regex("[A-Z]{3}"))) { "Invalid source currency" }
+        require(transaction.amount.signum() > 0 && transaction.amount <= maximumMoney &&
+            transaction.amountBase.signum() >= 0 && transaction.amountBase <= maximumMoney &&
+            hasPhpPrecision(transaction.amount) && hasPhpPrecision(transaction.amountBase)
+        ) { "Invalid source or PHP base amount" }
+        require(transaction.fxRate.signum() > 0 && transaction.fxRate <= maximumRate &&
+            transaction.fxRate.stripTrailingZeros().scale() <= 8
+        ) { "Invalid FX snapshot rate" }
+        require(transaction.transactionDate.year in 1..9999 && transaction.fxRateDate.year in 1..9999 &&
+            transaction.fxRateDate <= transaction.transactionDate
+        ) { "Invalid FX snapshot date" }
+        if (transaction.currencyCode == "PHP") {
+            require(transaction.fxRate.compareTo(BigDecimal.ONE) == 0 &&
+                transaction.amountBase.compareTo(transaction.amount) == 0 &&
+                transaction.fxRateDate == transaction.transactionDate
+            ) { "Inconsistent same-currency snapshot" }
+        }
+        // Verify the API's stored snapshot; never replace amountBase or fetch/recalculate an exchange rate.
+        // For positive magnitudes HALF_UP matches FinanceValidation.ConvertAmount's AwayFromZero.
+        require(transaction.amount.multiply(transaction.fxRate).setScale(2, RoundingMode.HALF_UP)
+            .compareTo(transaction.amountBase) == 0) { "Inconsistent PHP base snapshot" }
+    }
     private fun validate(transaction: Transaction) {
         require(transaction.currencyCode == "PHP") { "Only PHP mock transactions are supported" }
         require(transaction.amount.signum() >= 0 && transaction.amountBase.signum() >= 0) {

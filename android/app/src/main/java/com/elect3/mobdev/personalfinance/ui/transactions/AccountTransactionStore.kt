@@ -20,11 +20,14 @@ class AccountTransactionStore(
     accountCurrency: () -> String? = { null },
     /** Used only when the account has no transactions at all. */
     fallbackMonth: YearMonth = YearMonth.now(),
+    /** Activity starting period (the app passes the current month). */
+    initialFilter: com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter =
+        com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter(),
 ) : AutoCloseable {
     private val store = ViewModelStore()
     private var invalidated = false
     private val factory = TransactionListViewModel.Factory(repository,
-        isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired)
+        isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired, initialFilter = initialFilter)
     private val dashboardFactory = DashboardViewModel.Factory(
         LoadDashboardSummary(repository, pageSize = DASHBOARD_PAGE_SIZE, accountCurrency = accountCurrency),
         fallbackMonth, isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired)

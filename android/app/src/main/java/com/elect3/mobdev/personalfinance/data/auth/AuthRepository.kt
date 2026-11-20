@@ -227,6 +227,16 @@ class InMemoryAuthRepository internal constructor(
     }
 
     /** Non-secret display metadata only; never returns profile or token objects. */
+    /** Name, email and base currency of the active session's user (as returned at sign-in); null without one. */
+    internal fun accountProfile(): AccountProfile? = synchronized(lock) {
+        if (!hasActiveSession()) return@synchronized null
+        session?.user?.let { AccountProfile(it.fullName.trim().takeIf(String::isNotEmpty), it.email.trim().takeIf(String::isNotEmpty),
+            it.baseCurrency.takeIf { c -> c.matches(Regex("[A-Z]{3}")) }) }
+    }
+
+    /** Active account's numeric ID, used only to scope device-only display preferences. */
+    internal fun accountId(): Int? = synchronized(lock) { if (hasActiveSession()) session?.user?.id else null }
+
     internal fun accountBaseCurrency(): String? = synchronized(lock) {
         if (hasActiveSession()) session?.user?.baseCurrency?.takeIf { it.matches(Regex("[A-Z]{3}")) } else null
     }
@@ -239,3 +249,6 @@ class InMemoryAuthRepository internal constructor(
         val REFRESH_WINDOW: Duration = Duration.ofMinutes(2)
     }
 }
+
+/** Display-only profile from the sign-in response. Never contains tokens. */
+data class AccountProfile(val fullName: String?, val email: String?, val baseCurrency: String?)

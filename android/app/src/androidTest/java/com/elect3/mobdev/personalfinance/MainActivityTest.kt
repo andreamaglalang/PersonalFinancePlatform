@@ -137,9 +137,13 @@ class MainActivityTest {
         awaitTransactionsHeading()
         lateinit var transactions: TransactionListViewModel
         compose.activityRule.scenario.onActivity { transactions = existingTransactions(it) }
+        // Activity opens on the current month (read completely); All time is the paged history.
+        compose.onNodeWithText(text(R.string.act_all_time), substring = false).performClick()
+        compose.waitUntil(5_000) { (transactions.state.value as? TransactionListUiState.Content)?.complete == false }
         val list = compose.onNode(hasScrollAction())
-        list.performScrollToNode(hasText(text(R.string.transactions_load_more)))
-        compose.onNodeWithText(text(R.string.transactions_load_more)).performClick()
+        val more = compose.activity.getString(R.string.act_show_more, 20, 25)
+        list.performScrollToNode(hasText(more))
+        compose.onNodeWithText(more).performClick()
         compose.waitUntil(5_000) {
             (transactions.state.value as? TransactionListUiState.Content)?.lastSuccessfulPage == 2
         }

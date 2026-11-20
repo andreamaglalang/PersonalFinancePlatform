@@ -81,7 +81,7 @@ fun AddTransactionDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUiState) {
+fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUiState, fixed: FixedCategory? = null) {
     var categoryOpen by remember { mutableStateOf(false) }
     var dateOpen by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
@@ -95,10 +95,12 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
             Column(Modifier.statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = model::back, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.form_back)) }
+                    TextButton(onClick = fixed?.onBack ?: model::back, enabled = !state.submitting, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.form_back)) }
                     OwliBrand()
                 }
-                Text(stringResource(R.string.form_title), style = typography.screenTitle,
+                Text(stringResource(if (fixed == null) R.string.form_title
+                    else if (state.type == TransactionType.Income) R.string.cat_form_title_income else R.string.cat_form_title_expense),
+                    style = typography.screenTitle,
                     modifier = Modifier.semantics { heading() })
             }
         },
@@ -108,7 +110,8 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                 val offline = state.offlineSaveEnabled
                 val account = state.accountSaveEnabled
                 val uncertainRetry = state.saveState is FormSaveState.OutcomeUnknown && !state.unknownEditing
-                Text(stringResource(if (state.completed) R.string.form_demo_complete else if (demo) R.string.form_demo_notice
+                Text(stringResource(if (state.completed) R.string.form_demo_complete
+                    else if (demo && fixed != null) R.string.form_demo_session_notice else if (demo) R.string.form_demo_notice
                     else if (account) R.string.form_account_notice
                     else if (offline) R.string.form_offline_notice else R.string.form_save_unavailable),
                     style = typography.caption, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
@@ -129,7 +132,7 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                     Text(stringResource(if (state.completed) R.string.form_done else if (state.submitting && account) R.string.form_account_saving
                         else if (state.submitting && offline) R.string.form_offline_saving
                         else if (state.submitting) R.string.form_previewing else if (uncertainRetry) R.string.form_retry_unchanged
-                        else if (demo) R.string.form_preview
+                        else if (demo && fixed != null) R.string.form_demo_session_save else if (demo) R.string.form_preview
                         else if (account) (if (state.type == TransactionType.Income) R.string.form_save_income else R.string.form_save_expense)
                         else if (offline) R.string.form_offline_save else R.string.form_save_unavailable_short))
                 }
@@ -140,7 +143,8 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
             .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             if (model.workflow == FormWorkflow.MockDemo) Text(stringResource(R.string.auth_demo_title), style = typography.caption)
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            if (fixed != null) FixedCategoryCard(fixed, state.type, enabled = editable)
+            if (fixed == null) SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 TransactionType.entries.forEachIndexed { index, type ->
                     SegmentedButton(selected = state.type == type, enabled = editable,
                         onClick = { focus.clearFocus(); model.type(type) }, shape = SegmentedButtonDefaults.itemShape(index, 2),
@@ -176,7 +180,7 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
             }
             Surface(shape = shapes.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { focus.clearFocus(); model.touch(FormField.Category); categoryOpen = true }, enabled = editable,
+                    if (fixed == null) OutlinedButton(onClick = { focus.clearFocus(); model.touch(FormField.Category); categoryOpen = true }, enabled = editable,
                         shape = shapes.field, border = BorderStroke(1.dp, colors.hairline),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = colors.field, contentColor = MaterialTheme.colorScheme.onSurface),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
@@ -184,8 +188,8 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                             (state.categories.firstOrNull { it.categoryId == state.selectedCategoryId }?.name ?: stringResource(R.string.form_choose_category)))
                     }
                     if (FormField.Category in state.touched && !state.categoryValid) ErrorText(R.string.form_category_error)
-                    if (state.loading) Text(stringResource(R.string.form_categories_loading), style = typography.caption)
-                    if (state.categoryError != null) Text(stringResource(R.string.form_categories_error), color = MaterialTheme.colorScheme.error)
+                    if (fixed == null && state.loading) Text(stringResource(R.string.form_categories_loading), style = typography.caption)
+                    if (fixed == null && state.categoryError != null) Text(stringResource(R.string.form_categories_error), color = MaterialTheme.colorScheme.error)
                     OutlinedButton(onClick = { focus.clearFocus(); dateOpen = true }, enabled = editable,
                         shape = shapes.field, border = BorderStroke(1.dp, colors.hairline),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = colors.field, contentColor = MaterialTheme.colorScheme.onSurface),
