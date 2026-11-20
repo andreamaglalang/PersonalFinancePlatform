@@ -108,20 +108,37 @@ public sealed class FinanceJobs(ApplicationDbContext db, IBudgetUsageService bud
         foreach (var userId in active)
         {
             if (await db.MonthlySummaries.AsNoTracking().AnyAsync(s => s.UserId == userId && s.SummaryMonth == month, ct)) continue;
-            var totals = await MonthlyTotals.ComputeAsync(db, userId, month, ct);
-            db.ChangeTracker.Clear();
-            db.MonthlySummaries.Add(new MonthlySummary
+            try
             {
-                UserId = userId, SummaryMonth = month, TotalIncome = totals.Income, TotalExpense = totals.Expenses,
-                NetCashFlow = totals.Income - totals.Expenses, SavingsAllocated = totals.Savings, GeneratedAtUtc = clock.GetUtcNow().UtcDateTime,
-            });
-            db.Notifications.Add(new Notification
+                // One transaction under the user's write lock: the summary is saved first so its generated SummaryId can be
+                // the notification's ReferenceId (CK_Notifications_Reference requires ReferenceType and ReferenceId together).
+                // Any failure before commit rolls back both rows.
+                created += await writes.ExecuteAsync([FinanceValidation.UserLock(userId)], async token =>
+                {
+                    db.ChangeTracker.Clear();
+                    if (await db.MonthlySummaries.AsNoTracking().AnyAsync(s => s.UserId == userId && s.SummaryMonth == month, token)) return 0;
+                    var totals = await MonthlyTotals.ComputeAsync(db, userId, month, token);
+                    var summary = new MonthlySummary
+                    {
+                        UserId = userId, SummaryMonth = month, TotalIncome = totals.Income, TotalExpense = totals.Expenses,
+                        NetCashFlow = totals.Income - totals.Expenses, SavingsAllocated = totals.Savings, GeneratedAtUtc = clock.GetUtcNow().UtcDateTime,
+                    };
+                    db.MonthlySummaries.Add(summary);
+                    await db.SaveChangesAsync(token);
+                    db.Notifications.Add(new Notification
+                    {
+                        UserId = userId, Type = MonthlySummaryType, ReferenceType = "MonthlySummary", ReferenceId = summary.SummaryId,
+                        Message = $"Your {month:MMMM yyyy} summary is ready: income {totals.Income:#,##0.00}, expenses {totals.Expenses:#,##0.00}.",
+                        DeduplicationKey = FormattableString.Invariant($"summary:{month:yyyy-MM}"), CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
+                    });
+                    await db.SaveChangesAsync(token);
+                    return 1;
+                }, ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
             {
-                UserId = userId, Type = MonthlySummaryType, ReferenceType = "MonthlySummary",
-                Message = $"Your {month:MMMM yyyy} summary is ready: income {totals.Income:#,##0.00}, expenses {totals.Expenses:#,##0.00}.",
-                DeduplicationKey = FormattableString.Invariant($"summary:{month:yyyy-MM}"), CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
-            });
-            if (await TrySaveAsync(ct)) created++;
+                db.ChangeTracker.Clear(); // a concurrent run already wrote this month; its transaction rolled back, nothing created
+            }
         }
         return created;
     }
