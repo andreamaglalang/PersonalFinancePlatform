@@ -1,0 +1,40 @@
+@model string
+@{
+    var selected = ViewData.ModelState["ColorHEX"]?.AttemptedValue ?? Model;
+    var colors = new List<(string Name, string Hex)>
+    {
+        ("OWLI purple", "#6747C7"), ("Lavender", "#9B79D6"), ("Plum", "#823B87"),
+        ("Rose", "#D65A8C"), ("Berry", "#B43D61"), ("Red", "#C94C4C"),
+        ("Terracotta", "#B96A4E"), ("Orange", "#E78337"), ("Gold", "#E2B84F"),
+        ("Olive", "#798B43"), ("Green", "#409369"), ("Teal", "#238A87"),
+        ("Blue", "#4886C8"), ("Indigo", "#48579C"), ("Slate", "#697581")
+    };
+    if (System.Text.RegularExpressions.Regex.IsMatch(selected, @"\A#[0-9A-Fa-f]{6}\z")
+        && !colors.Any(color => string.Equals(color.Hex, selected, StringComparison.OrdinalIgnoreCase)))
+    {
+        colors.Add(("Custom color " + selected, selected));
+    }
+    var invalid = ViewData.ModelState["ColorHEX"]?.Errors.Count > 0;
+}
+<input type="hidden" name="ColorHEX" value="@selected" data-category-color-value />
+<fieldset id="ColorHEX" class="category-palette" data-category-palette tabindex="-1" aria-describedby="color-error" aria-invalid="@(invalid ? "true" : null)">
+    <legend>Color <span>(optional)</span></legend>
+    <div class="category-swatches">
+        @foreach (var (name, hex) in colors)
+        {
+            <label class="category-swatch" title="@name">
+                <input type="radio" name="category-color-choice" value="@hex" aria-label="@name"
+                       checked="@string.Equals(hex, selected, StringComparison.OrdinalIgnoreCase)" />
+                <span class="category-swatch-face" aria-hidden="true">
+                    <svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="@hex" /></svg>
+                    <span class="category-swatch-check"><svg width="16" height="16" viewBox="0 0 16 16"><path d="m4 8 2.5 2.5L12 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+                </span>
+            </label>
+        }
+    </div>
+    <label class="category-no-color">
+        <input type="radio" name="category-color-choice" value="" checked="@string.IsNullOrEmpty(selected)" />
+        <span>No color</span>
+    </label>
+    @Html.ValidationMessage("ColorHEX", null, new { id = "color-error" })
+</fieldset>

@@ -2,16 +2,15 @@
 @{
     ViewData["Title"] = "Budget Administration";
 }
-<section class="card category-list">
-    <header class="category-heading">
-        <h1>Budget Administration</h1>
-        <a class="button-link" asp-action="Create" data-form-dialog="Create budget">Create budget</a>
-    </header>
-    <p>View and manage monthly budgets for the signed-in account.</p>
+<header class="page-heading mock-heading">
+    <div><p class="welcome-name">Administrator</p><h1>Budget Administration</h1></div>
+    <a class="button-link" asp-action="Create" data-form-dialog="Create budget"><partial name="_NavIcon" model='"plus"' />Create budget</a>
+</header>
     @if (TempData["BudgetNotice"] is string notice)
     {
         <p class="success-notice" role="status">@notice</p>
     }
+<section class="card category-list budget-list" aria-label="Monthly budgets for the signed-in account">
     <form asp-action="Index" method="get" class="category-filters" data-busy="Loading budgets…">
         <div>
             <label asp-for="Month">Month (YYYY-MM)</label>
@@ -28,7 +27,7 @@
     {
         @if (results.Items.Count == 0)
         {
-            <p class="category-empty">No budgets found on this page.</p>
+            <div class="category-empty"><partial name="_NavIcon" model='"budget"' /><h2>No budgets found on this page</h2></div>
         }
         else
         {
@@ -50,7 +49,7 @@
                             <td><span class="category-state @(budget.Status switch { "OK" => "category-state-active", "Warning" => "status-warning", _ => "status-exceeded" })">@budget.Status</span></td>
                             <td>
                                 <div class="table-actions">
-                                    <a asp-action="Edit" asp-route-id="@budget.BudgetId" aria-label="Edit budget for @budget.CategoryName" data-form-dialog="Edit budget">Edit</a>
+                                    <a asp-action="Edit" asp-route-id="@budget.BudgetId" aria-label="Edit budget for @budget.CategoryName" data-form-dialog="Edit budget"><partial name="_NavIcon" model='"edit"' />Edit</a>
                                     <a asp-action="Delete" asp-route-id="@budget.BudgetId" aria-label="Delete budget for @budget.CategoryName" data-form-dialog="Delete budget">Delete</a>
                                 </div>
                             </td>
@@ -60,7 +59,7 @@
                 </table>
             </div>
         }
-        <div class="form-actions">
+        <div class="category-pagination">
             @if (results.Page > 1)
             {
                 <a asp-route-month="@Model.Month" asp-route-page="@(results.Page - 1)">Previous page</a>

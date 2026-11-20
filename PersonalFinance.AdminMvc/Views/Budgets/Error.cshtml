@@ -2,8 +2,9 @@
 @{
     ViewData["Title"] = "Budget unavailable";
 }
-<section class="card">
+<section class="card state-card">
+    <span class="state-icon"><partial name="_NavIcon" model='"alert"' /></span>
     <h1>Budget unavailable</h1>
-    <p class="notice" role="alert">@Model</p>
-    <a asp-action="Index">Back to budgets</a>
+    <p role="alert">@Model</p>
+    <a class="button-link" asp-action="Index">Back to budgets</a>
 </section>

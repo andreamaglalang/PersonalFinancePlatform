@@ -1,3 +1,8 @@
 @model string
 @{ ViewData["Title"] = "Category unavailable"; }
-<section class="card"><h1>Category unavailable</h1><p class="notice" role="alert">@Model</p><a asp-action="Index">Back to API-page browsing</a></section>
+<section class="card state-card">
+    <span class="state-icon"><partial name="_NavIcon" model='"alert"' /></span>
+    <h1>Category unavailable</h1>
+    <p role="alert">@Model</p>
+    <a class="button-link" asp-action="Index">Back to categories</a>
+</section>

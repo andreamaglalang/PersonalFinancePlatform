@@ -1,18 +1,23 @@
 @model PersonalFinance.AdminMvc.ViewModels.CategoryCreateViewModel
 @{ ViewData["Title"] = "Create shared default category"; }
 <section class="card category-form" aria-labelledby="category-form-title" data-dialog-panel>
-    <h1 id="category-form-title">Create shared default category</h1>
-    <p>This creates a shared category available to all users, not a personal category.</p>
+    <h1 id="category-form-title">Create category</h1>
+    <p>Add a shared default category for all users.</p>
     <form asp-action="Create" method="post" data-busy="Creating category…">
         <partial name="_ValidationSummary" />
-        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" data-dialog-focus />
+        <label asp-for="Name">Category name</label><input asp-for="Name" maxlength="50" required aria-describedby="name-error" aria-invalid="@(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "true" : null)" placeholder="e.g. Groceries" data-dialog-focus />
         <span asp-validation-for="Name" id="name-error"></span>
-        <label asp-for="Type"></label><select asp-for="Type" aria-describedby="type-error" aria-invalid="@(ViewData.ModelState["Type"]?.Errors.Count > 0 ? "true" : null)"><option value="Income">Income</option><option value="Expense">Expense</option></select>
+        <fieldset class="category-choices">
+            <legend>Type</legend>
+            <label><input asp-for="Type" id="type-expense" type="radio" value="Expense" aria-describedby="type-error" aria-invalid="@(ViewData.ModelState["Type"]?.Errors.Count > 0 ? "true" : null)" /><partial name="_NavIcon" model='"down"' />Expense</label>
+            <label><input asp-for="Type" id="type-income" type="radio" value="Income" aria-describedby="type-error" aria-invalid="@(ViewData.ModelState["Type"]?.Errors.Count > 0 ? "true" : null)" /><partial name="_NavIcon" model='"up"' />Income</label>
+        </fieldset>
         <span asp-validation-for="Type" id="type-error"></span>
-        <label asp-for="ColorHEX"></label><input asp-for="ColorHEX" maxlength="7" placeholder="#6747C7" aria-describedby="color-help color-error" aria-invalid="@(ViewData.ModelState["ColorHEX"]?.Errors.Count > 0 ? "true" : null)" />
-        <span asp-validation-for="ColorHEX" id="color-error"></span>
-        <p id="color-help" class="muted">Leave blank, or use # followed by six hexadecimal digits.</p>
-        <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
-        <div class="form-actions"><button type="submit">Create shared category</button><a asp-action="Index" data-form-dialog-cancel>Cancel</a></div>
+        <details class="category-options" open="@(!string.IsNullOrEmpty(Model.ColorHEX) || !Model.IsActive || ViewData.ModelState["ColorHEX"]?.Errors.Count > 0)">
+            <summary>Color and initial status</summary>
+            <partial name="_ColorPicker" model='Model.ColorHEX ?? ""' />
+            <label class="check-label"><input asp-for="IsActive" /> Active for all users</label>
+        </details>
+        <div class="form-actions"><button type="submit">Create category</button><a asp-action="Index" data-form-dialog-cancel>Cancel</a></div>
     </form>
 </section>

@@ -1,6 +1,7 @@
 @{ ViewData["Title"] = "Service unavailable"; }
-<section class="card">
+<section class="card state-card">
+    <span class="state-icon"><partial name="_NavIcon" model='"alert"' /></span>
     <h1>We could not complete this request</h1>
     <p>Please try again later. If the problem continues, contact the project administrator.</p>
-    <a asp-controller="Account" asp-action="Login">Return to sign in</a>
+    <a class="button-link" asp-controller="Account" asp-action="Login">Return to sign in</a>
 </section>

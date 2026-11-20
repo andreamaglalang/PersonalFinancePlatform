@@ -3,10 +3,10 @@
     ViewData["Title"] = "Financial Reports";
 }
 <div class="reports">
-    <header class="reports-header">
+    <header class="reports-header mock-heading">
         <div>
+            <p class="welcome-name">Signed-in account</p>
             <h1>Financial Reports</h1>
-            <p class="muted">Signed-in account</p>
         </div>
         <form asp-controller="Reports" asp-action="Index" method="get" class="reports-filter" data-busy="Applying month…">
             <div>
