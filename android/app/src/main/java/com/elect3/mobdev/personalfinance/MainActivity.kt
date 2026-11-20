@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
                         authenticatedAccountId = finance.accountId,
                         authenticatedBudgets = finance.budgets,
                         authenticatedUpdates = finance.transactionUpdates,
+                        authenticatedQuotes = finance.exchangeRateQuotes,
                     ).create(modelClass)
                 }
                 DashboardViewModel::class.java -> DashboardViewModel.Factory(
@@ -156,6 +157,7 @@ class MainActivity : ComponentActivity() {
                         authenticatedCurrency = loginViewModel.authenticatedCurrency,
                         authenticatedCreation = loginViewModel.authenticatedCreation,
                         authenticatedUpdates = loginViewModel.authenticatedUpdates,
+                        authenticatedQuotes = loginViewModel.authenticatedQuotes,
                         sessionKeys = sessionKeys,
                         isSessionCurrent = { loginViewModel.state.value.authenticatedContentKey == it },
                         onSessionExpired = {
