@@ -92,10 +92,12 @@ fun AccountDialog(
     /** Real logout (signed in) or the existing demo exit; the owner disposes this screen when the session ends. */
     onLogout: () -> Unit,
     onClose: () -> Unit,
+    /** Opens the read-only Currency converter page. Null hides the row. */
+    onOpenCurrencyConverter: (() -> Unit)? = null,
 ) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            AccountScreen(mode, appearance, onAppearance, onManageCategories, onLogout, onClose)
+            AccountScreen(mode, appearance, onAppearance, onManageCategories, onLogout, onClose, onOpenCurrencyConverter)
         }
     }
 }
@@ -109,6 +111,7 @@ fun AccountScreen(
     onManageCategories: (() -> Unit)?,
     onLogout: () -> Unit,
     onBack: () -> Unit,
+    onOpenCurrencyConverter: (() -> Unit)? = null,
 ) {
     var sheet by rememberSaveable { mutableStateOf<AccountSheet?>(null) }
     var loggingOut by remember { mutableStateOf(false) }
@@ -145,8 +148,14 @@ fun AccountScreen(
                 AccountRow(R.drawable.ic_acc_globe, stringResource(R.string.account_currency), stringResource(R.string.account_currency_sub),
                     value = if (demo) "PHP" else profile?.baseCurrency ?: "—") { sheet = AccountSheet.Currency }
             }
-            if (onManageCategories != null) Group(R.string.account_group_finance) {
-                AccountRow(R.drawable.ic_cat_tag, stringResource(R.string.account_categories), stringResource(R.string.account_categories_sub), onClick = onManageCategories)
+            if (onManageCategories != null || onOpenCurrencyConverter != null) Group(R.string.account_group_finance) {
+                if (onManageCategories != null)
+                    AccountRow(R.drawable.ic_cat_tag, stringResource(R.string.account_categories), stringResource(R.string.account_categories_sub), onClick = onManageCategories)
+                if (onManageCategories != null && onOpenCurrencyConverter != null) RowDivider()
+                if (onOpenCurrencyConverter != null)
+                    AccountRow(R.drawable.ic_acc_globe, stringResource(R.string.cur_entry_title),
+                        stringResource(R.string.cur_entry_sub, com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies.all.size),
+                        onClick = onOpenCurrencyConverter)
             }
             if (!demo) Group(R.string.account_group_security) {
                 AccountRow(R.drawable.ic_acc_key, stringResource(R.string.account_password), null, pill = stringResource(R.string.account_unavailable_pill)) { sheet = AccountSheet.Password }

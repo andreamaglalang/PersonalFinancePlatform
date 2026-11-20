@@ -35,7 +35,7 @@ import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionDate
 import com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies
 import com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionNoticeCard
 import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencyPickerDialog
-import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencySelectorButton
+import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencyFieldCard
 import kotlinx.coroutines.flow.Flow
 import java.time.*
 
@@ -165,15 +165,13 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                     }
                 }
             }
+            // Prominent currency field: the account currency by default; other supported currencies are converted by the server.
+            if (state.currency != null) CurrencyFieldCard(state.currency, state.baseCurrency, selectable = state.currencySelectable,
+                enabled = editable, onClick = { focus.clearFocus(); currencyOpen = true })
             Surface(shape = shapes.hero, color = MaterialTheme.colorScheme.primaryContainer) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(state.currency?.let { stringResource(R.string.fx_amount_in, it) } ?: stringResource(R.string.form_amount),
-                            style = typography.label, modifier = Modifier.weight(1f))
-                        if (state.currencySelectable && state.currency != null)
-                            CurrencySelectorButton(state.currency, enabled = editable, onClick = { focus.clearFocus(); currencyOpen = true })
-                    }
+                    Text(state.currency?.let { stringResource(R.string.fx_amount_in, it) } ?: stringResource(R.string.form_amount),
+                        style = typography.label)
                     OutlinedTextField(state.amount, model::amount, enabled = editable, singleLine = true,
                         label = { Text(stringResource(R.string.form_amount)) },
                         prefix = state.currency?.let { code -> { Text(SupportedCurrencies.symbol(code) + " ", style = typography.amountMedium) } },

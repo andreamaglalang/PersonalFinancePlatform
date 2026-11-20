@@ -551,16 +551,8 @@ fun TransactionConfirmationScreen(receipt: TransactionReceipt, onDashboard: () -
             }
         }
         val converted = receipt.converted
-        if (converted != null && receipt.baseCurrency != null && converted.currencyCode != receipt.baseCurrency) {
-            Surface(Modifier.fillMaxWidth(), shape = LocalOwliShapes.current.group, color = colors.accentSoft,
-                border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f))) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.fx_receipt_title), style = LocalOwliTypography.current.label, color = colors.accent,
-                        modifier = Modifier.semantics { heading() })
-                    com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionSummary(converted, receipt.baseCurrency)
-                }
-            }
-        }
+        if (converted != null && receipt.baseCurrency != null && converted.currencyCode != receipt.baseCurrency)
+            com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionDetailsCard(converted, receipt.baseCurrency)
         if (receipt.pendingConversion && receipt.baseCurrency != null)
             Text(stringResource(R.string.fx_receipt_queued, receipt.baseCurrency), style = LocalOwliTypography.current.caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)

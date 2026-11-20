@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Currency converter and currency presentation. Kept separate from strings.xml to avoid merge conflicts. -->
+<resources>
+    <!-- Entry point (Account > Finance setup) -->
+    <string name="cur_entry_title">Currency converter</string>
+    <string name="cur_entry_sub">%1$d currencies · how OWLI converts foreign amounts</string>
+
+    <!-- Converter screen -->
+    <string name="cur_title">Currency converter</string>
+    <string name="cur_back">Back</string>
+    <string name="cur_hero_title">OWLI speaks %1$d currencies</string>
+    <string name="cur_hero_body">Record income and expenses in the currency you paid in. OWLI keeps the original amount and converts it to %1$s for your totals and budgets.</string>
+    <string name="cur_demo_note">Mock Demo uses sample data in PHP only. Sign in to record transactions in other currencies.</string>
+    <string name="cur_from">From</string>
+    <string name="cur_to">To</string>
+    <string name="cur_swap">Swap currencies</string>
+    <string name="cur_amount">Amount</string>
+    <string name="cur_amount_error">Enter an amount greater than zero, with up to two decimals.</string>
+    <string name="cur_result_heading">Conversion</string>
+    <string name="cur_result_enter">Enter an amount to see how it converts.</string>
+    <string name="cur_result_same">Same currency: no conversion needed (rate 1).</string>
+    <string name="cur_result_unavailable_title">Live rate not available on this phone</string>
+    <string name="cur_result_unavailable_body">OWLI never estimates a rate. The OWLI server converts an amount only when you save a transaction, using the validated exchange rate for its date, and then shows you the exact rate and %1$s amount.</string>
+    <string name="cur_result_reference">Last rate confirmed in your account: 1 %1$s = %2$s %3$s, rate date %4$s. Historical, not a current quote.</string>
+    <string name="cur_record_action">Record a transaction in another currency</string>
+
+    <!-- How it works -->
+    <string name="cur_how_title">How OWLI handles foreign currency</string>
+    <string name="cur_how_1">Choose the currency when you add or edit a transaction, and enter the amount exactly as paid (up to 2 decimals).</string>
+    <string name="cur_how_2">When it is saved, the OWLI server converts it to %1$s at the reference rate published for the transaction date (or the latest one before it, at most 7 days earlier), from the Frankfurter exchange-rate service.</string>
+    <string name="cur_how_3">The rate is stored with 8 decimals and the converted amount is rounded to 2 decimals. Both are shown on the transaction.</string>
+    <string name="cur_how_4">Totals and budgets use the converted %1$s amount, so different currencies are never added together.</string>
+    <string name="cur_how_5">Changing only the amount keeps the stored rate. Changing the currency or the date gets a new validated rate.</string>
+    <string name="cur_how_6">Offline, a transaction is kept on this phone unconverted and is converted when it syncs.</string>
+
+    <!-- Confirmed rates -->
+    <string name="cur_confirmed_title">Rates confirmed in your account</string>
+    <string name="cur_confirmed_lead">Applied by the OWLI server to transactions in the loaded Activity period. Each rate is valid for its own date only.</string>
+    <string name="cur_confirmed_row">1 %1$s = %2$s %3$s</string>
+    <string name="cur_confirmed_date">Rate date %1$s · transaction %2$s</string>
+    <string name="cur_confirmed_empty">No foreign-currency transactions in the loaded Activity period yet.</string>
+    <string name="cur_confirmed_demo">Sample data uses PHP only, so there are no exchange rates to show.</string>
+
+    <!-- Supported currencies -->
+    <string name="cur_supported_title">Supported currencies</string>
+    <string name="cur_supported_account">Your account currency</string>
+
+    <!-- Transaction form currency field and conversion details -->
+    <string name="cur_field_label">Transaction currency</string>
+    <string name="cur_field_change">Change</string>
+    <string name="cur_field_hint">%1$d currencies supported · others are converted to %2$s when saved</string>
+    <string name="cur_field_demo">Sample data uses PHP only</string>
+    <string name="cur_details_title">Currency conversion</string>
+    <string name="cur_details_confirmed">Confirmed by the OWLI server</string>
+    <string name="cur_details_original">Original amount</string>
+    <string name="cur_details_converted">Converted to %1$s</string>
+    <string name="cur_details_rate">Exchange rate</string>
+    <string name="cur_details_rate_date">Rate date</string>
+    <string name="cur_details_earlier_rate">Latest published rate before the transaction date.</string>
+</resources>

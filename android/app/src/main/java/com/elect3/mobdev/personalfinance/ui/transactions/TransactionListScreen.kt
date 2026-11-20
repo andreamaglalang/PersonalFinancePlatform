@@ -757,8 +757,8 @@ private fun TransactionDetailSheet(t: Transaction, onDismiss: () -> Unit, onEdit
                 }
             }
             // Stored server snapshot only (rate with 8 decimals and its date); nothing is recalculated here.
-            if (!isPlainPhp(t)) com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionSummary(t, "PHP",
-                Modifier.fillMaxWidth().padding(top = 6.dp, start = 4.dp, end = 4.dp))
+            if (!isPlainPhp(t)) com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionDetailsCard(t, "PHP",
+                Modifier.padding(top = 6.dp))
             if (onEdit != null && t.billId == null && t.billDueDate == null)
                 Button(onClick = { onEdit(t) }, shape = LocalOwliShapes.current.button, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 6.dp)) {
                     Text(stringResource(R.string.fx_edit_action), style = LocalOwliTypography.current.label)

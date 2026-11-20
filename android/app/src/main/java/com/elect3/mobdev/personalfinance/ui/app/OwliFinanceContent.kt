@@ -75,6 +75,7 @@ fun OwliFinanceContent(
     var flowStart by remember(authenticatedContentKey) { mutableStateOf(FlowStart.AddTransaction) }
     var dashboardRequests by remember(authenticatedContentKey) { mutableIntStateOf(0) }
     var accountOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
+    var converterOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     val demo = demoSession ?: remember { DemoSession() }
     val context = LocalContext.current
     // Signed-in icon/order choices: this device only, scoped to the account ID; never shared with Mock Demo.
@@ -259,6 +260,21 @@ fun OwliFinanceContent(
             onManageCategories = openCategories,
             onLogout = onLogout,
             onClose = { accountOpen = false },
+            // Read-only Currency converter, opened over Account; Back returns here.
+            onOpenCurrencyConverter = { converterOpen = true },
+        )
+    }
+    if (converterOpen) {
+        // Rates the server already confirmed on this account's loaded transactions (never in Mock Demo).
+        val loaded = (account?.model()?.state?.value as? com.elect3.mobdev.personalfinance.ui.transactions.TransactionListUiState.Content)?.items.orEmpty()
+        val base = if (authenticatedContentKey == null) "PHP" else authenticatedCurrency()
+        com.elect3.mobdev.personalfinance.ui.currency.CurrencyConverterDialog(
+            baseCurrency = base,
+            demo = authenticatedContentKey == null,
+            confirmed = if (account == null) emptyList() else com.elect3.mobdev.personalfinance.domain.currency.CurrencyConverter.confirmedRates(loaded, base),
+            // Signed in only: hand off to the existing Add Transaction flow (the converter itself never writes).
+            onRecordTransaction = if (account != null && openAdd != null) ({ converterOpen = false; accountOpen = false; openAdd(null) }) else null,
+            onClose = { converterOpen = false },
         )
     }
     if (formOpen) {
