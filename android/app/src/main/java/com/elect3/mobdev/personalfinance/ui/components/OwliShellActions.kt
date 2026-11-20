@@ -20,6 +20,8 @@ data class OwliShellActions(
     val openCategories: (() -> Unit)? = null,
     /** Opens the Account screen from the Dashboard avatar. */
     val openAccount: (() -> Unit)? = null,
+    /** Opens Insights (Financial Reports); null while the owner provides no Insights content. */
+    val openInsights: (() -> Unit)? = null,
 )
 
 val LocalOwliShellActions = staticCompositionLocalOf { OwliShellActions() }

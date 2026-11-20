@@ -213,6 +213,29 @@ fun OwliFinanceContent(
                     budgetCount = budgetState?.budgets?.size ?: 0))
         }
     }
+    // Insights (Financial Reports) for this session only: demo -> in-memory sample ledger (PHP); signed in -> this
+    // account's GET api/transactions date-filtered reads, totalled from server base amounts. Never mixed.
+    val demoReportsStore = remember(authenticatedContentKey) { androidx.lifecycle.ViewModelStore() }
+    DisposableEffect(demoReportsStore) { onDispose { demoReportsStore.clear() } }
+    val reportsVm: com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel? = if (account != null) {
+        if (account.supportsReports) account.reportsModel() else null
+    } else remember(demoReportsStore) {
+        val loader = com.elect3.mobdev.personalfinance.domain.reports.LoadFinancialReport(
+            com.elect3.mobdev.personalfinance.data.mock.MockTransactionRepository(
+                com.elect3.mobdev.personalfinance.data.mock.MockScenario.Normal, demo.ledger),
+            baseCurrency = { "PHP" })
+        androidx.lifecycle.ViewModelProvider(demoReportsStore,
+            com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel.Factory({ loader(it) }))[
+            com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel::class.java]
+    }
+    val insightsContent: (@Composable () -> Unit)? = if (reportsVm == null) null else remember(authenticatedContentKey, reportsVm) {
+        {
+            // Re-read on each visit so figures reflect transactions saved elsewhere (no-op while a read is running).
+            LaunchedEffect(reportsVm) { reportsVm.refresh() }
+            com.elect3.mobdev.personalfinance.ui.reports.ReportsRoute(reportsVm, demo = authenticatedContentKey == null,
+                currentMonth = { java.time.YearMonth.now() })
+        }
+    }
     OwliApp(
         // Demo (no account scope) always uses the owner's sample Dashboard; it never reads account data.
         dashboardContent = if (account != null && accountDashboard != null) ({ accountDashboard(account.dashboardModel()) })
@@ -236,6 +259,7 @@ fun OwliFinanceContent(
         // Plan is offered where the rest of the finance features are (demo, or a signed-in account with categories).
         planContent = if (canAdd) planContent else null,
         dashboardRequests = dashboardRequests,
+        insightsContent = insightsContent,
     )
     val editTarget = editing
     val editKey = authenticatedContentKey
