@@ -21,7 +21,10 @@ public sealed class FrankfurterClient(HttpClient http, TimeProvider clock) : IFr
             {
                 var rows = await GetAsync<CurrencyItem[]>("currencies", ct);
                 if (rows.Any(r => r is null)) throw Unavailable();
-                var codes = rows.Select(r => r.Code).ToArray();
+                // The v2 catalog also lists non-fiat assets (for example crypto codes such as "AAVE"); only fiat
+                // currencies are eligible. Entries without a type (older catalog shape) are treated as currencies,
+                // and any currency entry with a malformed code still rejects the whole catalog.
+                var codes = rows.Where(r => r.Type is null || r.Type == "currency").Select(r => r.Code).ToArray();
                 if (codes.Length == 0 || codes.Any(c => c is null || !FinanceValidation.CurrencyCode(c)))
                     throw Unavailable();
                 currencies = codes.ToHashSet(StringComparer.Ordinal)!;
@@ -83,6 +86,7 @@ public sealed class FrankfurterClient(HttpClient http, TimeProvider clock) : IFr
     private sealed class CurrencyItem
     {
         [JsonPropertyName("iso_code")] public string Code { get; set; } = string.Empty;
+        [JsonPropertyName("type")] public string? Type { get; set; }
     }
     private sealed class RateItem
     {
