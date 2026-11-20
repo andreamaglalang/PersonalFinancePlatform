@@ -62,6 +62,45 @@ internal static class ExchangeRateQuoteTests
             f.Fx.Unavailable = false; f.Fx.Age = 8; // older than the 7-day policy
             Assert((await Quote(f, "from=EUR&to=PHP&amount=1")).Status == 503);
         });
+        // Regression: the live Frankfurter v2 catalog lists crypto assets ("AAVE", "ADA") next to fiat currencies.
+        await check("Frankfurter v2 catalog with crypto assets still supports fiat currencies", async f =>
+        {
+            const string catalog = """
+                [{"iso_code":"AAVE","iso_numeric":null,"name":"Aave","symbol":"AAVE","type":"crypto"},
+                 {"iso_code":"ADA","iso_numeric":null,"name":"Cardano","symbol":"₳","type":"crypto"},
+                 {"iso_code":"AED","iso_numeric":"784","name":"UAE Dirham","symbol":"د.إ","type":"currency"},
+                 {"iso_code":"PHP","iso_numeric":"608","name":"Philippine Peso","symbol":"₱","type":"currency"},
+                 {"iso_code":"USD","iso_numeric":"840","name":"US Dollar","symbol":"$","type":"currency"}]
+                """;
+            var handler = new FakeHttp(req => new(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(req.RequestUri!.AbsolutePath.EndsWith("/currencies") ? catalog
+                    : """{"date":"2026-11-20","base":"USD","quote":"PHP","rate":63.681}""", System.Text.Encoding.UTF8, "application/json"),
+            });
+            using var client = new PersonalFinance.Infrastructure.Finance.FrankfurterClient(
+                new HttpClient(handler) { BaseAddress = new("https://api.frankfurter.dev/v2/") }, TimeProvider.System);
+            Assert(await client.SupportsAsync("USD", default) && await client.SupportsAsync("PHP", default), "fiat currencies are supported");
+            Assert(!await client.SupportsAsync("AAVE", default) && !await client.SupportsAsync("ADA", default), "crypto assets are not offered");
+            var rate = await client.GetRateAsync("USD", "PHP", new(2026, 11, 20), default);
+            Assert(rate.Rate == 63.681m && rate.RateDate == new DateOnly(2026, 11, 20));
+        });
+        await check("Frankfurter catalog still rejects malformed currency entries and catalogs without currencies", async f =>
+        {
+            foreach (var catalog in new[] {
+                """[{"iso_code":"US","type":"currency"},{"iso_code":"PHP","type":"currency"}]""", // malformed fiat code
+                """[{"iso_code":"usd"},{"iso_code":"PHP"}]""",                                       // untyped (older shape), malformed
+                """[{"iso_code":"AAVE","type":"crypto"},{"iso_code":"BTC","type":"crypto"}]""",      // no fiat currencies at all
+                "[]" })
+            {
+                using var client = new PersonalFinance.Infrastructure.Finance.FrankfurterClient(new HttpClient(new FakeHttp(_ =>
+                    new(System.Net.HttpStatusCode.OK) { Content = new StringContent(catalog, System.Text.Encoding.UTF8, "application/json") }))
+                    { BaseAddress = new("https://api.frankfurter.dev/v2/") }, TimeProvider.System);
+                var rejected = false;
+                try { await client.SupportsAsync("PHP", default); }
+                catch (PersonalFinance.Infrastructure.Finance.FinanceException ex) { rejected = ex.StatusCode == 503; }
+                Assert(rejected, catalog);
+            }
+        });
         await check("FX quote requires authentication and HTTPS", async f =>
         {
             Assert((await Quote(f, "from=USD&to=PHP&amount=1", user: null)).Status == 401);
