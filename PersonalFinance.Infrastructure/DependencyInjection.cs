@@ -75,6 +75,7 @@ public static class DependencyInjection
 
         services.AddScoped<IFinancialWriteScope, SqlFinancialWriteScope>();
         services.AddScoped<IConversionService, ConversionService>();
+        services.AddScoped<IExchangeRateQuoteService, ExchangeRateQuoteService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IBudgetUsageService, BudgetUsageService>();
