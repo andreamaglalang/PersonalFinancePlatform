@@ -29,6 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -38,7 +39,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -76,22 +77,40 @@ import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionAmount
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 
 private fun money(v: BigDecimal, currency: String) = formatTransactionAmount(v, currency)
 private val ALERT_CHOICES = listOf(50, 80, 100)
 
-/** Budgets tab content (summary panel + cards + sheets), driven by [BudgetsViewModel]. */
+/**
+ * Budgets tab content (month stepper + summary panel + cards + sheets), driven by [BudgetsViewModel].
+ * [pendingLocalCount]: signed-in transactions saved on this device and not yet synced; the server's spent
+ * figures cannot include them, so the section says so instead of guessing their effect.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BudgetsSection(state: BudgetsState, vm: BudgetsViewModel, demo: Boolean, today: LocalDate = LocalDate.now()) {
+fun BudgetsSection(state: BudgetsState, vm: BudgetsViewModel, demo: Boolean, today: LocalDate = LocalDate.now(), pendingLocalCount: Int = 0) {
     var openId by rememberSaveable { mutableStateOf<Int?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(state.savedCount) { if (state.savedCount > 0) { openId = null; creating = false } }
+    // Close sheets only on a NEW confirmed write or a month change; values are saved so rotation doesn't close them.
+    var seenSaves by rememberSaveable { mutableIntStateOf(state.savedCount) }
+    var seenMonth by rememberSaveable { mutableStateOf(state.month.toString()) }
+    if (seenSaves != state.savedCount || seenMonth != state.month.toString()) {
+        seenSaves = state.savedCount; seenMonth = state.month.toString(); openId = null; creating = false
+    }
     val typography = LocalOwliTypography.current
     val scheme = MaterialTheme.colorScheme
     val monthName = state.month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    val openCreate = { vm.clearFormError(); vm.consumeNotice(); creating = true }
+
+    MonthStepper(state, vm)
+
+    // Offline / failed refresh: keep the last figures, say when they were loaded, and pause editing.
+    if (state.stale && state.loadedAt != null) StaleBanner(state, vm::refresh)
 
     // Confirmation at the top of the section, where it is seen (and announced) right after a change.
     state.notice?.let { notice ->
@@ -118,7 +137,7 @@ fun BudgetsSection(state: BudgetsState, vm: BudgetsViewModel, demo: Boolean, tod
             OutlinedButton(onClick = vm::refresh, modifier = Modifier.padding(top = 10.dp).heightIn(min = 48.dp)) { Text(stringResource(R.string.transactions_retry)) }
         }
         state.budgets.isEmpty() -> PlanEmpty(R.drawable.ic_cat_wallet, R.string.budget_empty_title, R.string.budget_empty_message) {
-            Button(onClick = { vm.clearFormError(); vm.consumeNotice(); creating = true }, shape = LocalOwliShapes.current.button,
+            Button(onClick = openCreate, enabled = state.canWrite, shape = LocalOwliShapes.current.button,
                 modifier = Modifier.padding(top = 12.dp).heightIn(min = 48.dp)) { Text(stringResource(R.string.budget_create)) }
         }
         else -> {
@@ -127,10 +146,11 @@ fun BudgetsSection(state: BudgetsState, vm: BudgetsViewModel, demo: Boolean, tod
             Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.budget_list_title, monthName).uppercase(), style = typography.overline, color = scheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).semantics { heading() })
-                TextButton(onClick = { vm.clearFormError(); vm.consumeNotice(); creating = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = openCreate, enabled = state.canWrite, modifier = Modifier.heightIn(min = 48.dp)) {
                     Icon(painterResource(R.drawable.ic_owli_plus), null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text(stringResource(R.string.budget_new), style = typography.label, color = LocalOwliColors.current.accent)
+                    Text(stringResource(R.string.budget_new), style = typography.label,
+                        color = if (state.canWrite) LocalOwliColors.current.accent else scheme.onSurfaceVariant)
                 }
             }
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -140,6 +160,9 @@ fun BudgetsSection(state: BudgetsState, vm: BudgetsViewModel, demo: Boolean, tod
                 color = scheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp))
         }
     }
+    if (!demo && pendingLocalCount > 0 && state.loaded) Text(
+        pluralStringResource(R.plurals.budget_pending_local, pendingLocalCount, pendingLocalCount),
+        style = typography.caption, color = scheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
     val open = openId?.let { id -> state.budgets.firstOrNull { it.budgetId == id } }
     if (open != null) BudgetDetailSheet(open, state, vm) { openId = null }
     if (creating) CreateBudgetSheet(state, vm) { creating = false }
@@ -248,12 +271,13 @@ private fun BudgetDetailSheet(b: Budget, state: BudgetsState, vm: BudgetsViewMod
             LimitField(limit, { limit = it; vm.clearFormError() }, R.string.budget_change_limit, b.baseCurrency)
             AlertChoices(alert) { alert = it }
             FormError(state.formError)
-            Button(onClick = { vm.update(b.budgetId, limit, alert) }, enabled = !state.saving, shape = LocalOwliShapes.current.button,
+            if (state.stale) Text(stringResource(R.string.budget_stale_readonly), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(onClick = { vm.update(b.budgetId, limit, alert) }, enabled = state.canWrite, shape = LocalOwliShapes.current.button,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                 if (state.saving) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary); Spacer(Modifier.size(8.dp)) }
                 Text(stringResource(R.string.budget_save), style = typography.button)
             }
-            TextButton(onClick = { confirmDelete = true }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            TextButton(onClick = { confirmDelete = true }, enabled = state.canWrite, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.budget_delete), color = MaterialTheme.colorScheme.error)
             }
         }
@@ -278,7 +302,8 @@ private fun CreateBudgetSheet(state: BudgetsState, vm: BudgetsViewModel, onClose
         Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.budget_new_title), style = typography.sectionTitle, modifier = Modifier.semantics { heading() })
             Text(stringResource(R.string.budget_category).uppercase(), style = typography.overline, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (state.availableCategories.isEmpty()) Text(stringResource(R.string.budget_no_categories), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (state.categoriesFailed) Text(stringResource(R.string.budget_categories_failed), style = typography.caption, color = MaterialTheme.colorScheme.error)
+            else if (state.availableCategories.isEmpty()) Text(stringResource(R.string.budget_no_categories), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 state.availableCategories.forEach { c ->
                     val on = categoryId == c.categoryId
@@ -289,10 +314,11 @@ private fun CreateBudgetSheet(state: BudgetsState, vm: BudgetsViewModel, onClose
                         .semantics { selected = on }.heightIn(min = 40.dp).padding(horizontal = 14.dp, vertical = 10.dp))
                 }
             }
-            LimitField(limit, { limit = it; vm.clearFormError() }, R.string.budget_limit, "PHP".takeIf { state.budgets.isEmpty() } ?: state.budgets.first().baseCurrency)
+            LimitField(limit, { limit = it; vm.clearFormError() }, R.string.budget_limit, state.formCurrency)
             AlertChoices(alert) { alert = it }
             FormError(state.formError)
-            Button(onClick = { vm.create(categoryId, limit, alert) }, enabled = !state.saving && state.availableCategories.isNotEmpty(),
+            if (state.stale) Text(stringResource(R.string.budget_stale_readonly), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(onClick = { vm.create(categoryId, limit, alert) }, enabled = state.canWrite && state.availableCategories.isNotEmpty(),
                 shape = LocalOwliShapes.current.button, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                 if (state.saving) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary); Spacer(Modifier.size(8.dp)) }
                 Text(stringResource(R.string.budget_create), style = typography.button)
@@ -304,9 +330,9 @@ private fun CreateBudgetSheet(state: BudgetsState, vm: BudgetsViewModel, onClose
 }
 
 @Composable
-private fun LimitField(value: String, onValue: (String) -> Unit, label: Int, currency: String) {
+private fun LimitField(value: String, onValue: (String) -> Unit, label: Int, currency: String?) {
     OutlinedTextField(value, onValue, singleLine = true, label = { Text(stringResource(label)) },
-        prefix = { Text(currency + " ") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        prefix = currency?.let { c -> { Text("$c ") } }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         shape = LocalOwliShapes.current.field, colors = owliFieldColors(), modifier = Modifier.fillMaxWidth())
 }
 
@@ -337,6 +363,8 @@ private fun FormError(error: BudgetFormError?) {
         BudgetFormError.Unknown -> R.string.budget_error_unknown
         BudgetFormError.NotFound -> R.string.budget_error_not_found
         BudgetFormError.Failed -> R.string.budget_error_failed
+        BudgetFormError.Changed -> R.string.budget_error_changed
+        BudgetFormError.Stale -> R.string.budget_stale_readonly
     }), style = LocalOwliTypography.current.caption, color = MaterialTheme.colorScheme.error,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
 }
@@ -352,6 +380,59 @@ private fun Rows(rows: List<Pair<String, String>>) {
                     Text(v, style = LocalOwliTypography.current.amountRow, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
                 }
             }
+        }
+    }
+}
+
+/** Previous / next month, within the ViewModel's range; "This month" returns to the current month. */
+@Composable
+private fun MonthStepper(state: BudgetsState, vm: BudgetsViewModel, current: YearMonth = YearMonth.now()) {
+    val owli = LocalOwliColors.current
+    val typography = LocalOwliTypography.current
+    val scheme = MaterialTheme.colorScheme
+    val label = state.month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " " + state.month.year
+    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp).clip(RoundedCornerShape(16.dp))
+        .background(owli.field).border(1.dp, owli.hairline, RoundedCornerShape(16.dp)).padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { vm.selectMonth(state.month.minusMonths(1)) }, enabled = state.canGoBack) {
+            Icon(painterResource(R.drawable.ic_cat_chevl), stringResource(R.string.budget_month_previous), modifier = Modifier.size(20.dp),
+                tint = if (state.canGoBack) scheme.onSurface else scheme.onSurfaceVariant.copy(alpha = 0.4f))
+        }
+        Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(label, style = typography.bodyStrong, textAlign = TextAlign.Center)
+            if (state.month != current) Text(stringResource(if (state.month < current) R.string.budget_month_past else R.string.budget_month_future),
+                style = typography.caption, color = scheme.onSurfaceVariant)
+        }
+        if (state.month != current && current in state.minMonth..state.maxMonth) TextButton(onClick = { vm.selectMonth(current) },
+            enabled = !state.saving, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.budget_month_current), style = typography.label, color = owli.accent)
+        }
+        IconButton(onClick = { vm.selectMonth(state.month.plusMonths(1)) }, enabled = state.canGoForward) {
+            Icon(painterResource(R.drawable.ic_cat_chevr), stringResource(R.string.budget_month_next), modifier = Modifier.size(20.dp),
+                tint = if (state.canGoForward) scheme.onSurface else scheme.onSurfaceVariant.copy(alpha = 0.4f))
+        }
+    }
+}
+
+/** Shown when a reload failed but earlier figures for this month are still on screen. */
+@Composable
+private fun StaleBanner(state: BudgetsState, onRetry: () -> Unit) {
+    val owli = LocalOwliColors.current
+    val typography = LocalOwliTypography.current
+    val time = state.loadedAt!!.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault()))
+    val offline = state.staleReason == com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure.Unavailable ||
+        state.staleReason == com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure.Timeout
+    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp).clip(RoundedCornerShape(14.dp))
+        .background(owli.accentSoft).border(1.dp, owli.accent.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+        .padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(painterResource(if (offline) R.drawable.ic_cat_wifi else R.drawable.ic_cat_info), null, tint = owli.accent, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.size(10.dp))
+        Text(stringResource(if (offline) R.string.budget_stale_offline else R.string.budget_stale_failed, time),
+            style = typography.caption, color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite })
+        TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.transactions_retry), style = typography.label, color = owli.accent)
         }
     }
 }

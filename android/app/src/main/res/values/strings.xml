@@ -574,8 +574,8 @@
     <string name="budget_new">New budget</string>
     <string name="budget_new_title">New budget</string>
     <string name="budget_list_title">Budgets for %1$s</string>
-    <string name="budget_note">Spent is this month\'s expenses in each category, calculated by the OWLI server in your account currency.</string>
-    <string name="budget_note_demo">Spent is this month\'s demo expenses in each category, including any you add. Sample data only.</string>
+    <string name="budget_note">Spent is the month\'s expenses in each category, calculated by the OWLI server in your account currency.</string>
+    <string name="budget_note_demo">Spent is the month\'s demo expenses in each category, including any you add. Sample data only.</string>
     <string name="budget_left_title">Left to spend in budgets</string>
     <string name="budget_used_of">%1$s of %2$s used</string>
     <string name="budget_days_left">%1$d days left in %2$s, including today</string>
@@ -601,7 +601,21 @@
     <string name="budget_delete_title">Delete the %1$s budget?</string>
     <string name="budget_delete_message">This removes the limit only. Your transactions are not changed.</string>
     <string name="budget_category">Category</string>
-    <string name="budget_no_categories">Every active expense category already has a budget this month.</string>
+    <string name="budget_no_categories">Every active expense category already has a budget for this month.</string>
+    <string name="budget_categories_failed">Categories couldn\'t be loaded, so a new budget can\'t be created right now. Close this and try again.</string>
+    <string name="budget_error_changed">This budget was changed elsewhere while saving. The latest figures have been loaded; review them and save again.</string>
+    <string name="budget_month_previous">Previous month</string>
+    <string name="budget_month_next">Next month</string>
+    <string name="budget_month_current">This month</string>
+    <string name="budget_month_past">Past month</string>
+    <string name="budget_month_future">Planning ahead</string>
+    <string name="budget_stale_offline">You\'re offline or the server didn\'t respond. Showing budgets loaded at %1$s.</string>
+    <string name="budget_stale_failed">Budgets couldn\'t be refreshed. Showing figures loaded at %1$s.</string>
+    <string name="budget_stale_readonly">Editing is paused until the budgets are refreshed. Budget changes are never queued offline.</string>
+    <plurals name="budget_pending_local">
+        <item quantity="one">%1$d transaction saved on this device isn\'t counted in these figures until it syncs.</item>
+        <item quantity="other">%1$d transactions saved on this device aren\'t counted in these figures until they sync.</item>
+    </plurals>
     <string name="budget_error_amount">Enter an amount greater than zero, with up to two decimals.</string>
     <string name="budget_error_category">Choose a category.</string>
     <string name="budget_error_duplicate">A budget already exists for this category this month. The list has been reloaded.</string>
