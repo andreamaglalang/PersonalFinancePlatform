@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Financial Reports & Insights. Kept in its own file so it merges cleanly with other feature branches. -->
+<resources>
+    <string name="reports_title">Insights</string>
+    <string name="reports_subtitle">Financial reports</string>
+    <string name="reports_refresh">Refresh</string>
+    <string name="reports_ribbon_account">Your account</string>
+    <string name="reports_ribbon_account_detail">Totals in %1$s, your base currency</string>
+    <string name="reports_ribbon_demo">Sample data</string>
+    <string name="reports_ribbon_demo_detail">Mock Demo · nothing is sent to a server</string>
+
+    <!-- Period navigation -->
+    <string name="reports_period_label">Reporting month</string>
+    <string name="reports_previous_month">Previous month, %1$s</string>
+    <string name="reports_next_month">Next month, %1$s</string>
+    <string name="reports_this_month">This month</string>
+    <string name="reports_selected_month">Showing %1$s</string>
+
+    <!-- States -->
+    <string name="reports_loading">Preparing your %1$s report…</string>
+    <string name="reports_refreshing">Refreshing %1$s…</string>
+    <string name="reports_unavailable_title">Report unavailable</string>
+    <string name="reports_unavailable_message">OWLI couldn\'t be reached. You may be offline, or the server may be busy. Reports need a connection because figures come straight from your account.</string>
+    <string name="reports_invalid_title">Report couldn\'t be verified</string>
+    <string name="reports_invalid_message">The figures OWLI received didn\'t add up, so they aren\'t shown. Please try again.</string>
+    <string name="reports_currency_title">Base currency unavailable</string>
+    <string name="reports_currency_message">Your account\'s base currency isn\'t known on this device, so totals can\'t be labelled correctly. Sign in again to view reports.</string>
+    <string name="reports_session_title">Session expired</string>
+    <string name="reports_retry">Try again</string>
+    <string name="reports_refresh_failed">Couldn\'t refresh. Showing the %1$s figures loaded earlier in this session.</string>
+    <string name="reports_empty_title">No activity yet</string>
+    <string name="reports_empty_message">No transactions were recorded from %1$s to %2$s. Add one, or choose an earlier month.</string>
+    <string name="reports_add_transaction">Add transaction</string>
+
+    <!-- Monthly overview -->
+    <string name="reports_overview_title">Monthly overview</string>
+    <string name="reports_net_balance">Net balance</string>
+    <string name="reports_net_explanation">Income minus expenses recorded in %1$s</string>
+    <string name="reports_income">Income</string>
+    <string name="reports_expenses">Expenses</string>
+    <plurals name="reports_transaction_count">
+        <item quantity="one">%1$s transaction in %2$s</item>
+        <item quantity="other">%1$s transactions in %2$s</item>
+    </plurals>
+    <string name="reports_month_no_activity">No transactions recorded in %1$s.</string>
+    <plurals name="reports_foreign_note">
+        <item quantity="one">%1$d transaction in %2$s is included at the %3$s amount converted when it was recorded.</item>
+        <item quantity="other">%1$d transactions in %2$s are included at the %3$s amounts converted when they were recorded.</item>
+    </plurals>
+    <string name="reports_overview_description">%1$s. Net balance %2$s. Income %3$s. Expenses %4$s.</string>
+
+    <!-- Spending breakdown -->
+    <string name="reports_breakdown_title">Spending breakdown</string>
+    <string name="reports_breakdown_empty">No expenses recorded in %1$s.</string>
+    <string name="reports_breakdown_chart_description">Spending by category for %1$s, total %2$s: %3$s</string>
+    <string name="reports_breakdown_center">Spent</string>
+    <plurals name="reports_category_count">
+        <item quantity="one">%d category</item>
+        <item quantity="other">%d categories</item>
+    </plurals>
+    <plurals name="reports_category_transactions">
+        <item quantity="one">%d transaction</item>
+        <item quantity="other">%d transactions</item>
+    </plurals>
+    <string name="reports_breakdown_other">%d other categories</string>
+    <string name="reports_breakdown_row_description">Rank %1$d, %2$s, %3$s, %4$s of spending, %5$s</string>
+    <string name="reports_top_badge">TOP</string>
+
+    <!-- Trends -->
+    <string name="reports_trend_title">Income vs. expenses</string>
+    <string name="reports_trend_period">%1$s – %2$s</string>
+    <string name="reports_trend_legend_income">Income (left bar)</string>
+    <string name="reports_trend_legend_expenses">Expenses (right bar)</string>
+    <string name="reports_trend_chart_description">Six-month income and expense chart. The table below lists every value. %1$s</string>
+    <string name="reports_trend_month_description">%1$s: income %2$s, expenses %3$s, net %4$s</string>
+    <string name="reports_trend_select_month">Show report for %1$s</string>
+    <string name="reports_trend_selected">selected</string>
+    <string name="reports_trend_net">Net</string>
+    <string name="reports_trend_month">Month</string>
+    <string name="reports_change_up">Spending is up %1$s compared with %2$s.</string>
+    <string name="reports_change_down">Spending is down %1$s compared with %2$s.</string>
+    <string name="reports_change_same">Spending matches %1$s exactly.</string>
+    <string name="reports_change_none">No spending recorded in %1$s to compare with.</string>
+
+    <!-- Source note -->
+    <string name="reports_source_account">Totals come from the transactions saved to your OWLI account, using the %1$s amounts the server stored for each one. Exchange rates are never fetched or estimated on this device. Entries waiting to sync appear after they upload.</string>
+    <string name="reports_source_demo">Sample figures from Mock Demo. Nothing here is real account data.</string>
+</resources>

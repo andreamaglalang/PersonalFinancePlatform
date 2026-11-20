@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Financial state only. Never owns tokens, authentication, or server-session revocation.
- * Holds this login's transaction list and Dashboard; both are dropped on logout or account switch.
+ * Holds this login's transaction list, Dashboard and Insights; all are dropped on logout or account switch.
  */
 class AccountTransactionStore(
     repository: TransactionRepository,
@@ -31,8 +31,15 @@ class AccountTransactionStore(
     private val dashboardFactory = DashboardViewModel.Factory(
         LoadDashboardSummary(repository, pageSize = DASHBOARD_PAGE_SIZE, accountCurrency = accountCurrency),
         fallbackMonth, isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired)
+    /** Insights: the same repository's server-side date filter; null when the repository cannot filter. */
+    private val reportsFactory = (repository as? com.elect3.mobdev.personalfinance.domain.repository.FilterableTransactionRepository)?.let { filterable ->
+        val loader = com.elect3.mobdev.personalfinance.domain.reports.LoadFinancialReport(filterable, baseCurrency = accountCurrency)
+        com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel.Factory({ loader(it) },
+            isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired)
+    }
     private var model: TransactionListViewModel? = null
     private var dashboard: DashboardViewModel? = null
+    private var reports: com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel? = null
     private var closed = false
 
     fun model(): TransactionListViewModel {
@@ -46,9 +53,20 @@ class AccountTransactionStore(
         return dashboard ?: ViewModelProvider(store, dashboardFactory).get(DashboardViewModel::class.java).also { dashboard = it }
     }
 
-    /** After a confirmed save: reload the Dashboard only if it has already been opened. */
+    /** Created on first Insights visit; null when this account's repository has no server-side date filter. */
+    fun reportsModel(): com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel? {
+        check(!closed) { "Financial scope closed" }
+        val factory = reportsFactory ?: return null
+        return reports ?: ViewModelProvider(store, factory).get(com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel::class.java)
+            .also { reports = it }
+    }
+
+    /** True when Insights can be offered for this account. */
+    val supportsReports: Boolean get() = reportsFactory != null
+
+    /** After a confirmed save: reload the Dashboard (and Insights) only if already opened. */
     fun refreshDashboard() {
-        if (!closed && !invalidated) dashboard?.refresh()
+        if (!closed && !invalidated) { dashboard?.refresh(); reports?.refresh() }
     }
 
     /** Collect independently of screen STARTED state, so background expiry drops rows too. */
@@ -58,6 +76,7 @@ class AccountTransactionStore(
                 invalidated = true
                 model?.invalidateSession()
                 dashboard?.invalidateSession()
+                reports?.invalidateSession()
             }
         }
     }
@@ -68,9 +87,11 @@ class AccountTransactionStore(
         invalidated = true
         model?.invalidateSession()
         dashboard?.invalidateSession()
+        reports?.invalidateSession()
         store.clear()
         model = null
         dashboard = null
+        reports = null
     }
 
     private companion object {

@@ -398,14 +398,24 @@ private fun DashboardPanelFooter(summary: DashboardSummary, allTime: Boolean, mo
     val text = if (allTime) stringResource(R.string.dashboard_footer_all_time, count)
         else stringResource(R.string.dashboard_footer_month, count, month)
     val insightsDescription = stringResource(R.string.dashboard_footer_insights_unavailable)
+    val openInsights = com.elect3.mobdev.personalfinance.ui.components.LocalOwliShellActions.current.openInsights
     androidx.compose.foundation.layout.FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(text, style = typography.caption, color = owli.onPanelMuted, modifier = Modifier.padding(end = 8.dp))
-        // Visibly unavailable: dimmed, labelled "Soon", announced as disabled, no click action.
-        Row(
+        // Available: opens Insights (48 dp target). Otherwise visibly unavailable: dimmed, "Soon", disabled, no action.
+        if (openInsights != null) Row(
+            Modifier.heightIn(min = 48.dp).clip(LocalOwliShapes.current.chip)
+                .clickable(role = Role.Button, onClick = openInsights).padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(stringResource(R.string.navigation_insights), style = typography.label, color = owli.onPanel)
+            Icon(painterResource(R.drawable.ic_owli_chevron_right), contentDescription = null,
+                tint = owli.onPanel, modifier = Modifier.size(14.dp))
+        } else Row(
             Modifier.clearAndSetSemantics { contentDescription = insightsDescription; disabled() },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),

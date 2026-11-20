@@ -73,6 +73,7 @@ private enum class OwliDestination(val route: String, val label: Int, val icon: 
     Dashboard("dashboard", R.string.navigation_dashboard, R.drawable.ic_owli_home),
     Transactions("transactions", R.string.navigation_transactions, R.drawable.ic_owli_transactions_list),
     Plan("plan", R.string.navigation_plan, R.drawable.ic_owli_plan),
+    Insights("insights", R.string.navigation_insights, R.drawable.ic_owli_insights),
 }
 
 /**
@@ -94,9 +95,13 @@ fun OwliApp(
     planContent: (@Composable () -> Unit)? = null,
     /** Each increment asks the shell to show the Dashboard tab (e.g. "Back to Dashboard" after a save). */
     dashboardRequests: Int = 0,
+    /** Insights (Financial Reports) content; null keeps Insights as an unavailable "Soon" item. */
+    insightsContent: (@Composable () -> Unit)? = null,
 ) {
     val navController = rememberNavController()
     val currentPlan by androidx.compose.runtime.rememberUpdatedState(planContent)
+    val currentInsights by androidx.compose.runtime.rememberUpdatedState(insightsContent)
+    val insightsAvailable = insightsContent != null
     val backStackEntry by navController.currentBackStackEntryAsState()
     val selectedRoute = backStackEntry?.destination?.route
 
@@ -105,7 +110,7 @@ fun OwliApp(
         if (diagnostics.enabled) when (destination) {
             OwliDestination.Dashboard -> AuthDiagnosticEvent.NAV_DASHBOARD_SELECTED
             OwliDestination.Transactions -> AuthDiagnosticEvent.NAV_TRANSACTIONS_SELECTED
-            OwliDestination.Plan -> null // no diagnostic event exists for Plan
+            OwliDestination.Plan, OwliDestination.Insights -> null // no diagnostic events exist for these
         }?.let { diagnostics.record(it, diagnosticInstanceId, null) }
         navController.navigate(destination.route) {
             popUpTo(navController.graph.findStartDestination().id) {
@@ -116,10 +121,11 @@ fun OwliApp(
         }
     }
     var filterRequested by remember { mutableStateOf(false) }
-    val shellActions = remember(onAddTransaction, onOpenCategories, onOpenAccount) {
+    val shellActions = remember(onAddTransaction, onOpenCategories, onOpenAccount, insightsAvailable) {
         OwliShellActions(addTransaction = onAddTransaction, openActivity = { navigateTo(OwliDestination.Transactions) },
             openActivityFilter = { filterRequested = true; navigateTo(OwliDestination.Transactions) },
-            openCategories = onOpenCategories, openAccount = onOpenAccount)
+            openCategories = onOpenCategories, openAccount = onOpenAccount,
+            openInsights = if (insightsAvailable) ({ navigateTo(OwliDestination.Insights) }) else null)
     }
     LaunchedEffect(dashboardRequests) { if (dashboardRequests > 0) navigateTo(OwliDestination.Dashboard) }
     val filterRequest = OwliFilterRequest(pending = filterRequested, consume = { filterRequested = false })
@@ -134,6 +140,7 @@ fun OwliApp(
                 onSelect = { navigateTo(it) },
                 onAdd = onAddTransaction?.let { add -> { add(null) } },
                 planAvailable = planContent != null,
+                insightsAvailable = insightsAvailable,
             )
         },
     ) { innerPadding ->
@@ -167,6 +174,10 @@ fun OwliApp(
                         // Same rule as Activity: Back from Plan returns to Home.
                         BackHandler(enabled = selectedRoute == OwliDestination.Plan.route) { navigateTo(OwliDestination.Dashboard) }
                     }
+                    composable(OwliDestination.Insights.route) {
+                        currentInsights?.invoke()
+                        BackHandler(enabled = selectedRoute == OwliDestination.Insights.route) { navigateTo(OwliDestination.Dashboard) }
+                    }
                 }
             }
         }
@@ -177,7 +188,8 @@ fun OwliApp(
  * Owlight floating bar: Home · Activity · (+) · Plan · Insights (mockup order).
  * The raised (+) is drawn in the outer container, NOT inside the bar's rounded Surface: a Surface clips
  * its children to its shape, which previously cropped the top of the offset button.
- * Plan and Insights are not implemented yet; they are shown dimmed, labelled "Soon" and are not actionable.
+ * Plan and Insights are destinations when the owner supplies their content; otherwise they are shown dimmed,
+ * labelled "Soon" and are not actionable.
  */
 @Composable
 private fun OwliFloatingNavigation(
@@ -185,6 +197,7 @@ private fun OwliFloatingNavigation(
     onSelect: (OwliDestination) -> Unit,
     onAdd: (() -> Unit)?,
     planAvailable: Boolean = false,
+    insightsAvailable: Boolean = false,
 ) {
     val owli = LocalOwliColors.current
     val background = MaterialTheme.colorScheme.background
@@ -212,7 +225,8 @@ private fun OwliFloatingNavigation(
                 }
                 if (planAvailable) OwliNavItem(OwliDestination.Plan, selectedRoute, onSelect, Modifier.weight(1f))
                 else OwliUnavailableNavItem(R.string.navigation_plan, R.drawable.ic_owli_plan, Modifier.weight(1f))
-                OwliUnavailableNavItem(R.string.navigation_insights, R.drawable.ic_owli_insights, Modifier.weight(1f))
+                if (insightsAvailable) OwliNavItem(OwliDestination.Insights, selectedRoute, onSelect, Modifier.weight(1f))
+                else OwliUnavailableNavItem(R.string.navigation_insights, R.drawable.ic_owli_insights, Modifier.weight(1f))
             }
         }
         if (raised && onAdd != null) OwliAddButton(onAdd, raised = true)
