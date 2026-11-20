@@ -41,7 +41,8 @@ import com.elect3.mobdev.personalfinance.ui.transactions.add.dateFromPicker
 import com.elect3.mobdev.personalfinance.ui.transactions.add.dateToPicker
 import com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionSummary
 import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencyPickerDialog
-import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencySelectorButton
+import com.elect3.mobdev.personalfinance.ui.transactions.currency.ConversionDetailsCard
+import com.elect3.mobdev.personalfinance.ui.transactions.currency.CurrencyFieldCard
 import com.elect3.mobdev.personalfinance.ui.transactions.currency.formatRate
 import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionAmount
 import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionDate
@@ -134,12 +135,11 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
             .padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.fx_edit_type_fixed, stringResource(if (income) R.string.transaction_income else R.string.transaction_expense)),
                 color = if (income) colors.income else colors.expense, style = typography.bodyStrong)
+            CurrencyFieldCard(state.currency, state.baseCurrency, selectable = !state.locked, enabled = state.editable,
+                onClick = { focus.clearFocus(); currencyOpen = true })
             Surface(shape = shapes.hero, color = MaterialTheme.colorScheme.primaryContainer) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.fx_amount_in, state.currency), style = typography.label, modifier = Modifier.weight(1f))
-                        CurrencySelectorButton(state.currency, enabled = state.editable, onClick = { focus.clearFocus(); currencyOpen = true })
-                    }
+                    Text(stringResource(R.string.fx_amount_in, state.currency), style = typography.label)
                     OutlinedTextField(state.amount, model::amount, enabled = state.editable, singleLine = true,
                         label = { Text(stringResource(R.string.form_amount)) },
                         prefix = { Text(SupportedCurrencies.symbol(state.currency) + " ", style = typography.amountMedium) },
@@ -154,12 +154,9 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
             }
             RateImpactCard(state)
             state.saved?.let { saved ->
-                Surface(Modifier.fillMaxWidth(), shape = shapes.group, color = colors.accentSoft, border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f))) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.fx_receipt_title), style = typography.label, color = colors.accent, modifier = Modifier.semantics { heading() })
-                        ConversionSummary(saved, state.baseCurrency)
-                    }
-                }
+                // Server-confirmed result: structured details for another currency, or the same-currency note.
+                if (state.baseCurrency != null && saved.currencyCode != state.baseCurrency) ConversionDetailsCard(saved, state.baseCurrency)
+                else ConversionSummary(saved, state.baseCurrency)
             }
             Surface(shape = shapes.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
