@@ -12,7 +12,7 @@ public sealed class FinanceTransportMiddleware(RequestDelegate next)
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
         }
-        if (context.Request.Path.StartsWithSegments("/api/transactions") || context.Request.Path.StartsWithSegments("/api/categories") || context.Request.Path.StartsWithSegments("/api/budgets") || context.Request.Path.StartsWithSegments("/api/savings-goals") || context.Request.Path.StartsWithSegments("/api/recurring-bills") || context.Request.Path.StartsWithSegments("/api/reports") || context.Request.Path.StartsWithSegments("/api/notifications") || context.Request.Path.StartsWithSegments("/api/dev"))
+        if (context.Request.Path.StartsWithSegments("/api/transactions") || context.Request.Path.StartsWithSegments("/api/categories") || context.Request.Path.StartsWithSegments("/api/budgets") || context.Request.Path.StartsWithSegments("/api/savings-goals") || context.Request.Path.StartsWithSegments("/api/recurring-bills") || context.Request.Path.StartsWithSegments("/api/reports") || context.Request.Path.StartsWithSegments("/api/notifications") || context.Request.Path.StartsWithSegments("/api/exchange-rates") || context.Request.Path.StartsWithSegments("/api/dev"))
         {
             context.Response.Headers.CacheControl = "no-store";
             context.Response.Headers.Pragma = "no-cache";
