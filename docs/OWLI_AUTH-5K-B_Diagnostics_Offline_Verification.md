@@ -2,7 +2,7 @@
 
 ## Scope and baseline
 
-Authorized checkout: `D:\Final Project\PersonalFinancePlatform-Android`.
+Authorized checkout: `<Android checkout>`.
 Branch: `feature/android-lavender-midnight-ui`.
 HEAD: `6c7f4c24c0bc2eac54e0cb3aa8d0708c5f3375d0`.
 All pre-existing modified/untracked work was preserved. No API, database, device, emulator or real authentication request was used. No commits or pushes were made.

@@ -4,7 +4,7 @@ Date: 2026-11-15. Scope: database identity, Development configuration, migration
 
 ## Identity and configuration
 
-Connected explicitly to `(localdb)\MSSQLLocalDB`, database `PersonalFinanceDb`, using Windows integrated authentication. SQL Server reported IsLocalDB=1, physical server `LAPTOP-MHRETQLO\LOCALDB#AFD2D6C8`, and database GUID `bfe2bf61-c692-4550-a5ad-30158344a45c`, exactly matching the approved target. The metadata batch repeated a fail-closed database-name, LocalDB and GUID guard before reading other metadata. Database is READ_WRITE.
+Connected explicitly to `(localdb)\MSSQLLocalDB`, database `PersonalFinanceDb`, using Windows integrated authentication. SQL Server reported IsLocalDB=1, physical server `<original-laptop>\LOCALDB#<instance>`, and database GUID `<original database GUID>`, exactly matching the approved target. The metadata batch repeated a fail-closed database-name, LocalDB and GUID guard before reading other metadata. Database is READ_WRITE.
 
 Created `PersonalFinance.Api/appsettings.Development.json` with only `ConnectionStrings:DefaultConnection` targeting the approved instance/database. Git confirms that exact file is ignored. ASP.NET Core loads this overlay for Development. Integrated security, encryption and local certificate trust are explicit; no credentials were stored. Higher-priority user secrets/environment/command-line settings were not inspected, so the effective configuration of a future API process remains unverified. No API process was started.
 

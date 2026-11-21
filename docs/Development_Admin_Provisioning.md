@@ -51,7 +51,7 @@ No writes happen merely by building the solution. Normal API startup has no refe
 Run these commands yourself in an interactive PowerShell terminal from the solution root AFTER approving creation of the new development account:
 
 ~~~powershell
-Set-Location 'D:\Final Project\PersonalFinancePlatform'
+Set-Location '<repository root>'
 $env:DOTNET_ENVIRONMENT = 'Development'
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 dotnet run --project tools/PersonalFinance.AdminProvisioning/PersonalFinance.AdminProvisioning.csproj

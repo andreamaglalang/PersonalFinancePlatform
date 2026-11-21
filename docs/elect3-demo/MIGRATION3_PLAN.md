@@ -1,6 +1,6 @@
 # OWLI migration 3 plan: AddSavingsGoalContributionLedgerAndRowVersions
 
-Status: PREPARED, NOT EXECUTED. Target: `(localdb)\MSSQLLocalDB` / `PersonalFinanceDb` (GUID `bfe2bf61-c692-4550-a5ad-30158344a45c`) on `LAPTOP-MHRETQLO`.
+Status: PREPARED, NOT EXECUTED. Target: `(localdb)\MSSQLLocalDB` / `PersonalFinanceDb` on the original development laptop.
 
 ## What it changes (generated with dotnet-ef 10.0.13, `mig3_...generated.sql`)
 1. `ALTER TABLE SavingsGoals ADD RowVersion rowversion NOT NULL`
@@ -26,7 +26,7 @@ The savings-goal and contribution entities map `RowVersion` and the ledger table
 ## Execution prerequisites (all must hold; live execution needs separate approval)
 - A time slot agreed with Android Codex (the API on port 7027 must be stopped) and Server Codex (no shared-database work).
 - API process tree stopped, port 7027 without a listener, SSMS closed or disconnected from PersonalFinanceDb.
-- `D:\Final Project\db-backups` exists with enough free space (the migration 2 backup was about 6.7 MB).
+- A private local backup folder (outside the repository) exists with enough free space (the migration 2 backup was about 6.7 MB).
 - Script hashes match this package (record them immediately before running).
 - Migration 4 is out of scope and must not be applied in the same session.
 
