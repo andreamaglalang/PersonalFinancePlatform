@@ -22,6 +22,31 @@ async Task Check(string name, Func<Task> test)
     try { await test(); passed++; Console.WriteLine("PASS " + name); }
     catch (Exception ex) { failed++; Console.Error.WriteLine("FAIL " + name + ": " + ex.GetType().Name + ": " + ex.Message); }
 }
+foreach (var path in new[] { "/api/recurring-bills", "/api/reports" })
+{
+    await Check(path + " rejects HTTP before endpoint execution", async () =>
+    {
+        var reached = false;
+        var middleware = new FinanceTransportMiddleware(_ => { reached = true; return Task.CompletedTask; });
+        var context = new DefaultHttpContext();
+        context.RequestServices = new ServiceCollection().AddLogging().AddProblemDetails().BuildServiceProvider();
+        context.Request.Path = path; context.Request.Scheme = "http";
+        context.Response.Body = new MemoryStream();
+        await middleware.InvokeAsync(context);
+        Require(context.Response.StatusCode == 400 && !reached);
+        Require(context.Response.Headers.CacheControl == "no-store" && context.Response.Headers.Pragma == "no-cache");
+    });
+    await Check(path + " preserves HTTPS and no-cache protections", async () =>
+    {
+        var reached = false;
+        var middleware = new FinanceTransportMiddleware(_ => { reached = true; return Task.CompletedTask; });
+        var context = new DefaultHttpContext();
+        context.Request.Path = path; context.Request.Scheme = "https";
+        await middleware.InvokeAsync(context);
+        Require(reached && context.Response.StatusCode == 200);
+        Require(context.Response.Headers.CacheControl == "no-store" && context.Response.Headers.Pragma == "no-cache");
+    });
+}
 await Check("Missing/invalid signing keys fail closed", () =>
 {
     var services = new ServiceCollection();

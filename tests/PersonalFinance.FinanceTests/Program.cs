@@ -1,4 +1,4 @@
-using PersonalFinance.Infrastructure.Persistence;
+﻿using PersonalFinance.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -285,5 +285,6 @@ foreach (var verb in new[] { "PUT", "DELETE" })
 await BudgetTests.RunAsync(Check);
 await SavingsGoalTests.RunAsync(Check);
 await BillPaymentTests.RunAsync(Check);
+await RecurringBillReportJobTests.RunAsync(Check);
 Console.WriteLine($"Finance checks: {passed} passed, {failed} failed. In-memory EF + actual JWT/MVC; SQL Server locking/constraints NOT executed.");
 return failed==0?0:1;

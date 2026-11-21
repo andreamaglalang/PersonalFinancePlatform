@@ -1,3 +1,4 @@
+﻿using PersonalFinance.Infrastructure.Jobs;
 
 using PersonalFinance.Infrastructure.Finance;
 using PersonalFinance.Infrastructure.Authentication;
@@ -79,6 +80,11 @@ public static class DependencyInjection
         services.AddScoped<IBudgetUsageService, BudgetUsageService>();
         services.AddScoped<IBudgetService, BudgetService>();
         services.AddScoped<ISavingsGoalService, SavingsGoalService>();
+        services.AddScoped<IRecurringBillService, RecurringBillService>();
+        services.AddScoped<IBillPaymentService, BillPaymentService>();
+        services.AddScoped<IReportService, ReportService>();
+        // Background jobs: off unless Hangfire:Enabled=true; never creates Hangfire tables.
+        services.AddFinanceJobs(configuration);
 
         services.AddOptions<CurrencyPolicyOptions>()
             .Bind(configuration.GetSection(CurrencyPolicyOptions.SectionName))
