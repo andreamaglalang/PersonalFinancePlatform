@@ -1,4 +1,9 @@
-# Personal Finance and Budget Monitoring Platform
+# OWLI — Personal Finance and Budget Monitoring Platform
+
+> **Current documentation:** start with the [Developer Guide](docs/developer-guide/README.md) or the short
+> [Development Setup](docs/DEVELOPER_SETUP.md) page. The active Integration Branch is `integration/owli-platform`, and
+> it contains the Web API, the administrator MVC website and the Android app. The sections below describe the original
+> backend baseline and are kept for history; where they differ, the Developer Guide is authoritative.
 
 A .NET 10 backend for user-owned financial records, category budgets and savings goals. This is the original development project. The separate academic submission copy is not the collaboration repository.
 

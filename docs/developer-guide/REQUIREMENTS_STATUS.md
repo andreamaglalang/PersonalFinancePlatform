@@ -1,4 +1,4 @@
-# Requirements Status (MOBDEV / ELECT3)
+# Implementation Status (MOBDEV / ELECT3 Requirements)
 
 Status as of the integration branch on 2026-11-21. Categories:
 

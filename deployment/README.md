@@ -1,4 +1,4 @@
-# OWLI server handoff
+# OWLI server deployment guide
 
 Status: Phase 2 source-integrated candidate, validated offline, NOT authorized for live deployment. No server platform has been supplied. No server, database, certificate, DNS, service or background-job changes were performed.
 
@@ -34,7 +34,7 @@ dotnet build PersonalFinance.AdminMvc/PersonalFinance.AdminMvc.csproj -c Release
 ./deployment/Publish-OWLI.ps1
 ```
 
-Publish script uses fresh deployment/out/api and out/mvc directories and hashes output. It does not launch either app or run EF tools. It refuses existing output rather than mixing releases. Package only the two publish directories plus checksums and sanitized handoff documents; never copy the checkout, bin/obj, .git, user secrets, LocalDB files or local development settings. Framework-dependent portable output uses dotnet DLL entrypoints; target-specific native dependencies still require server smoke testing. Equivalent commands on any build OS:
+Publish script uses fresh deployment/out/api and out/mvc directories and hashes output. It does not launch either app or run EF tools. It refuses existing output rather than mixing releases. Package only the two publish directories plus checksums and sanitized deployment documents; never copy the checkout, bin/obj, .git, user secrets, LocalDB files or local development settings. Framework-dependent portable output uses dotnet DLL entrypoints; target-specific native dependencies still require server smoke testing. Equivalent commands on any build OS:
 
 ```text
 dotnet publish PersonalFinance.Api/PersonalFinance.Api.csproj -c Release --no-restore --self-contained false -p:UseAppHost=false -o deployment/out/api
@@ -95,11 +95,11 @@ dotnet PersonalFinance.AdminMvc.dll
 
 Retain previous binaries, checksums and configuration version. Under separate service-change approval, withdraw traffic, stop only deployment service instances, switch both release directories to the previous compatible pair and restart through their supervisor. Restore matching non-secret configuration references; preserve signing key unless a separately reviewed rotation requires otherwise. MVC sessions are lost; users sign in again. Do not touch shared port 7027. No database rollback/restore/migration is part of this procedure. If schema compatibility is uncertain, stop and refer to DBA rather than launch incompatible binaries. First deployment has no prior release: keep service offline on failure. Document version, reason and smoke results.
 
-## Android handoff
+## Android deployment notes
 
 Android checkout was untouched. Later change its API base URL from workstation/emulator/local LAN addresses to the approved public HTTPS API origin, retaining the API route prefix expected by Retrofit. Check release network configuration trusts the public certificate, do not enable cleartext or bypass certificate verification. Keep JWT key/SQL credentials out of APK. Verify issuer/audience expectations, token refresh/logout, error mapping and Room synchronization against approved schema/contracts. Do not queue financial writes without an agreed conflict/replay policy. No background-job endpoint is promised here.
 
-## Administrator handoff: required answers and evidence
+## Administrator setup: required answers and evidence
 
 - Hosting owner, existing provider/service, OS/version/architecture, access process and budget approval; whether IIS, managed .NET, container or VM is available.
 - Available CPU/RAM/storage, supported .NET 10 runtime, persistent writable protected key storage, service supervisor and release directory conventions.

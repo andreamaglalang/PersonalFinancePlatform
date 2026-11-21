@@ -1,4 +1,4 @@
-# Architecture
+# Project Architecture
 
 ```
  Android app (Kotlin/Compose)            Administrator website (ASP.NET Core MVC)

@@ -25,7 +25,7 @@ winget install Google.AndroidStudio
 
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
-git switch integration/hermes-handoff-20261121
+git switch integration/owli-platform
 dotnet tool restore
 dotnet --list-sdks
 sqllocaldb info          # should list MSSQLLocalDB

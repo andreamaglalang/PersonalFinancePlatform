@@ -15,20 +15,22 @@ Keep **OWLI** as the product name.
 ```powershell
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
-git switch integration/hermes-handoff-20261121
+git switch integration/owli-platform
 ```
 
-Work on `integration/hermes-handoff-20261121`, or on a branch created from it. **`main` is still the initial
+Work on the Integration Branch `integration/owli-platform`, or on a branch created from it. An earlier integration
+branch with the same history up to this branch's creation is kept on GitHub for reference only; do not develop on it.
+**`main` is still the initial
 commit. Never push to it or force-push anywhere.** Merging into `main` needs the owner's review via a pull request.
 
 ## 2. Read in this order
 
 1. [WINDOWS_SETUP.md](WINDOWS_SETUP.md): install the tools.
 2. [ARCHITECTURE.md](ARCHITECTURE.md): how the pieces fit together.
-3. [VERIFICATION.md](VERIFICATION.md): run the offline build and tests first. **No database is needed.**
+3. [VERIFICATION.md](VERIFICATION.md) (verification results): run the offline build and tests first. **No database is needed.**
 4. [DATABASE_SETUP.md](DATABASE_SETUP.md): **read fully before touching SQL Server.** Contains migration safety rules.
 5. [BACKEND_SETUP.md](BACKEND_SETUP.md), then [MVC_SETUP.md](MVC_SETUP.md), then [ANDROID_SETUP.md](ANDROID_SETUP.md).
-6. [REQUIREMENTS_STATUS.md](REQUIREMENTS_STATUS.md), [KNOWN_ISSUES.md](KNOWN_ISSUES.md), [NEXT_STEPS.md](NEXT_STEPS.md).
+6. [REQUIREMENTS_STATUS.md](REQUIREMENTS_STATUS.md) (implementation status), [KNOWN_ISSUES.md](KNOWN_ISSUES.md), [NEXT_STEPS.md](NEXT_STEPS.md).
 7. [DEPLOYMENT.md](DEPLOYMENT.md): optional; Cloudflare is **not** needed to run OWLI locally.
 
 Sanitized configuration examples are in [config-examples/](config-examples/).
@@ -48,7 +50,7 @@ Sanitized configuration examples are in [config-examples/](config-examples/).
 
 | Branch | Purpose | Status |
 | --- | --- | --- |
-| `integration/hermes-handoff-20261121` | **Use this.** All Android, MVC, API, reports, FX, Hangfire and provisioning work merged | current |
+| `integration/owli-platform` | **Integration Branch: use this.** All Android, MVC, API, reports, FX, Hangfire and provisioning work merged | current |
 | `deployment/owli-server` | Backend + MVC integration used for the earlier deployment candidate | merged into integration |
 | `feature/backend-hangfire-demo`, `feature/backend-fx-quote`, `feature/reports-monthly-handoff` | Backend feature lines | merged |
 | `feature/mvc-admin-dashboard`, `review/mvc-admin-dashboard-c77cd54` | MVC feature lines | merged |

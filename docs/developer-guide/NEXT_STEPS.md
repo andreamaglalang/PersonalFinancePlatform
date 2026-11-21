@@ -30,4 +30,4 @@
     Consider a dev trigger for bill reminders.
 12. Update the root `README.md` to match `docs/developer-guide/`. Open a reviewed PR from the integration branch into `main`.
 
-Work on short-lived branches from `integration/hermes-handoff-20261121`. Push with normal pushes only.
+Work on short-lived branches from `integration/owli-platform`. Push with normal pushes only.

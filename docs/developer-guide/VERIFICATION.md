@@ -1,4 +1,4 @@
-# Verification Record
+# Verification Results
 
 All checks were **offline**: no API startup, no SQL Server connection, no device, no Hangfire, no migrations.
 

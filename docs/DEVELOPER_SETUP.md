@@ -1,4 +1,4 @@
-# OWLI — Developer Setup
+# OWLI — Development Setup
 
 This page is the short entry point for setting up OWLI on a development machine. The full documentation is in
 **[docs/developer-guide/](developer-guide/README.md)**. If anything here disagrees with that folder, the folder wins.
@@ -8,7 +8,7 @@ Quick start:
 ```
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
-git switch integration/hermes-handoff-20261121
+git switch integration/owli-platform
 ```
 
 Then read [README](developer-guide/README.md) → [WINDOWS_SETUP](developer-guide/WINDOWS_SETUP.md) →
