@@ -44,15 +44,19 @@ try
     await scope.ServiceProvider.GetRequiredService<IProvisioningDatabase>().VerifyAsync(default);
     Console.WriteLine(@"Verified development target: (localdb)\MSSQLLocalDB / PersonalFinanceDb (Windows Authentication).");
     Console.Write("New account email: "); var email = Console.ReadLine() ?? "";
+    Console.Write("New account username: "); var userName = Console.ReadLine() ?? "";
     Console.Write("Full name: "); var name = Console.ReadLine() ?? "";
     var password = ReadPassword("Password: ");
     var confirmationPassword = ReadPassword("Confirm password: ");
+    Console.WriteLine($"Selected email: {email.Trim()}");
+    Console.WriteLine($"Selected username: {userName.Trim()}");
+    Console.WriteLine($"Selected full name: {name.Trim()}");
     Console.WriteLine("Existing accounts will never be promoted, reset, or changed.");
     Console.WriteLine("To create this separate account with User and Administrator roles, type:");
     Console.WriteLine(ProvisioningSafety.Confirmation);
     var confirmation = Console.ReadLine() ?? "";
     var id = await scope.ServiceProvider.GetRequiredService<AdministratorProvisioner>().CreateAsync(
-        environment!, aspnetEnvironment, confirmation, email, name, password, confirmationPassword);
+        environment!, aspnetEnvironment, confirmation, email, userName, name, password, confirmationPassword);
     Console.WriteLine($"Created development account ID {id}; roles: User, Administrator.");
     return 0;
 }
