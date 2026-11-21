@@ -36,26 +36,29 @@ public sealed class AdministratorProvisioner(
     UserManager<ApplicationUser> users, RoleManager<IdentityRole<int>> roles, IProvisioningDatabase database)
 {
     public async Task<int> CreateAsync(string environment, string? aspnetEnvironment, string confirmation,
-        string email, string fullName, string password, string confirmPassword, CancellationToken ct = default)
+        string email, string userName, string fullName, string password, string confirmPassword, CancellationToken ct = default)
     {
         ProvisioningSafety.RequireDevelopment(environment, aspnetEnvironment);
         if (!string.Equals(confirmation, ProvisioningSafety.Confirmation, StringComparison.Ordinal))
             throw new ProvisioningException("Confirmation did not match. No account was created.");
-        email = email.Trim(); fullName = fullName.Trim();
+        email = email.Trim(); userName = userName.Trim(); fullName = fullName.Trim();
+        var allowedUserNameCharacters = users.Options.User.AllowedUserNameCharacters;
         if (email.Length is 0 or > 256 || !new EmailAddressAttribute().IsValid(email) ||
+            userName.Length is 0 or > 256 ||
+            (!string.IsNullOrEmpty(allowedUserNameCharacters) && userName.Any(c => !allowedUserNameCharacters.Contains(c))) ||
             fullName.Length is 0 or > 100 || password.Length is < 12 or > 128 || password != confirmPassword)
-            throw new ProvisioningException("Invalid email, name, password length, or password confirmation.");
+            throw new ProvisioningException("Invalid email, username, name, password length, or password confirmation.");
 
         await database.VerifyAsync(ct);
         return await database.ExecuteAsync(async () =>
         {
             ct.ThrowIfCancellationRequested();
-            if (await users.FindByEmailAsync(email) is not null || await users.FindByNameAsync(email) is not null)
+            if (await users.FindByEmailAsync(email) is not null || await users.FindByNameAsync(userName) is not null)
                 throw new ProvisioningException("An account already exists. Existing accounts are never changed.");
             if (!await roles.RoleExistsAsync(ApplicationRoles.User) || !await roles.RoleExistsAsync(ApplicationRoles.Administrator))
                 throw new ProvisioningException("Required roles are missing. No roles or migrations will be created.");
 
-            var user = new ApplicationUser { Email = email, UserName = email, FullName = fullName, LockoutEnabled = true };
+            var user = new ApplicationUser { Email = email, UserName = userName, FullName = fullName, LockoutEnabled = true };
             var created = await users.CreateAsync(user, password);
             if (!created.Succeeded)
                 throw new ProvisioningException("Identity rejected account creation. Check email uniqueness and the existing password policy.");
