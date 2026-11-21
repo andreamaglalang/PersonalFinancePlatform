@@ -74,4 +74,5 @@
     <string name="cur_live_not_deployed">Live rates aren\'t available on this OWLI server yet.</string>
     <string name="cur_live_failed">The quote couldn\'t be confirmed. Try again.</string>
     <string name="cur_live_signin">Sign in to get live rates from the OWLI server.</string>
+    <string name="cur_live_demo_title">Live rates need a signed-in account</string>
 </resources>

@@ -193,7 +193,8 @@ private fun LiveQuoteSection(state: CurrencyConverterUiState, model: CurrencyCon
         Action(R.string.cur_live_retry, model::requestQuote)
     }
     if (!state.liveQuotesAvailable) {
-        Text(stringResource(R.string.cur_result_unavailable_title), style = typography.bodyStrong)
+        // Mock Demo never contacts the server: say why, instead of implying a phone problem.
+        Text(stringResource(if (state.demo) R.string.cur_live_demo_title else R.string.cur_result_unavailable_title), style = typography.bodyStrong)
         Text(stringResource(if (state.demo) R.string.cur_live_signin else R.string.cur_result_unavailable_body, state.baseCurrency), style = typography.caption)
     } else when (val live = state.liveQuote) {
         LiveQuote.Idle -> {
