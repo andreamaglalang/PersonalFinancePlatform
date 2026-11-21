@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OWLI category icon "headphones" (24dp line family) from the approved Owlight category extension mockup. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4 15v-3a8 8 0 0 1 16 0v3" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M5.0,14.0h1.0a1.5,1.5 0 0 1 1.5,1.5v3.0a1.5,1.5 0 0 1 -1.5,1.5h-1.0a1.5,1.5 0 0 1 -1.5,-1.5v-3.0a1.5,1.5 0 0 1 1.5,-1.5Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M18.0,14.0h1.0a1.5,1.5 0 0 1 1.5,1.5v3.0a1.5,1.5 0 0 1 -1.5,1.5h-1.0a1.5,1.5 0 0 1 -1.5,-1.5v-3.0a1.5,1.5 0 0 1 1.5,-1.5Z" />
+</vector>

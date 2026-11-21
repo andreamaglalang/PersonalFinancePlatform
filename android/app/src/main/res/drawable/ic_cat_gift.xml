@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OWLI category icon "gift" (24dp line family) from the approved Owlight category extension mockup. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4 10h16v10H4zM3 7h18v3H3zM12 7v13" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M12 7c-3 0-4.5-1-4.5-2.5S10 3 12 7zM12 7c3 0 4.5-1 4.5-2.5S14 3 12 7z" />
+</vector>
