@@ -1,0 +1,23 @@
+{
+  "_comment": "EXAMPLE ONLY. Copy to PersonalFinance.Api/appsettings.Development.json (git-ignored) or prefer user-secrets. Never commit real values.",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PersonalFinanceDb;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True"
+  },
+  "Jwt": {
+    "Issuer": "PersonalFinance.Api",
+    "Audience": "PersonalFinance.Clients",
+    "SigningKeyBase64": "<BASE64 OF AT LEAST 32 RANDOM BYTES - SET VIA USER-SECRETS, NOT HERE>"
+  },
+  "CurrencyPolicy": {
+    "MaximumRateAgeDays": 7
+  },
+  "Hangfire": {
+    "Enabled": "false"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}
