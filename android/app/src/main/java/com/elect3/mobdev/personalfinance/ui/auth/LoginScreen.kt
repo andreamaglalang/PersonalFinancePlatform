@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import com.elect3.mobdev.personalfinance.ui.components.OwliCrest
-import com.elect3.mobdev.personalfinance.ui.components.OwliMoon
 import com.elect3.mobdev.personalfinance.ui.components.OwliStarfield
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliShapes
@@ -91,8 +90,6 @@ fun LoginScreen(
                 contentAlignment = Alignment.TopCenter,
             ) {
                 OwliStarfield(Modifier.matchParentSize(), seed = 53, count = 26)
-                OwliMoon(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 18.dp, end = 30.dp),
-                    backdrop = owli.panelStart)
                 Column(
                     Modifier.statusBarsPadding().padding(top = 40.dp, bottom = 58.dp, start = 20.dp, end = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

@@ -88,7 +88,7 @@ private fun PlanTabs(selected: PlanTab, sections: PlanSections, onSelect: (PlanT
     val owli = LocalOwliColors.current
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp).clip(CircleShape).background(owli.field)
         .border(1.dp, owli.hairline, CircleShape).padding(3.dp)) {
-        listOf(PlanTab.Budgets to (R.string.plan_tab_budgets to sections.budgetCount), PlanTab.Goals to (R.string.plan_tab_goals to sections.goalCount),
+        listOf(PlanTab.Budgets to (R.string.plan_tab_budgets to 0), PlanTab.Goals to (R.string.plan_tab_goals to sections.goalCount),
             PlanTab.Bills to (R.string.plan_tab_bills to 0)).forEach { (t, info) ->
             val on = selected == t
             Box(Modifier.weight(1f).heightIn(min = 44.dp).clip(CircleShape)
