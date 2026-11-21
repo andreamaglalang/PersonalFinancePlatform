@@ -48,7 +48,7 @@ No existing project package references were changed. Domain entities/policies, I
 
 The new test project references Microsoft.EntityFrameworkCore.InMemory 10.0.13. It is test-only and is not referenced by production projects. Production EF Core, Identity, JWT, OpenAPI and existing security-fix package versions are unchanged, including System.Security.Cryptography.Pkcs 10.0.13.
 
-The user completed local restore successfully. Subsequent agent builds/restores succeeded using the installed package cache. Online audit is a separate check described below.
+The user completed local restore successfully. Subsequent verification builds/restores succeeded using the installed package cache. Online audit is a separate check described below.
 
 ## Endpoints
 
@@ -171,7 +171,7 @@ dotnet run --project tests/PersonalFinance.SchemaValidation
 dotnet list PersonalFinancePlatform.slnx package --vulnerable --include-transitive --no-restore
 ~~~
 
-The successful agent build used cached packages with NuGetAudit=false in the process environment because online access is restricted. The separate explicit vulnerability audit was attempted and failed to reach the feed; no all-clear security claim is made. No repository NuGet configuration was changed.
+The successful verification build used cached packages with NuGetAudit=false in the process environment because online access is restricted. The separate explicit vulnerability audit was attempted and failed to reach the feed; no all-clear security claim is made. No repository NuGet configuration was changed.
 
 The workspace has no Git metadata. Baseline SHA-256 comparisons identified only the five listed existing source files as modified; generated artifacts are excluded. Original migrations and SQL were never overwritten.
 

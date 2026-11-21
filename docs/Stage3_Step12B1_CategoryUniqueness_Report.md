@@ -166,7 +166,7 @@ The finance HTTP suite has ten added checks, including simulated provider errors
 
 Authentication fixture repair: restoring stale framework assets exposed a missing Data Protection provider in the console-only test fixture after the existing Infrastructure configuration gained default Identity token providers. The fixture now registers an ephemeral provider. This is test-host setup only; production Identity/password/JWT configuration is unchanged. Authentication regression then passed all 27 checks.
 
-The cached Identity.UI 10.0.14 reference already present in the API brings additional dependencies to console test restore. Finance restore reported unavailable Microsoft.Extensions.Identity.Stores and Microsoft.Extensions.FileProviders.Abstractions; API security reported NU1301. Network access to api.nuget.org is socket-blocked. A local restore was requested; production package versions were not modified to bypass the problem. Agent builds use process-local NuGetAudit=false and the existing cache; no repository NuGet configuration was changed.
+The cached Identity.UI 10.0.14 reference already present in the API brings additional dependencies to console test restore. Finance restore reported unavailable Microsoft.Extensions.Identity.Stores and Microsoft.Extensions.FileProviders.Abstractions; API security reported NU1301. Network access to api.nuget.org is socket-blocked. A local restore was requested; production package versions were not modified to bypass the problem. Verification builds use process-local NuGetAudit=false and the existing cache; no repository NuGet configuration was changed.
 
 Reproduce offline-capable checks:
 

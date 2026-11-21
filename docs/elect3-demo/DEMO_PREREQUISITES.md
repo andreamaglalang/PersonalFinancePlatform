@@ -11,7 +11,7 @@ Branch `feature/backend-hangfire-demo` (`e454262`). Database: migrations 1 and 2
    - budget alerts: a budget for the current month whose spending has reached its alert threshold (e.g. limit 2.00 PHP at 80% plus a 1.00 PHP expense in the same category);
    - monthly summaries: at least one transaction or contribution dated in the previous month (October for a November demo). None is expected today, so the first run would report `created: 0`.
 6. Each trigger run writes rows (notifications, summaries). A second run creates nothing new (deduplication).
-7. Coordinate the time slot: the API uses port 7027, which Android Codex's synchronization test also uses.
+7. Coordinate the time slot: the API uses port 7027, which the Android synchronization tests also use.
 
 ## API start commands (approval required; do not run while another API holds port 7027)
 - Phone / Android: existing build, no launch profile, process-only settings `ASPNETCORE_ENVIRONMENT=Development`, `OWLI_DEV_CERT_THUMBPRINT=<thumbprint of the certificate bundled in the Android debug app>`, `Hangfire__Enabled=false`; then `adb reverse tcp:7027 tcp:7027` and the in-app HTTPS probe.

@@ -10,7 +10,7 @@
      migration plus a service change is proposed. Do not edit migration 4 itself.
    - Never executed against SQL Server. The bill-payment SQL harnesses are internal and not in this repository.
 3. **Hangfire schema not installed**, so scheduled jobs cannot run. There is no approved schema script.
-4. **Applied-migration history of the original database is unverified** in this handoff (LocalDB was not started).
+4. **Applied-migration history of the original database is unverified** in the 2026-11-21 verification (LocalDB was not started).
 
 ## Integration problems
 
@@ -21,7 +21,7 @@
    (`Pending`) records exist.
 8. **MVC is single-account.** Budgets and reports are the signed-in administrator's own data. There are no admin-wide endpoints.
 9. **Root `README.md` is outdated.** It says no MVC or Android project exists and that recurring-bill endpoints aren't
-   exposed. Trust `docs/hermes-handoff/`.
+   exposed. Trust `docs/developer-guide/`.
 10. **Port 7027** is shared by every API run and by Android sync tests, so run one API at a time. Restarting the API ends
     phone sessions (Android tokens are in memory) and interrupts an in-progress sync. MVC sessions are lost on MVC restart.
 11. **Android launcher icon** is not customized (system default).

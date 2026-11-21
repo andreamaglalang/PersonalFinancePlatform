@@ -1,4 +1,4 @@
-# CLAUDE.md — OWLI Android Development Workspace
+# OWLI Android Development Standards
 
 > Part A holds permanent working rules. Part B is a dated status snapshot that must be
 > updated (or removed) as the project changes; it is context, not a rule.
@@ -28,7 +28,7 @@
   Midnight experience across the entire app.
 
 ## 2. Plan-first rule (mandatory)
-Before doing any of the following, Claude must propose a **scoped implementation plan**
+Before doing any of the following, a contributor must propose a **scoped implementation plan**
 (goal, files affected, approach, verification, risks) and receive explicit approval:
 - editing, creating, renaming, or deleting files;
 - running builds, tests, Gradle tasks, or the app;
@@ -139,8 +139,8 @@ requires the design deliverables in §6.5 before implementation. If scope is unc
 ## 6. Application-Wide UI/UX Design Responsibility
 
 ### 6.1 Role
-Claude Code is the **primary UI/UX design and implementation assistant for the entire OWLI
-Android application**, not only the Dashboard. Andrea remains the owner and final
+UI/UX design and implementation responsibility covers the **entire OWLI Android
+application**, not only the Dashboard. Andrea remains the owner and final
 decision-maker. All design work stays subject to the plan-first rule (§2) and every other
 rule in this file.
 
@@ -194,7 +194,7 @@ and must not fake financial behaviour.
   shown as a balance; amounts are never truncated (§8).
 
 ### 6.4 Creative freedom and constraints
-Claude may propose improvements to layout, information hierarchy, navigation structure
+Contributors may propose improvements to layout, information hierarchy, navigation structure
 (for example additional destinations, a central add action, or a profile entry point),
 interaction patterns, and the reusable component library, provided that:
 - OWLI's identity (name, tagline, Lavender & Midnight palette, Plus Jakarta Sans, owl
@@ -206,7 +206,7 @@ interaction patterns, and the reusable component library, provided that:
 - proposals are clearly marked as proposals, with trade-offs stated.
 
 ### 6.5 Required design deliverables (before any UI implementation)
-Before editing any UI code, Claude must produce the following for review and receive
+Before editing any UI code, the contributor must produce the following for review and receive
 approval:
 1. **Screen inventory:** every screen and state in §6.2, each marked Implemented /
    Planned / Backend-dependent, with its data source (mock, remote, none).

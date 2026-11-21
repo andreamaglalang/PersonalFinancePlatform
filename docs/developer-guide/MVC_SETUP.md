@@ -50,6 +50,6 @@ dotnet run --project PersonalFinance.AdminMvc --launch-profile https
 
 - No platform-wide administration: no user management, no cross-user budgets or reports, no monitoring or audit views.
   These need new Administrator API endpoints.
-- Not runtime-verified in this handoff. Verified offline: build, `PersonalFinance.AdminMvc.UiTests` (auth/anti-forgery
+- Not runtime-verified in the 2026-11-21 verification. Verified offline: build, `PersonalFinance.AdminMvc.UiTests` (auth/anti-forgery
   metadata, Reports handling) and `deployment/checks/ReportsContract` (backend DTO to MVC client contract).
   A browser login against a real API and database has not been re-verified.

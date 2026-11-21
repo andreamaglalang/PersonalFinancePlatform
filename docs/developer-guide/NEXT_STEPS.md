@@ -1,4 +1,4 @@
-# Next Steps for Hermes (prioritized)
+# Next Steps (prioritized)
 
 ## Before Monday's presentation
 
@@ -28,6 +28,6 @@
     and reporting must cover all users. Then extend the MVC pages.
 11. Hangfire: owner-approved schema installation script, then enable it in Development only and observe the 3 jobs.
     Consider a dev trigger for bill reminders.
-12. Update the root `README.md` to match `docs/hermes-handoff/`. Open a reviewed PR from the integration branch into `main`.
+12. Update the root `README.md` to match `docs/developer-guide/`. Open a reviewed PR from the integration branch into `main`.
 
 Work on short-lived branches from `integration/hermes-handoff-20261121`. Push with normal pushes only.

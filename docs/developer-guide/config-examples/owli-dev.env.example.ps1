@@ -1,5 +1,5 @@
 # EXAMPLE ONLY - per-terminal environment for local OWLI development. Contains no secrets.
-# Usage:  . .\docs\hermes-handoff\config-examples\hermes-dev.env.example.ps1
+# Usage:  . .\docs\developer-guide\config-examples\owli-dev.env.example.ps1
 
 # --- Web API (normal laptop mode: launch profile https -> https://localhost:7027) ---
 $env:ASPNETCORE_ENVIRONMENT = "Development"

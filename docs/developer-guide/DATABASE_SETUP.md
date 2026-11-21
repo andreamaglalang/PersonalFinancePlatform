@@ -1,7 +1,7 @@
 # Database Setup (SQL Server LocalDB + EF Core 10)
 
 > **Read all of this before running any `dotnet ef` command against a server.**
-> Nothing in this handoff applied a migration or touched the original database.
+> Nothing in the 2026-11-21 verification applied a migration or touched the original database.
 
 ## What is in the repository
 
@@ -29,7 +29,7 @@ branch. They are internal tooling locked to the original laptop's database and w
 | 4 | `20261107054048_AddBillPaymentReceiptsAndGuards` | `RecurringBills.AnchorDate` (NOT NULL, no default), `BillPaymentReceipts`, 3 new triggers, extends `TR_Transactions_ProtectBillPayments` | **Not applied** | **UNSAFE TO APPLY** without owner approval. Never executed; requires an empty RecurringBills table (guard 51034) |
 
 "Documented" means the state comes from the project's verification records (deployment validation and the demo
-prerequisites). **The applied-migration history of the original database was not re-queried during this handoff,
+prerequisites). **The applied-migration history of the original database was not re-queried during the 2026-11-21 verification,
 because LocalDB was stopped and starting it was not authorized. Treat it as unverified.**
 
 ### Why this matters at runtime

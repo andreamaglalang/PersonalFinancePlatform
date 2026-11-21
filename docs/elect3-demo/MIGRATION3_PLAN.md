@@ -24,7 +24,7 @@ The savings-goal and contribution entities map `RowVersion` and the ledger table
 | Later writes to GoalContributionRequests from non-default tools need the same SET options | App uses SqlClient defaults (correct); ad-hoc sqlcmd writes need `-I` |
 
 ## Execution prerequisites (all must hold; live execution needs separate approval)
-- A time slot agreed with Android Codex (the API on port 7027 must be stopped) and Server Codex (no shared-database work).
+- A time slot agreed with the Android developer (the API on port 7027 must be stopped) and the deployment owner (no shared-database work).
 - API process tree stopped, port 7027 without a listener, SSMS closed or disconnected from PersonalFinanceDb.
 - A private local backup folder (outside the repository) exists with enough free space (the migration 2 backup was about 6.7 MB).
 - Script hashes match this package (record them immediately before running).

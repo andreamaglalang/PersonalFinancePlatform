@@ -127,7 +127,7 @@ The future MVC portal must keep API credentials server-side behind its secure Ht
 | ApiSecurityTests console suite | 23 passed, 0 failed | Real MVC, JwtBearer, routing, authorization and rate-limit middleware; in-memory persistence, no listening socket |
 | Existing SchemaValidation suite | 44 passed, 0 failed | Schema, constraints, roles, policies, configuration and migration metadata |
 | Real-process HTTP startup smoke | PASS | OpenAPI returned 200; HTTP /api/auth/me returned 400 because HTTPS is required; no credentials or database-writing requests |
-| Real-process HTTPS startup smoke | NOT SUCCESSFUL in agent environment | Normal developer certificate unavailable; temporary test PFX import also failed with CryptographicException |
+| Real-process HTTPS startup smoke | NOT SUCCESSFUL in verification environment | Normal developer certificate unavailable; temporary test PFX import also failed with CryptographicException |
 | SQL integration mode | SKIP | No isolated SQL test connection configured; no SQL connection opened |
 | EF pending-model check | PASS | No model changes since InitialFinanceSchema |
 | Fresh generated SQL versus saved script | PASS | Exact text match |
@@ -182,7 +182,7 @@ These SQL scenarios were **not executed**. The SQL-mode command was invoked with
 
 Initial real-host startup hit Windows EventLog access restrictions. A process-only logging filter avoided that restriction during smoke checking, without changing committed logging configuration.
 
-HTTPS startup under this agent identity could not load the default developer certificate. A temporary self-signed test certificate was generated without installing trust, but the child process could not import its PFX in this Windows profile. The temporary PFX was deleted. This is not evidence that the user's normal Visual Studio HTTPS profile is broken.
+HTTPS startup under the verification account could not load the default developer certificate. A temporary self-signed test certificate was generated without installing trust, but the child process could not import its PFX in this Windows profile. The temporary PFX was deleted. This is not evidence that the user's normal Visual Studio HTTPS profile is broken.
 
 A separate real-process HTTP-only smoke verified host startup and HTTPS rejection without weakening application code or submitting credentials over HTTP. Temporary signing keys were generated in process memory and were not printed or persisted to committed configuration. The smoke child process was stopped after checking OpenAPI and anonymous /me. No authentication operation that writes a database was executed against the real application.
 
@@ -207,7 +207,7 @@ If the normal development certificate is missing, configure/trust it under your 
 
 ### Exercise endpoints over HTTPS
 
-Use https://localhost:7027 and a dedicated ordinary test account with a strong password you choose. Manual registration/login intentionally writes that test user's Identity/refresh records; no such development write was performed by this agent.
+Use https://localhost:7027 and a dedicated ordinary test account with a strong password you choose. Manual registration/login intentionally writes that test user's Identity/refresh records; no such development write was performed during this verification.
 
 1. Register with FullName, Email, Password, ConfirmPassword. Expect 201 and only safe user fields. Duplicate the email with different casing; expect rejection.
 2. Login with email/password in a JSON body. Store the returned accessToken/refreshToken securely in the API client; do not paste them into URLs, logs, screenshots, or committed files.
@@ -237,7 +237,7 @@ Optional startup checks:
     dotnet run --project tests/PersonalFinance.ApiSecurityTests -- --startup-smoke
     dotnet run --project tests/PersonalFinance.ApiSecurityTests -- --startup-smoke-http
 
-The first uses a temporary pinned TLS certificate; its certificate/profile limitation in this agent session is described above. The HTTP check sends no credentials and expects authentication routes to refuse HTTP.
+The first uses a temporary pinned TLS certificate; its certificate/profile limitation in the verification session is described above. The HTTP check sends no credentials and expects authentication routes to refuse HTTP.
 
 When network access permits, rerun:
 

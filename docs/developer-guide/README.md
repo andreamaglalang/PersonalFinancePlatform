@@ -1,4 +1,4 @@
-# OWLI — Hermes Handoff: Start Here
+# OWLI Developer Guide
 
 OWLI is a Personal Finance and Budget Monitoring Platform made of three applications that share one backend:
 
@@ -56,4 +56,5 @@ Sanitized configuration examples are in [config-examples/](config-examples/).
 | `feature/admin-provisioning-username` | Separate admin username in the provisioning tool | merged |
 | `wip/android-worktree-snapshot-20261121` | Preserved unreviewed edits and a stale backend copy | **do not merge** (see KNOWN_ISSUES.md) |
 
-`docs/HERMES_HANDOFF_20261121.md` is the earlier one-page summary. It now points here.
+`docs/DEVELOPER_SETUP.md` is the short setup entry point and links here. Android coding and design standards are in
+[ANDROID_DEVELOPMENT_STANDARDS.md](ANDROID_DEVELOPMENT_STANDARDS.md).

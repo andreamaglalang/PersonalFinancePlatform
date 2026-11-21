@@ -74,7 +74,7 @@ Press Escape at a password prompt to cancel. A mismatch or validation failure st
 
 If a commit suffers an ambiguous connection failure, the tool reports that no success was confirmed. Check the newly requested email through an authorized read-only inspection before retrying. The tool never resets an existing account on retry.
 
-No tool invocation was executed by the implementation agent.
+The provisioning tool was not executed during implementation.
 
 ## Administrator category verification after provisioning
 

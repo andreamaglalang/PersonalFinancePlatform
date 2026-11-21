@@ -75,7 +75,7 @@ Connection opening failed before the SELECT executed:
     SQL Network Interfaces, error: 50 - Local Database Runtime error occurred.
     Cannot create an automatic instance. See the Windows Application event log for error details.
 
-Result: database existence/state could not be determined from the agent's Windows execution session. This does not establish that PersonalFinanceDb is missing, and does not invalidate the user's successful SSMS connection. No SQL Server instance creation/start commands were issued and no retries or schema-changing workarounds were attempted.
+Result: database existence/state could not be determined from the verification session. This does not establish that PersonalFinanceDb is missing, and does not invalidate the user's successful SSMS connection. No SQL Server instance creation/start commands were issued and no retries or schema-changing workarounds were attempted.
 
 ## Build and tests
 
@@ -117,7 +117,7 @@ The build used the existing process-local temporary APPDATA/package-cache settin
 
 ## Remaining items
 
-- Database existence remains unverified because the agent could not connect to LocalDB. It can be checked under the user's SSMS session using the read-only query above.
+- Database existence remains unverified because the verification session could not connect to LocalDB. It can be checked under the user's SSMS session using the read-only query above.
 - The initial schema remains unapplied.
 - Explicit user approval is required before applying InitialFinanceSchema to PersonalFinanceDb.
 

@@ -2,9 +2,9 @@
 
 Status as of the integration branch on 2026-11-21. Categories:
 
-- **Verified working**: demonstrated end to end at runtime during this handoff. (Nothing qualifies: no runtime
-  testing was authorized in this handoff.)
-- **Implemented, not runtime-verified**: code exists and offline tests pass, but there was no live API/DB/device run in this handoff.
+- **Verified working**: demonstrated end to end at runtime during the 2026-11-21 verification. (Nothing qualifies: no runtime
+  testing was authorized in the 2026-11-21 verification.)
+- **Implemented, not runtime-verified**: code exists and offline tests pass, but there was no live API/DB/device run in the 2026-11-21 verification.
 - **Partially implemented**: some of the requirement is missing.
 - **Missing**: not implemented.
 - **Blocked**: implemented but cannot work until an external decision (e.g. migration approval).

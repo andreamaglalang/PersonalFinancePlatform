@@ -28,7 +28,7 @@
 | `tests/` | Standalone console test programs (see VERIFICATION.md) |
 | `tools/PersonalFinance.AdminProvisioning/` | Guarded tool that creates a development administrator in LocalDB |
 | `deployment/` | Publish script, placeholder-only env templates, offline validation evidence |
-| `docs/` | Implementation/verification history, `elect3-demo/` runbooks, this handoff |
+| `docs/` | Implementation/verification history, `elect3-demo/` runbooks, this developer guide |
 
 ## API endpoints (all under `/api`, HTTPS only)
 

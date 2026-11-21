@@ -110,7 +110,7 @@ but machine-specific. Note the swap in your commit message if you do.
 | Budgets (month navigation, stale/offline states) | Implemented |
 | Currency converter + live FX quote | Implemented (quote requires sign-in; Mock Demo explains this) |
 | Reports and insights | Implemented, computed on the device |
-| Room offline-first recording + sync | Implemented; **device↔API sync not re-verified in this handoff** |
+| Room offline-first recording + sync | Implemented; **device↔API sync not re-verified in the 2026-11-21 verification** |
 | Savings goals | **Placeholder only** ("Savings goals are being added"); not wired to `/api/savings-goals` |
 | Recurring bills | **Placeholder only** ("Recurring bills are coming soon"); not wired to `/api/recurring-bills` |
 | App launcher icon | No custom `android:icon` in the manifest, so the system default icon is used |
