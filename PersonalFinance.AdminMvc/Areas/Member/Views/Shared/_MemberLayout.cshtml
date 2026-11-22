@@ -1,0 +1,50 @@
+@{
+    var authenticated = User.Identity?.IsAuthenticated == true;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — OWLI</title>
+    <script src="~/js/owli-ui.js" asp-append-version="true"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/member.css" asp-append-version="true" />
+</head>
+<body class="member-shell">
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="member-topbar">
+        <a class="member-brand" asp-area="Member" asp-controller="Home" asp-action="Index">
+            <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
+            <span class="member-word">OWLI</span>
+        </a>
+        @if (authenticated)
+        {
+            <span class="member-tagline">Your Wise Money Companion</span>
+            <button class="secondary theme-toggle" type="button" data-theme-toggle
+                    aria-label="Dark theme" aria-pressed="false" hidden>
+                <span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span>
+                <span class="sun-icon"><partial name="_NavIcon" model='"sun"' /></span>
+            </button>
+        }
+    </header>
+    <main id="main" class="member-content">@RenderBody()</main>
+    <nav class="member-nav" aria-label="Member navigation">
+        <a class="member-nav-item" asp-area="Member" asp-controller="Home" asp-action="Index">
+            <span class="member-nav-label">Home</span>
+        </a>
+        <span class="member-nav-item member-nav-soon" aria-disabled="true">
+            <span class="member-nav-label">Dashboard</span><span class="member-nav-soon-text">Soon</span>
+        </span>
+        <span class="member-nav-item member-nav-soon" aria-disabled="true">
+            <span class="member-nav-label">Activity</span><span class="member-nav-soon-text">Soon</span>
+        </span>
+        <span class="member-nav-item member-nav-soon" aria-disabled="true">
+            <span class="member-nav-label">Plan</span><span class="member-nav-soon-text">Soon</span>
+        </span>
+        <span class="member-nav-item member-nav-soon" aria-disabled="true">
+            <span class="member-nav-label">Insights</span><span class="member-nav-soon-text">Soon</span>
+        </span>
+    </nav>
+</body>
+</html>

@@ -13,6 +13,12 @@ static void Check(bool condition, string description)
     if (!condition) throw new InvalidOperationException(description);
 }
 
+await AuthorizationChecks.Run();
+AuthenticationPreservationChecks.Run();
+RoleClaimsChecks.Run();
+OwliLandingChecks.Run();
+MemberAreaChecks.Run();
+
 var categories = new PageFixture();
 var controller = new CategoriesController(categories)
 {

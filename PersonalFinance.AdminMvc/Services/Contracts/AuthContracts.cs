@@ -52,6 +52,9 @@ public static class ContractValidation
             && value.AccessTokenExpiresAtUtc <= value.RefreshTokenExpiresAtUtc;
     }
 
+    public static bool Authenticated(CurrentUserResponse? user) =>
+        User(user) && user!.Roles.Count > 0;
+
     public static bool Administrator(CurrentUserResponse user) =>
         User(user) && user.Roles.Contains("Administrator", StringComparer.Ordinal);
 }

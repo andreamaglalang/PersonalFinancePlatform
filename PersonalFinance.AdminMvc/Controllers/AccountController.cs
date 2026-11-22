@@ -11,7 +11,7 @@ namespace PersonalFinance.AdminMvc.Controllers;
 
 public sealed class AccountController(AuthenticationCoordinator coordinator) : Controller
 {
-    [HttpGet, Authorize(Policy = "Administrator")]
+    [HttpGet, Authorize(Policy = AuthorizationConfiguration.AdministratorPolicy)]
     public IActionResult Index() => View();
 
     [AllowAnonymous, HttpGet]
@@ -73,18 +73,16 @@ public sealed class AccountController(AuthenticationCoordinator coordinator) : C
             model.Message = "Authentication is temporarily unavailable. Please try again later.";
             return View(model);
         }
-        return model.ReturnUrl is not null ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Dashboard");
+        return model.ReturnUrl is not null ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Entry");
     }
 
     private IActionResult? AuthenticatedLoginResult()
     {
-        // Cookie middleware validates the server-side session and backend Administrator role
-        // before either action, including AllowAnonymous actions. POST antiforgery runs first.
-        // Account switching requires the existing POST Logout followed by a fresh login.
-        if (User.Identity?.IsAuthenticated != true) return null;
-        return User.IsInRole("Administrator")
-            ? RedirectToAction("Index", "Dashboard")
-            : Forbid(AdminSessionStore.Scheme);
+        // The cookie middleware validates the server-side session and the backend role before either
+        // action, including AllowAnonymous actions. Send every authenticated visitor through the
+        // role-based landing decision; account switching still requires the POST logout followed by a
+        // fresh login.
+        return User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Entry") : null;
     }
 
     [HttpPost, ValidateAntiForgeryToken, LocalLogout]

@@ -10,7 +10,7 @@ using PersonalFinance.AdminMvc.ViewModels;
 
 namespace PersonalFinance.AdminMvc.Controllers;
 
-[Authorize(Policy = "Administrator"), RequestSizeLimit(16 * 1024)]
+[Authorize(Policy = AuthorizationConfiguration.AdministratorPolicy), RequestSizeLimit(16 * 1024)]
 public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClient categories, AdminSessionStore sessions) : Controller
 {
     [HttpGet]

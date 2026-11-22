@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.AdminMvc.Authentication;
 using PersonalFinance.AdminMvc.Services;
 using PersonalFinance.AdminMvc.Services.Contracts;
 using PersonalFinance.AdminMvc.ViewModels;
 
 namespace PersonalFinance.AdminMvc.Controllers;
 
-[Authorize(Policy = "Administrator"), RequestSizeLimit(16 * 1024)]
+[Authorize(Policy = AuthorizationConfiguration.AdministratorPolicy), RequestSizeLimit(16 * 1024)]
 public sealed class CategoriesController(ICategoryManagementService categories) : Controller
 {
     [HttpGet]

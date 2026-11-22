@@ -9,7 +9,7 @@ using PersonalFinance.AdminMvc.ViewModels;
 
 namespace PersonalFinance.AdminMvc.Controllers;
 
-[Authorize(Policy = "Administrator")]
+[Authorize(Policy = AuthorizationConfiguration.AdministratorPolicy)]
 public sealed class ReportsController(ReportsApiClient reports, AdminSessionStore sessions) : Controller
 {
     [HttpGet]
