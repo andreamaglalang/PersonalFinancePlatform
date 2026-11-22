@@ -180,12 +180,12 @@ Check("Output directory contains base-setting markers and factory preserves an e
     finally { Directory.SetCurrentDirectory(previousDirectory); }
 });
 
-Check("All 19 current-model application and Identity tables exist; no separate Users table", () =>
+Check("All 23 current-model application and Identity tables exist; no separate Users table", () =>
 {
     var expected = new[] { "AspNetUsers", "AspNetRoles", "AspNetUserClaims", "AspNetRoleClaims",
         "AspNetUserRoles", "AspNetUserLogins", "AspNetUserTokens", "Categories", "Transactions",
         "Budgets", "RecurringBills", "SavingsGoals", "GoalContributions", "ExchangeRates",
-        "Notifications", "MonthlySummaries", "RefreshTokens", "GoalContributionRequests", "BillPaymentReceipts" };
+        "Notifications", "MonthlySummaries", "RefreshTokens", "GoalContributionRequests", "BillPaymentReceipts", "PlatformAnnouncements", "PlatformSettings", "SupportRequests", "SupportReplies" };
     Require(expected.Order().SequenceEqual(model.GetEntityTypes().Select(x => x.GetTableName()!).Order()));
 });
 Check("Identity user and role keys and all ownership FKs are integer", () =>
@@ -196,12 +196,17 @@ Check("Identity user and role keys and all ownership FKs are integer", () =>
         .Where(f => f.PrincipalEntityType.ClrType == typeof(ApplicationUser))
         .All(f => f.Properties.Single().ClrType is var t && (t == typeof(int) || t == typeof(int?))));
 });
-Check("All 19 current-model application foreign keys prohibit cascading financial deletion", () =>
+Check("Financial foreign keys prohibit cascading deletion; support replies cascade only from their request", () =>
 {
     var foreignKeys = model.GetEntityTypes().Where(e => !e.GetTableName()!.StartsWith("AspNet", StringComparison.Ordinal))
         .SelectMany(e => e.GetForeignKeys()).ToArray();
-    Require(foreignKeys.Length == 19);
-    Require(foreignKeys.All(f => f.DeleteBehavior == DeleteBehavior.NoAction));
+    var financial = foreignKeys.Where(f => f.DeclaringEntityType.GetTableName() is not ("SupportRequests" or "SupportReplies")).ToArray();
+    Require(financial.Length == 19 && financial.All(f => f.DeleteBehavior == DeleteBehavior.NoAction));
+    Require(foreignKeys.Length == 21);
+    var owner = foreignKeys.Single(f => f.DeclaringEntityType.GetTableName() == "SupportRequests");
+    Require(owner.PrincipalEntityType.GetTableName() == "AspNetUsers" && owner.DeleteBehavior == DeleteBehavior.Restrict);
+    var reply = foreignKeys.Single(f => f.DeclaringEntityType.GetTableName() == "SupportReplies");
+    Require(reply.PrincipalEntityType.GetTableName() == "SupportRequests" && reply.DeleteBehavior == DeleteBehavior.Cascade);
 });
 Check("Shared categories have optional ownership; contributions inherit goal ownership", () =>
 {
@@ -357,6 +362,8 @@ const string initialMigrationId = "20261031023901_InitialFinanceSchema";
 const string categoryMigrationId = "20261031115500_AddCategoryNameUniqueness";
 const string savingsMigrationId = "20261103141326_AddSavingsGoalContributionLedgerAndRowVersions";
 const string billMigrationId = "20261107054048_AddBillPaymentReceiptsAndGuards";
+const string journalMigrationId = "20261122090000_AddPlatformJournal";
+const string contentMigrationId = "20261122091331_AddPlatformContent";
 
 Migration CompiledMigration(string id)
 {
@@ -365,10 +372,25 @@ Migration CompiledMigration(string id)
 }
 string NormalizeSql(string sql) => sql.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
 
-Check("Exactly four approved compiled migrations exist; applied database state is not inspected", () =>
+Check("Exactly six compiled migrations exist; applied database state is not inspected", () =>
 {
     Require(db.Database.GetMigrations().SequenceEqual(new[] {
-        initialMigrationId, categoryMigrationId, savingsMigrationId, billMigrationId }), "Compiled migration IDs/order.");
+        initialMigrationId, categoryMigrationId, savingsMigrationId, billMigrationId, journalMigrationId, contentMigrationId }), "Compiled migration IDs/order.");
+});
+Check("Platform migrations add only journal and content schema on upgrade", () =>
+{
+    var journal = (SqlOperation)CompiledMigration(journalMigrationId).UpOperations.Single();
+    Require(!journal.SuppressTransaction);
+    Require(journal.Sql.Contains("CREATE TABLE dbo.PlatformJournal", StringComparison.Ordinal));
+    Require(journal.Sql.Contains("CREATE INDEX IX_PlatformJournal_TargetType_OccurredAtUtc", StringComparison.Ordinal));
+    Require(!System.Text.RegularExpressions.Regex.IsMatch(journal.Sql,
+        @"\b(?:DROP|ALTER|TRUNCATE|DELETE|UPDATE)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+
+    var content = CompiledMigration(contentMigrationId).UpOperations;
+    Require(content.All(op => op is CreateTableOperation or CreateIndexOperation or InsertDataOperation));
+    Require(content.OfType<CreateTableOperation>().Select(op => op.Name).Order().SequenceEqual(
+        new[] { "PlatformAnnouncements", "PlatformSettings", "SupportReplies", "SupportRequests" }));
+    Require(content.OfType<InsertDataOperation>().Single().Table == "PlatformSettings");
 });
 Check("Current model and snapshot align with zero relational differences", () =>
 {
