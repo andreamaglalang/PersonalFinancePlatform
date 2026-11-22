@@ -14,6 +14,18 @@
     apply();
     system.addEventListener("change", apply);
     document.addEventListener("DOMContentLoaded", () => {
+        const personalMain = document.querySelector(".android-personal main");
+        if (personalMain) {
+            const formControl = 'input:not([type="checkbox"],[type="radio"],[type="hidden"]), textarea, select, form button';
+            const updateEditing = element => {
+                document.body.classList.toggle("android-editing",
+                    element instanceof HTMLElement && personalMain.contains(element) && element.matches(formControl));
+            };
+            personalMain.addEventListener("focusin", event => updateEditing(event.target));
+            personalMain.addEventListener("focusout", event => updateEditing(event.relatedTarget));
+            updateEditing(document.activeElement);
+        }
+
         const picker = document.querySelector("[data-personal-theme-choice]");
         const toggle = document.querySelector("[data-personal-theme-toggle]");
         function setChoice(value) {
@@ -30,6 +42,17 @@
         if (toggle) {
             toggle.hidden = false;
             toggle.addEventListener("click", () => setChoice(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+        }
+
+        for (const form of document.querySelectorAll("[data-android-month]")) {
+            const month = form.elements.namedItem("month");
+            const submit = form.querySelector('button[type="submit"]');
+            const initial = month.value;
+            const update = () => { submit.hidden = initial !== "" && month.value === initial; };
+            update();
+            month.addEventListener("input", update);
+            month.addEventListener("change", update);
+            window.addEventListener("pageshow", update);
         }
 
         const swap = document.querySelector("[data-currency-swap]");
@@ -83,9 +106,13 @@
             const amounts = buttons.map(button => Number(button.dataset.spendingSlice));
             const total = amounts.reduce((sum, amount) => sum + amount, 0);
             if (!(total > 0)) continue;
-            const colors = ["#6747c7", "#9f71e3", "#4165a1", "#54786d", "#b35785", "#9c632e"];
+            const colors = ["#1674a5", "#20804f", "#6747c7", "#526695", "#79819d", "#a44875", "#a2642c"];
             const summary = chart.querySelector("[data-spending-selection]");
             const android = chart.classList.contains("android-donut");
+            const caption = chart.querySelector("[data-donut-caption]");
+            const amountLabel = chart.querySelector("[data-donut-amount]");
+            const initialCaption = caption?.textContent;
+            const initialAmount = amountLabel?.textContent;
             let active = -1;
             function render() {
                 let offset = -Math.PI / 2;
@@ -96,7 +123,8 @@
                     context.lineWidth = active === index ? 45 : 36;
                     context.globalAlpha = active < 0 || active === index ? 1 : 0.38;
                     context.strokeStyle = colors[index % colors.length];
-                    context.arc(120, 120, 91, offset, end);
+                    const gap = android && amounts.length > 1 ? Math.min(0.013, (end - offset) / 6) : 0;
+                    context.arc(120, 120, 91, offset + gap, end - gap);
                     context.stroke();
                     offset = end;
                 });
@@ -109,6 +137,10 @@
                     active = active === index ? -1 : index;
                     buttons.forEach((item, position) => item.setAttribute("aria-pressed", String(position === active)));
                     summary.textContent = active < 0 ? "" : buttons[active].parentElement.querySelector("[data-spending-label]").textContent;
+                    if (caption && amountLabel) {
+                        caption.textContent = active < 0 ? initialCaption : buttons[active].querySelector("span").textContent;
+                        amountLabel.textContent = active < 0 ? initialAmount : buttons[active].querySelector("strong").textContent;
+                    }
                     render();
                 });
             });

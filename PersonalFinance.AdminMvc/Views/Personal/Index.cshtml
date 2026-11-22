@@ -15,7 +15,7 @@
     <div><p>Hello, @(profile?.FullName ?? User.Identity?.Name)</p><h1>Dashboard</h1></div>
     <a class="android-outline" asp-action="Index" asp-route-month="@month" asp-route-period="@(Model.AllTime ? "all" : null)"><partial name="_NavIcon" model='"refresh"' /> Refresh</a>
 </header>
-<section class="android-hero" aria-labelledby="home-flow">
+<section class="android-hero android-home-hero" aria-labelledby="home-flow">
     <h2 id="home-flow">Net Transaction Flow</h2>
     <nav class="android-segments android-period" aria-label="Dashboard period">
         <a asp-action="Index" asp-route-month="@month" aria-current="@(!Model.AllTime ? "page" : null)">Month</a>
@@ -23,7 +23,7 @@
     </nav>
     @if (currency is not null)
     {
-        <strong class="android-net">@PersonalMoneyDisplay.Format(flow, currency, signed: true)</strong>
+        <strong class="android-net @(flow > 0 ? "android-net-positive" : null)">@PersonalMoneyDisplay.Format(flow, currency, signed: true)</strong>
         <p>@(Model.AllTime ? "All your recorded transactions" : Model.Month?.ToString("MMMM yyyy"))</p>
         <p class="android-flow-note">Income minus expenses. Not an account balance.</p>
         <section class="android-flow-pair" aria-label="Income and expense share">
@@ -36,7 +36,7 @@
                 </div>
             }
         </section>
-        <div class="android-hero-footer"><span>@count @(count == 1 ? "entry" : "entries") · % of recorded flow</span><a asp-controller="PersonalReports" asp-action="Index" asp-route-month="@month">Insights ›</a></div>
+        <div class="android-hero-footer"><span>@count @(count == 1 ? "entry" : "entries") · % of flow rounded</span><a asp-controller="PersonalReports" asp-action="Index" asp-route-month="@month">Insights ›</a></div>
     }
     else if (Model.ReportError is not null) { <p role="alert">@Model.ReportError</p> }
 </section>
@@ -45,9 +45,9 @@
     <details class="android-month-details"><summary>Choose month</summary><partial name="_PersonalMonthPicker" model="Model" /></details>
 }
 <nav class="android-quick" aria-label="Quick actions">
-    <a asp-controller="PersonalTransactions" asp-action="Create" asp-route-type="Expense"><partial name="_NavIcon" model='"down"' /> Expense</a>
-    <a asp-controller="PersonalTransactions" asp-action="Create" asp-route-type="Income"><partial name="_NavIcon" model='"up"' /> Income</a>
-    <a asp-controller="PersonalTransactions" asp-action="Index" asp-route-month="@(Model.AllTime ? null : month)" asp-fragment="activity-filters"><partial name="_NavIcon" model='"sortn"' /> Filter</a>
+    <a asp-controller="PersonalTransactions" asp-action="Create" asp-route-type="Expense"><partial name="_PersonalAndroidIcon" model='"minus"' /> Expense</a>
+    <a asp-controller="PersonalTransactions" asp-action="Create" asp-route-type="Income"><partial name="_NavIcon" model='"plus"' /> Income</a>
+    <a asp-controller="PersonalTransactions" asp-action="Index" asp-route-month="@(Model.AllTime ? null : month)" asp-fragment="activity-filters"><partial name="_PersonalAndroidIcon" model='"filter"' /> Filter</a>
     <a asp-controller="PersonalCategories" asp-action="Index"><partial name="_NavIcon" model='"tag"' /> Categories</a>
 </nav>
 <div class="android-home-grid">
@@ -67,7 +67,7 @@
     <section class="card finance-section" aria-labelledby="recent-transactions">
         <div class="mock-heading">
             <h2 id="recent-transactions">Recent transactions</h2>
-            <a asp-controller="PersonalTransactions" asp-action="Index" asp-route-month="@(Model.AllTime ? null : month)">See all ›</a>
+            <a class="android-outline android-row-action" asp-controller="PersonalTransactions" asp-action="Index" asp-route-month="@(Model.AllTime ? null : month)">See all ›</a>
         </div>
         @if (Model.TransactionError is not null) { <p class="notice" role="alert">@Model.TransactionError</p> }
         else if (Model.Transactions is not { Count: > 0 }) { <p>No transactions in this period.</p> }

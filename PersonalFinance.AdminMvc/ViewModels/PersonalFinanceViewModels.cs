@@ -8,7 +8,8 @@ namespace PersonalFinance.AdminMvc.ViewModels;
 public sealed record PersonalPage<T>(IReadOnlyList<T> Items, int Page, int PageSize, long TotalCount);
 public sealed record PersonalTransaction(int TransactionId, Guid ClientId, string Type, int CategoryId,
     string CategoryName, decimal Amount, string CurrencyCode, decimal AmountBase, DateOnly TransactionDate,
-    string? Description, int? BillId, DateOnly? BillDueDate, IReadOnlyList<BudgetResponse>? AffectedBudgets = null)
+    string? Description, int? BillId, DateOnly? BillDueDate, IReadOnlyList<BudgetResponse>? AffectedBudgets = null,
+    decimal? FxRate = null, DateOnly? FxRateDate = null)
 {
     public bool BillLinked => BillId.HasValue || BillDueDate.HasValue;
 }

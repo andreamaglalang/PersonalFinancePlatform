@@ -1,8 +1,19 @@
 @model PersonalTransaction
+@using PersonalFinance.AdminMvc.Authentication
+@using PersonalFinance.AdminMvc.Services.Contracts
+@{ var currency = (Context.Items[PersonalSession.ProfileItem] as CurrentUserResponse)?.BaseCurrency; }
 <dl class="details-list">
     <dt>Type</dt><dd>@Model.Type</dd>
     <dt>Category</dt><dd>@Model.CategoryName</dd>
     <dt>Date</dt><dd>@Model.TransactionDate.ToString("MMM d, yyyy")</dd>
-    <dt>Original amount</dt><dd>@Model.Amount.ToString("N2") @Model.CurrencyCode</dd>
+    <dt>Original amount</dt><dd>@PersonalMoneyDisplay.Format(Model.Amount, Model.CurrencyCode)</dd>
+    @if (currency is not null && currency != Model.CurrencyCode)
+    {
+        <dt>Amount in @currency</dt><dd>@PersonalMoneyDisplay.Format(Model.AmountBase, currency)</dd>
+        @if (Model.FxRate is > 0 && Model.FxRateDate is { } rateDate)
+        {
+            <dt>Recorded exchange rate</dt><dd>1 @Model.CurrencyCode = @Model.FxRate.Value.ToString("0.########") @currency · @rateDate.ToString("MMM d, yyyy")</dd>
+        }
+    }
     <dt>Description</dt><dd class="content-text">@(string.IsNullOrWhiteSpace(Model.Description) ? "—" : Model.Description)</dd>
 </dl>

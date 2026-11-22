@@ -4,7 +4,7 @@
     var initials = string.Concat(Model.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2)
         .Select(part => System.Globalization.StringInfo.GetNextTextElement(part))).ToUpperInvariant();
 }
-<header class="android-heading"><div><h1>Account</h1></div></header>
+<header class="android-heading"><a class="android-outline" asp-action="Index" aria-label="Back to dashboard"><partial name="_NavIcon" model='"chevl"' /></a><div><h1>Account</h1></div></header>
 <section class="android-hero android-profile" aria-label="Your profile">
     <span class="android-profile-avatar" aria-hidden="true">@(initials.Length == 0 ? "OW" : initials)</span>
     <h2>@Model.FullName</h2><p>@Model.Email</p>
@@ -48,6 +48,6 @@
     <section class="android-settings-group">
         <h2>Security</h2>
         <a class="card android-setting" asp-action="Password"><partial name="_NavIcon" model='"lock"' /><span><strong>Change password</strong><small>Update your account credentials</small></span><span aria-hidden="true">›</span></a>
-        <form asp-action="Logout" method="post" data-busy="Signing out…"><button class="secondary android-settings-logout" type="submit">Log out</button></form>
+        <form asp-action="Logout" method="post" data-busy="Signing out…"><button class="secondary android-settings-logout" type="submit"><partial name="_NavIcon" model='"logout"' /> Log out</button></form>
     </section>
 </div>

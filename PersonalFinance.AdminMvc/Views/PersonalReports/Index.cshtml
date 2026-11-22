@@ -2,22 +2,22 @@
 @using System.Globalization
 @{ ViewData["Title"] = "Insights"; }
 <header class="android-heading">
-    <div><p>Your financial reports</p><h1>Insights</h1></div>
+    <div><h1>Insights</h1></div>
     <a class="android-outline" asp-action="Index" asp-route-month="@(Model.Month is { } month ? PersonalMonth.Format(month) : null)"><partial name="_NavIcon" model='"refresh"' /> Refresh</a>
 </header>
-<partial name="_AndroidMonthSelector" model="Model" />
+<partial name="_AndroidMonthSelector" model="Model" view-data='new ViewDataDictionary(ViewData) { ["MonthLabel"] = "Reporting month" }' />
 @if (Model.ReportError is not null) { <p class="notice" role="alert">@Model.ReportError</p> }
 @if (Model.Report is { } report)
 {
-    <section class="android-hero">
+    <section class="android-hero android-insights-hero">
         <h2>Monthly Overview</h2>
-        <strong class="android-net">@PersonalMoneyDisplay.Format(report.NetCashFlow, report.BaseCurrency, signed: true)</strong>
+        <strong class="android-net @(report.NetCashFlow > 0 ? "android-net-positive" : null)">@PersonalMoneyDisplay.Format(report.NetCashFlow, report.BaseCurrency, signed: true)</strong>
         <p>Net transaction flow · @report.Month.ToString("MMMM yyyy")</p>
         <div class="android-flow-pair">
             <div class="income">Income <strong>@PersonalMoneyDisplay.Format(report.TotalIncome, report.BaseCurrency)</strong></div>
             <div class="expense">Expenses <strong>@PersonalMoneyDisplay.Format(report.TotalExpenses, report.BaseCurrency)</strong></div>
         </div>
-        <p>@report.TransactionCount @(report.TransactionCount == 1 ? "transaction" : "transactions")</p>
+        <p class="android-insights-count">@report.TransactionCount @(report.TransactionCount == 1 ? "transaction" : "transactions") in @report.Month.ToString("MMMM yyyy")</p>
         @if (report.TransactionCount == 0) { <p>No transactions were recorded for this month.</p> }
     </section>
 }
@@ -25,7 +25,7 @@
 @if (Model.Report is { } monthly)
 {
     <section class="card">
-        <h2>Spending breakdown</h2>
+        <header class="android-chart-heading"><h2>Spending breakdown</h2><small>@monthly.Month.ToString("MMMM yyyy")</small></header>
         <partial name="_PersonalSpendingChart" model="@(new SpendingBreakdown(monthly.BaseCurrency, monthly.ExpenseByCategory, Android: true))" />
     </section>
 }

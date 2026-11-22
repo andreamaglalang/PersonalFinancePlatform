@@ -34,23 +34,25 @@
 <header class="android-heading">
     <div><p>Your transactions</p><h1>Activity</h1></div>
     <a class="android-outline" href="#activity-search" aria-label="Search transactions"><partial name="_NavIcon" model='"search"' /></a>
-    <a class="android-outline" href="#activity-filters" aria-label="Transaction filters"><partial name="_NavIcon" model='"sortn"' /></a>
+    <a class="android-outline" href="#activity-filters" aria-label="Transaction filters"><partial name="_PersonalAndroidIcon" model='"filter"' /></a>
 </header>
 <partial name="_PersonalFinanceNotices" />
 <nav class="android-month-strip" aria-label="Activity period">
+    <div class="android-activity-month">
     @if (previousMonth.ContainsKey("month")) { <a asp-action="Index" asp-all-route-data="previousMonth" aria-label="Previous month">‹</a> }
     <a href="#activity-month">@(filters.SelectedMonth?.ToString("MMMM yyyy") ?? "Choose month")</a>
     @if (nextMonth.ContainsKey("month")) { <a asp-action="Index" asp-all-route-data="nextMonth" aria-label="Next month">›</a> }
+    </div>
     <a class="android-outline" asp-action="Index" asp-all-route-data="allTime" aria-current="@(filters.SelectedMonth is null && filters.FromDate is null && filters.ToDate is null ? "page" : null)">All time</a>
 </nav>
 @if (Model.Overview is { } overview)
 {
     <section class="android-hero android-activity-hero">
         <h2>Net Transaction Flow</h2>
-        <strong class="android-net">@PersonalMoneyDisplay.Format(overview.NetCashFlow, overview.BaseCurrency, signed: true)</strong>
-        <p>@(filters.HasFilters ? "Filtered totals" : "Period totals") · @(overview.Month?.ToString("MMMM yyyy") ?? "All time") · @overview.TransactionCount @(overview.TransactionCount == 1 ? "entry" : "entries")</p>
+        <strong class="android-net @(overview.NetCashFlow > 0 ? "android-net-positive" : null)">@PersonalMoneyDisplay.Format(overview.NetCashFlow, overview.BaseCurrency, signed: true)</strong>
+        <p>@(filters.HasFilters ? "Filtered totals" : "Period totals") · @(overview.Month?.ToString("MMMM yyyy") ?? "All time") · @overview.TransactionCount @(overview.TransactionCount == 1 ? "entry" : "entries") · Totals in @overview.BaseCurrency</p>
         <div class="android-flow-pair"><div class="income">Income <strong>@PersonalMoneyDisplay.Format(overview.TotalIncome, overview.BaseCurrency)</strong></div><div class="expense">Expenses <strong>@PersonalMoneyDisplay.Format(overview.TotalExpenses, overview.BaseCurrency)</strong></div></div>
-        <h3>Daily transaction activity</h3>
+        <h3 class="android-day-title">Daily transaction activity</h3>
         @if (overview.Days.Count == 0) { <p>No transactions in this period.</p> }
         else
         {
@@ -70,7 +72,7 @@
                     </a>
                 }
             </div>
-            <p class="android-flow-note">Scroll the chart to browse days. Select a day to see its transactions.</p>
+            <p class="android-flow-note">Select a bar to see transactions for that day.</p>
         }
     </section>
 }

@@ -1,6 +1,7 @@
 @model SpendingBreakdown
 @{
     var total = Model.Categories.Sum(row => row.Total);
+    var count = Model.Categories.Count(row => row.Total > 0);
 }
 @if (total <= 0)
 {
@@ -11,7 +12,7 @@ else
     <div class="spending-chart @(Model.Android ? "android-donut" : null)" data-spending-chart>
         <div class="donut-graphic">
             <canvas width="240" height="240" aria-hidden="true" hidden></canvas>
-            @if (Model.Android) { <span class="android-donut-total"><small>Total expenses</small><strong>@PersonalMoneyDisplay.Format(total, Model.Currency)</strong></span> }
+            @if (Model.Android) { <span class="android-donut-total"><small data-donut-caption>Spent</small><strong data-donut-amount>@PersonalMoneyDisplay.Format(total, Model.Currency)</strong><small>@count @(count == 1 ? "category" : "categories")</small></span> }
         </div>
         <p class="spending-selection" data-spending-selection role="status"></p>
         <ul class="spending-legend">

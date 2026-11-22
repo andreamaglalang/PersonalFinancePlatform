@@ -1,11 +1,20 @@
 @model PersonalMonthlyView
-@{ var category = ViewData["MonthCategory"] as int?; }
-<form asp-action="Index" method="get" class="android-month-strip android-finance-month" data-busy="Loading month…">
+@{
+    var category = ViewData["MonthCategory"] as int?;
+    var label = ViewData["MonthLabel"] as string ?? "Month";
+}
+<form asp-action="Index" method="get" class="android-month-strip android-finance-month" data-busy="Loading month…" data-android-month>
     @if (category is not null) { <input type="hidden" name="categoryId" value="@category" /> }
     @if (Model.Previous is { } previous)
-    { <a asp-action="Index" asp-route-month="@PersonalMonth.Format(previous)" asp-route-categoryId="@category" aria-label="Previous month">‹</a> }
-    <input type="month" name="month" aria-label="Month" min="2000-01" max="9998-12" required value="@(Model.Month is { } selected ? PersonalMonth.Format(selected) : null)" />
-    <button class="secondary" type="submit">Show</button>
+    {
+        <a class="android-month-prev" asp-action="Index" asp-route-month="@PersonalMonth.Format(previous)" asp-route-categoryId="@category" aria-label="Previous month">‹</a>
+    }
+    <label class="android-month-input"><span>@label</span>
+        <input type="month" name="month" min="2000-01" max="9998-12" required value="@(Model.Month is { } selected ? PersonalMonth.Format(selected) : null)" />
+    </label>
     @if (Model.Next is { } next)
-    { <a asp-action="Index" asp-route-month="@PersonalMonth.Format(next)" asp-route-categoryId="@category" aria-label="Next month">›</a> }
+    {
+        <a class="android-month-next" asp-action="Index" asp-route-month="@PersonalMonth.Format(next)" asp-route-categoryId="@category" aria-label="Next month">›</a>
+    }
+    <button class="secondary" type="submit">Show month</button>
 </form>

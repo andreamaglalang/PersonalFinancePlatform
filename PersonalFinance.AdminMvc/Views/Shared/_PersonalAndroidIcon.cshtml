@@ -1,0 +1,24 @@
+@model string
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    @switch (Model)
+    {
+        case "home":
+            <path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z" />
+            break;
+        case "activity":
+            <path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1" />
+            break;
+        case "plan":
+            <circle cx="12" cy="13" r="8" /><circle cx="12" cy="13" r="4" /><path d="M12 5V2m0 10v1" />
+            break;
+        case "insights":
+            <path d="M5 20v-8m7 8V4m7 16V9" />
+            break;
+        case "filter":
+            <path d="M3 7h7m4 0h7M3 17h12m4 0h2" /><circle cx="12" cy="7" r="2" /><circle cx="17" cy="17" r="2" />
+            break;
+        case "minus":
+            <path d="M5 12h14" />
+            break;
+    }
+</svg>
