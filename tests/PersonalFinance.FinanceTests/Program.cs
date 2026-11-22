@@ -21,6 +21,93 @@ async Task<ApiReply> Create(FinanceFixture f,CreateTransactionRequest? tx=null,i
 async Task<int> Created(FinanceFixture f,CreateTransactionRequest? tx=null) {var r=await Create(f,tx);Assert(r.Status==201,r.Body);return Json(r).GetProperty("transactionId").GetInt32();}
 TransactionWriteRequest Edit(string currency="PHP",decimal amount=20m,DateOnly? date=null)=>new() {CategoryId=2,Type="Expense",Amount=amount,CurrencyCode=currency,TransactionDate=date??new(2026,10,10),Description="Edited"};
 async Task<ApiReply> Update(FinanceFixture f,int id,TransactionWriteRequest dto,int user=1)=>await f.SendAsync("PUT",$"/api/transactions/{id}",dto,f.Issue(user));
+await Check("Announcement lifecycle only exposes published content to signed-in users", async f =>
+{
+    const string admin = "/api/admin/announcements";
+    var user = f.Issue(1);
+    var administrator = f.Issue(3);
+    var input = new { title = "First title", message = "Draft message" };
+    Assert((await f.SendAsync("GET", "/api/announcements")).Status == 401);
+    Assert((await f.SendAsync("GET", "/api/announcements", bearer: user, scheme: "http")).Status == 400);
+    Assert((await f.SendAsync("POST", admin, input, user)).Status == 403);
+    var created = await f.SendAsync("POST", admin, input, administrator);
+    Assert(created.Status == 201, created.Body);
+    var id = Json(created).GetProperty("id").GetInt32();
+    Assert(Json(await f.SendAsync("GET", "/api/announcements", bearer: user)).GetArrayLength() == 0);
+    Assert((await f.SendAsync("PUT", $"{admin}/{id}", new { title = "Edited title", message = "Edited message" }, administrator)).Status == 200);
+    foreach (var status in new[] { "Published", "Draft", "Archived" })
+    {
+        Assert((await f.SendAsync("PUT", $"{admin}/{id}/status", new { status }, administrator)).Status == 200);
+        var published = Json(await f.SendAsync("GET", "/api/announcements", bearer: user));
+        Assert(published.GetArrayLength() == (status == "Published" ? 1 : 0));
+        if (published.GetArrayLength() == 1) Assert(published[0].GetProperty("title").GetString() == "Edited title");
+    }
+    Assert((await f.SendAsync("PUT", $"{admin}/{id}/status", new { status = "Published" }, administrator)).Status == 409);
+});
+await Check("Support request and replies stay private to the owner and Administrator inbox", async f =>
+{
+    var owner = f.Issue(1);
+    var other = f.Issue(2);
+    var administrator = f.Issue(3);
+    const string path = "/api/support";
+    const string inbox = "/api/admin/support";
+    var submission = new { kind = "Support", subject = "Need help", message = "A private support request", ownerId = 2 };
+    Assert((await f.SendAsync("POST", path, submission)).Status == 401);
+    var created = await f.SendAsync("POST", path, submission, owner);
+    Assert(created.Status == 201, created.Body);
+    var id = Json(created).GetProperty("id").GetInt32();
+    Assert((await f.SendAsync("GET", $"{path}/{id}", bearer: other)).Status == 404);
+    Assert((await f.SendAsync("GET", $"{path}/{id}", bearer: administrator)).Status == 404);
+    Assert(Json(await f.SendAsync("GET", path, bearer: other)).GetArrayLength() == 0);
+    Assert((await f.SendAsync("GET", inbox, bearer: owner)).Status == 403);
+    Assert((await f.SendAsync("POST", $"{inbox}/{id}/replies", new { message = "Unauthorized reply" }, owner)).Status == 403);
+    Assert(Json(await f.SendAsync("GET", inbox + "?search=Need&status=Open&kind=Support", bearer: administrator)).GetArrayLength() == 1);
+    Assert((await f.SendAsync("PUT", $"{inbox}/{id}/status", new { status = "Resolved" }, administrator)).Status == 200);
+    Assert((await f.SendAsync("POST", $"{inbox}/{id}/replies", new { message = "Administrator reply" }, administrator)).Status == 200);
+    var detail = Json(await f.SendAsync("GET", $"{path}/{id}", bearer: owner));
+    Assert(detail.GetProperty("status").GetString() == "Resolved");
+    Assert(detail.GetProperty("replies")[0].GetProperty("message").GetString() == "Administrator reply");
+    Assert((await f.SendAsync("GET", $"{path}/{id}", bearer: other)).Status == 404);
+});
+await Check("Platform settings allowlist rejects protected keys and regular-user writes", async f =>
+{
+    const string path = "/api/platform-settings";
+    const string admin = "/api/admin/platform-settings/";
+    Assert((await f.SendAsync("GET", path)).Status == 401);
+    var visible = Json(await f.SendAsync("GET", path, bearer: f.Issue(1)));
+    Assert(visible.EnumerateArray().All(row => row.GetProperty("key").GetString() is "welcomeMessage" or "supportInstructions"));
+    Assert((await f.SendAsync("PUT", admin + "welcomeMessage", new { value = "Text" }, f.Issue(1))).Status == 403);
+    Assert((await f.SendAsync("PUT", admin + "ConnectionStrings", new { value = "Text" }, f.Issue(3))).Status == 404);
+    Assert((await f.SendAsync("PUT", admin + "welcomeMessage", new { value = new string('x', 501) }, f.Issue(3))).Status == 400);
+    Assert((await f.SendAsync("PUT", admin + "welcomeMessage", new { value = "" }, f.Issue(3))).Status == 503);
+});
+
+await Check("Personal overview totals and search use the authenticated owner", async f =>
+{
+    var expense = Tx();
+    expense.Description = "Unique grocery search";
+    _ = await Created(f, expense);
+    _ = await Created(f, Tx(1, "Income", 50m));
+    Assert((await Create(f, Tx(3, "Expense", 900m), 2)).Status == 201);
+    var overview = await f.SendAsync("GET", "/api/reports/overview", bearer: f.Issue(1));
+    Assert(overview.Status == 200, overview.Body);
+    var summary = Json(overview);
+    Assert(summary.GetProperty("totalIncome").GetDecimal() == 50m && summary.GetProperty("totalExpenses").GetDecimal() == 10m);
+    Assert(summary.GetProperty("netCashFlow").GetDecimal() == 40m && summary.GetProperty("transactionCount").GetInt32() == 2);
+    Assert(summary.GetProperty("months").GetArrayLength() == 1 && summary.GetProperty("days").GetArrayLength() == 1);
+    var filtered = await f.SendAsync("GET", "/api/transactions?search=grocery", bearer: f.Issue(1));
+    Assert(filtered.Status == 200 && Json(filtered).GetProperty("totalCount").GetInt64() == 1);
+    var scoped = await f.SendAsync("GET", "/api/reports/overview?month=2026-10-01&type=Expense&categoryId=2&search=grocery&fromDate=2026-10-10&toDate=2026-10-10", bearer: f.Issue(1));
+    Assert(scoped.Status == 200, scoped.Body);
+    var matched = Json(scoped);
+    Assert(matched.GetProperty("totalIncome").GetDecimal() == 0m && matched.GetProperty("totalExpenses").GetDecimal() == 10m
+        && matched.GetProperty("transactionCount").GetInt32() == 1 && matched.GetProperty("days").GetArrayLength() == 1);
+    var other = await f.SendAsync("GET", "/api/transactions?search=grocery", bearer: f.Issue(2));
+    Assert(other.Status == 200 && Json(other).GetProperty("totalCount").GetInt64() == 0);
+    Assert((await f.SendAsync("GET", "/api/reports/overview")).Status == 401);
+    Assert((await f.SendAsync("GET", "/api/reports/overview?month=2026-10-02", bearer: f.Issue(1))).Status == 400);
+});
+
 await Check("Income creation",async f=>Assert((await Create(f,Tx(1,"Income"))).Status==201));
 await Check("Expense creation and same-currency snapshot",async f=>{var r=await Create(f);Assert(r.Status==201);Assert(Json(r).GetProperty("fxRate").GetDecimal()==1m);});
 foreach(var amount in new[]{0m,-1m,1.001m,10000000000000000m})

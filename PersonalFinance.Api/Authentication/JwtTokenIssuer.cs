@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.Extensions.Options;
@@ -18,6 +18,7 @@ public sealed class JwtTokenIssuer(IOptions<JwtSettings> settings, TimeProvider 
         var expires = now.AddMinutes(15);
         var claims = new List<Claim>
         {
+            new(CredentialVersion.Claim, CredentialVersion.Encode(user)),
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString(CultureInfo.InvariantCulture)),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)

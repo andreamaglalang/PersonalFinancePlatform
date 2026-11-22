@@ -29,6 +29,7 @@ public class TransactionWriteRequest
 
 public sealed class TransactionQuery
 {
+    [StringLength(100)] public string? Search { get; set; }
     public string? Type { get; set; }
     public int? CategoryId { get; set; }
     public DateOnly? FromDate { get; set; }

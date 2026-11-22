@@ -30,6 +30,7 @@ public interface IAuthSessionStore
     Task<T> ExecuteAsync<T>(string resource, Func<CancellationToken, Task<T>> operation, CancellationToken ct);
     Task<RefreshToken?> FindAsync(string hash, CancellationToken ct);
     Task ReloadUserAsync(ApplicationUser user, CancellationToken ct);
+    Task RecordAccountEventAsync(int userId, string action, DateTime occurredAtUtc, CancellationToken ct) => Task.CompletedTask;
     Task AddAsync(RefreshToken token, CancellationToken ct);
     Task<bool> ConsumeAsync(string hash, string replacementHash, DateTime now, CancellationToken ct);
     Task<bool> FamilyRevokedAsync(int userId, Guid familyId, CancellationToken ct);
