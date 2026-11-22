@@ -85,29 +85,12 @@ public sealed class TransactionService(
     {
         var userId = UserId;
         if (!FinanceValidation.ValidPage(query.Page, query.PageSize)
-            || (query.Type is not null && !FinanceValidation.ValidType(query.Type))
-            || query.CategoryId is <= 0
-            || (query.FromDate.HasValue && query.ToDate.HasValue && query.FromDate > query.ToDate)
+            || !TransactionSelection.IsValid(query)
             || query.SortBy is not ("date" or "amount" or "createdAt")
             || query.SortDirection is not ("asc" or "desc"))
             throw new FinanceException(400, "Invalid transaction filters, sorting, or pagination.");
 
-        var rows = Db.Transactions.AsNoTracking().Where(t => t.UserId == userId);
-
-        if (query.Type is not null)
-        {
-            var type = FinanceValidation.ParseType(query.Type);
-            rows = rows.Where(t => t.Type == type);
-        }
-
-        if (query.CategoryId.HasValue)
-            rows = rows.Where(t => t.CategoryId == query.CategoryId.Value);
-
-        if (query.FromDate.HasValue)
-            rows = rows.Where(t => t.TransactionDate >= query.FromDate.Value);
-
-        if (query.ToDate.HasValue)
-            rows = rows.Where(t => t.TransactionDate <= query.ToDate.Value);
+        var rows = TransactionSelection.Apply(Db.Transactions.AsNoTracking().Where(t => t.UserId == userId), query);
 
         var count = await rows.LongCountAsync(ct);
         var descending = query.SortDirection == "desc";

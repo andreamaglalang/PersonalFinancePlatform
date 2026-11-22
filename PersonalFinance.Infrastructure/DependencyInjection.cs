@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IBudgetUsageService, BudgetUsageService>();
         services.AddScoped<IBudgetService, BudgetService>();
         services.AddScoped<ISavingsGoalService, SavingsGoalService>();
+        services.AddScoped<IReportService, ReportService>();
 
         services.AddOptions<CurrencyPolicyOptions>()
             .Bind(configuration.GetSection(CurrencyPolicyOptions.SectionName))

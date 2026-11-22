@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using PersonalFinance.Infrastructure.Authentication.Contracts;
 using PersonalFinance.Infrastructure.Identity;
@@ -16,7 +16,10 @@ public sealed class RefreshTokenService(
         {
             var user = await LoadAvailableUserAsync(userId, token);
             if (user is null) return Invalid();
-            return await IssueAsync(user, Guid.NewGuid(), null, token);
+            var result = await IssueAsync(user, Guid.NewGuid(), null, token);
+            if (result.Succeeded)
+                await store.RecordAccountEventAsync(user.Id, "SignIn", clock.GetUtcNow().UtcDateTime, token);
+            return result;
         }, ct);
 
     public async Task<AuthResult<AuthenticationResponse>> RotateAsync(RefreshRequest request, CancellationToken ct)

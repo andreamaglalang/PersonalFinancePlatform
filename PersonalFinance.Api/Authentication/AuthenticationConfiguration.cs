@@ -50,6 +50,12 @@ public static class AuthenticationConfiguration
                             context.Fail("Account unavailable.");
                             return;
                         }
+                        if (!await CredentialVersion.AllowsAsync(users, user,
+                                context.Principal?.FindFirst(CredentialVersion.Claim)?.Value))
+                        {
+                            context.Fail("Credentials changed.");
+                            return;
+                        }
                         var currentRoles = new HashSet<string>(await users.GetRolesAsync(user), StringComparer.Ordinal);
                         if (!currentRoles.SetEquals(context.Principal!.FindAll("role").Select(c => c.Value)))
                             context.Fail("Role membership changed.");

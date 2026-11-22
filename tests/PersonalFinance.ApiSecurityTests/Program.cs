@@ -22,6 +22,31 @@ async Task Check(string name, Func<Task> test)
     try { await test(); passed++; Console.WriteLine("PASS " + name); }
     catch (Exception ex) { failed++; Console.Error.WriteLine("FAIL " + name + ": " + ex.GetType().Name + ": " + ex.Message); }
 }
+foreach (var path in new[] { "/api/recurring-bills", "/api/reports" })
+{
+    await Check(path + " rejects HTTP before endpoint execution", async () =>
+    {
+        var reached = false;
+        var middleware = new FinanceTransportMiddleware(_ => { reached = true; return Task.CompletedTask; });
+        var context = new DefaultHttpContext();
+        context.RequestServices = new ServiceCollection().AddLogging().AddProblemDetails().BuildServiceProvider();
+        context.Request.Path = path; context.Request.Scheme = "http";
+        context.Response.Body = new MemoryStream();
+        await middleware.InvokeAsync(context);
+        Require(context.Response.StatusCode == 400 && !reached);
+        Require(context.Response.Headers.CacheControl == "no-store" && context.Response.Headers.Pragma == "no-cache");
+    });
+    await Check(path + " preserves HTTPS and no-cache protections", async () =>
+    {
+        var reached = false;
+        var middleware = new FinanceTransportMiddleware(_ => { reached = true; return Task.CompletedTask; });
+        var context = new DefaultHttpContext();
+        context.Request.Path = path; context.Request.Scheme = "https";
+        await middleware.InvokeAsync(context);
+        Require(reached && context.Response.StatusCode == 200);
+        Require(context.Response.Headers.CacheControl == "no-store" && context.Response.Headers.Pragma == "no-cache");
+    });
+}
 await Check("Missing/invalid signing keys fail closed", () =>
 {
     var services = new ServiceCollection();
@@ -46,6 +71,65 @@ await Check("Unauthorized me is rejected", async () =>
     await using var f = new ApiFixture();
     Require((await f.SendAsync("GET", "/api/auth/me")).Status == 401);
 });
+await Check("Batch 1 Administrator routes reject anonymous and regular users", async () =>
+{
+    await using var f = new ApiFixture();
+    var bearer = await f.LoginAsync();
+    foreach (var path in new[] { "/api/admin/users", "/api/admin/users/1", "/api/admin/activity",
+                 "/api/admin/audit", "/api/admin/health", "/api/admin/statistics" })
+    {
+        Require((await f.SendAsync("GET", path)).Status == 401, path + " must require authentication");
+        Require((await f.SendAsync("GET", path, bearer: bearer)).Status == 403,
+            path + " must reject regular users");
+    }
+    await using var adminFixture = new ApiFixture();
+    var administrator = await adminFixture.RegisterAsync();
+    adminFixture.Users.Membership[administrator].Add("ADMINISTRATOR");
+    // Validation rejects this request before database access, proving the role reaches the actual action.
+    Require((await adminFixture.SendAsync("GET", "/api/admin/users?page=0", bearer: adminFixture.Issue(administrator))).Status == 400);
+});
+
+await Check("Personal display-name update preserves identity and valid credentials", async () =>
+{
+    await using var f = new ApiFixture();
+    var token = await f.LoginAsync();
+    var updated = await f.SendAsync("PUT", "/api/auth/profile", new { fullName = "Updated Test Name" }, token);
+    Require(updated.Status == 200);
+    var me = await f.SendAsync("GET", "/api/auth/me", bearer: token);
+    Require(me.Status == 200 && JsonDocument.Parse(me.Body).RootElement.GetProperty("fullName").GetString() == "Updated Test Name");
+});
+await Check("Password change rejects old access and refresh tokens and allows new login", async () =>
+{
+    await using var f = new ApiFixture();
+    _ = await f.RegisterAsync();
+    var login = await f.SendAsync("POST", "/api/auth/login", new { email = "person@example.test", password = "TestingOnly!123a" });
+    Require(login.Status == 200);
+    var tokens = JsonDocument.Parse(login.Body).RootElement;
+    var oldAccess = tokens.GetProperty("accessToken").GetString()!;
+    var oldRefresh = tokens.GetProperty("refreshToken").GetString()!;
+    var handler = new JwtSecurityTokenHandler();
+    var jwt = handler.ReadJwtToken(oldAccess);
+    var legacy = handler.WriteToken(new JwtSecurityToken(jwt.Issuer, jwt.Audiences.Single(),
+        jwt.Claims.Where(claim => claim.Type != "credential_version"),
+        jwt.ValidFrom, jwt.ValidTo,
+        new SigningCredentials(new SymmetricSecurityKey(Convert.FromBase64String(f.Settings.SigningKeyBase64)), SecurityAlgorithms.HmacSha256)));
+    Require((await f.SendAsync("GET", "/api/auth/me", bearer: legacy)).Status == 200);
+    const string replacement = "ChangedTest!456z";
+    var denied = await f.SendAsync("PUT", "/api/auth/password",
+        new { currentPassword = "IncorrectTest!456", newPassword = replacement, confirmPassword = replacement }, oldAccess);
+    Require(denied.Status == 400);
+    var changed = await f.SendAsync("PUT", "/api/auth/password",
+        new { currentPassword = "TestingOnly!123a", newPassword = replacement, confirmPassword = replacement }, oldAccess);
+    Require(changed.Status == 204, "Password change did not return 204.");
+    Require((await f.SendAsync("GET", "/api/auth/me", bearer: oldAccess)).Status == 401);
+    Require((await f.SendAsync("GET", "/api/auth/me", bearer: legacy)).Status == 401);
+    Require((await f.SendAsync("POST", "/api/auth/refresh", new { refreshToken = oldRefresh })).Status == 401);
+    var next = await f.SendAsync("POST", "/api/auth/login", new { email = "person@example.test", password = replacement });
+    Require(next.Status == 200);
+    var nextAccess = JsonDocument.Parse(next.Body).RootElement.GetProperty("accessToken").GetString()!;
+    Require((await f.SendAsync("GET", "/api/auth/me", bearer: nextAccess)).Status == 200);
+});
+
 await Check("Valid JWT authenticates me and returns the approved user projection", async () =>
 {
     await using var f = new ApiFixture(); var token = await f.LoginAsync();

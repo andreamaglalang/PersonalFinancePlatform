@@ -103,6 +103,8 @@ public sealed class CategoryService(
 
                     await Db.SaveChangesAsync(token);
 
+                    if (systemDefault)
+                        await PlatformJournal.RecordAsync(Db, userId, "Create", "SharedCategory", row.CategoryId, DateTime.UtcNow, token);
                     return FinanceResult<CategoryResponse>
                         .Success(Describe(row), 201);
                 },
@@ -144,7 +146,10 @@ public sealed class CategoryService(
                         id,
                         token);
 
-                    row.Name = CategoryNameNormalization.Trim(request.Name);
+                    var name = CategoryNameNormalization.Trim(request.Name);
+                    var edited = row.Name != name || row.Type != type || row.ColorHEX != request.ColorHEX;
+                    var statusChanged = request.IsActive.HasValue && row.IsActive != request.IsActive.Value;
+                    row.Name = name;
                     row.Type = type;
                     row.ColorHEX = request.ColorHEX;
 
@@ -153,6 +158,12 @@ public sealed class CategoryService(
 
                     await Db.SaveChangesAsync(token);
 
+                    var occurredAt = DateTime.UtcNow;
+                    if (systemDefault && edited)
+                        await PlatformJournal.RecordAsync(Db, userId, "Edit", "SharedCategory", id, occurredAt, token);
+                    if (systemDefault && statusChanged)
+                        await PlatformJournal.RecordAsync(Db, userId, row.IsActive ? "Activate" : "Deactivate",
+                            "SharedCategory", id, occurredAt, token);
                     return FinanceResult<CategoryResponse>
                         .Success(Describe(row));
                 },
@@ -186,6 +197,8 @@ public sealed class CategoryService(
 
                     await Db.SaveChangesAsync(token);
 
+                    if (systemDefault)
+                        await PlatformJournal.RecordAsync(Db, userId, "Delete", "SharedCategory", id, DateTime.UtcNow, token);
                     return FinanceResult<bool>.Success(true, 204);
                 },
                 ct);

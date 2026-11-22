@@ -1007,6 +1007,163 @@ namespace PersonalFinance.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.PlatformAnnouncement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "PublishedAtUtc", "Id");
+
+                    b.ToTable("PlatformAnnouncements");
+                });
+
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.PlatformSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("PlatformSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Key = "welcomeMessage",
+                            Value = ""
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Key = "supportInstructions",
+                            Value = ""
+                        });
+                });
+
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.SupportReply", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("SupportRequestId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupportRequestId");
+
+                    b.ToTable("SupportReplies");
+                });
+
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.SupportRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAtUtc", "Id");
+
+                    b.HasIndex("OwnerId", "UpdatedAtUtc", "Id");
+
+                    b.ToTable("SupportRequests");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
@@ -1213,6 +1370,29 @@ namespace PersonalFinance.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.SupportReply", b =>
+                {
+                    b.HasOne("PersonalFinance.Infrastructure.Persistence.SupportRequest", null)
+                        .WithMany("Replies")
+                        .HasForeignKey("SupportRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.SupportRequest", b =>
+                {
+                    b.HasOne("PersonalFinance.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PersonalFinance.Infrastructure.Persistence.SupportRequest", b =>
+                {
+                    b.Navigation("Replies");
                 });
 #pragma warning restore 612, 618
         }

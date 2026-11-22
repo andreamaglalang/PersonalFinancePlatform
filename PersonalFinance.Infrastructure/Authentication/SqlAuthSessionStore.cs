@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Infrastructure.Identity;
 using PersonalFinance.Infrastructure.Persistence;
@@ -33,6 +33,9 @@ public sealed class SqlAuthSessionStore(ApplicationDbContext db) : IAuthSessionS
         db.RefreshTokens.Add(token);
         await db.SaveChangesAsync(ct);
     }
+
+    public Task RecordAccountEventAsync(int userId, string action, DateTime occurredAtUtc, CancellationToken ct) =>
+        PlatformJournal.RecordAsync(db, userId, action, "Account", userId, occurredAtUtc, ct);
 
     public async Task<bool> ConsumeAsync(string hash, string replacementHash, DateTime now, CancellationToken ct) =>
         await db.RefreshTokens.Where(x => x.TokenHash == hash && x.RevokedAtUtc == null && x.ExpiresAtUtc > now)

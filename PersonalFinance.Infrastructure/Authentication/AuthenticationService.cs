@@ -48,6 +48,7 @@ public sealed class AuthenticationService(
                 var assigned = await users.AddToRoleAsync(user, ApplicationRoles.User);
                 if (!assigned.Succeeded)
                     throw new InvalidOperationException("Role assignment failed; registration transaction must roll back.");
+                await store.RecordAccountEventAsync(user.Id, "Register", user.CreatedAtUtc, token);
                 return AuthResult<CurrentUserResponse>.Success(await DescribeAsync(user), 201);
             }, ct);
         }

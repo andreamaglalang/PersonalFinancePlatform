@@ -17,8 +17,15 @@ internal sealed class TestClock : TimeProvider
 }
 
 internal sealed class FakeIdentityStore : IUserPasswordStore<ApplicationUser>, IUserEmailStore<ApplicationUser>,
-    IUserRoleStore<ApplicationUser>, IUserLockoutStore<ApplicationUser>, IUserSecurityStampStore<ApplicationUser>
+    IUserRoleStore<ApplicationUser>, IUserLockoutStore<ApplicationUser>, IUserSecurityStampStore<ApplicationUser>, IUserAuthenticationTokenStore<ApplicationUser>
 {
+    private readonly Dictionary<(int, string, string), string?> authTokens = [];
+    public Task SetTokenAsync(ApplicationUser user, string provider, string name, string? value, CancellationToken ct)
+    { authTokens[(user.Id, provider, name)] = value; return Task.CompletedTask; }
+    public Task RemoveTokenAsync(ApplicationUser user, string provider, string name, CancellationToken ct)
+    { authTokens.Remove((user.Id, provider, name)); return Task.CompletedTask; }
+    public Task<string?> GetTokenAsync(ApplicationUser user, string provider, string name, CancellationToken ct) =>
+        Task.FromResult(authTokens.GetValueOrDefault((user.Id, provider, name)));
     public Dictionary<int, ApplicationUser> Users { get; } = [];
     public Dictionary<int, HashSet<string>> Membership { get; } = [];
     public void Dispose() { }
