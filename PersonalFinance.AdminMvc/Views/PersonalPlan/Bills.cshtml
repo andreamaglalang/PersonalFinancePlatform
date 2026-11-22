@@ -1,0 +1,28 @@
+@model PersonalBillOverview
+@{ ViewData["Title"] = "Recurring bills"; }
+<header class="android-heading"><div><p>Manage your money</p><h1>Plan</h1></div></header>
+<partial name="_PersonalPlanNav" />
+<header class="android-heading"><div><h2>Recurring bills</h2></div><a class="android-outline" asp-action="Bills">Refresh</a></header>
+@if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+else if (Model.Bills is { } page)
+{
+    if (page.Items.Count == 0) { <p class="card">No recurring bills on this page.</p> }
+    <div class="android-plan-grid">
+        @foreach (var bill in page.Items)
+        {
+            <article class="card android-plan-card">
+                <header><h3>@bill.Name</h3><span class="android-plan-badge">@bill.Status</span></header>
+                <p><strong>@PersonalMoneyDisplay.Format(bill.Amount, bill.CurrencyCode)</strong> · @bill.Frequency</p>
+                <p>Next due @bill.NextDueDate.ToString("MMM d, yyyy")</p>
+                @if (bill.LastPayment is { } paid) { <p>Last payment @paid.ToString("MMM d, yyyy")</p> }
+                else { <p>No last-payment date available.</p> }
+            </article>
+        }
+    </div>
+    <nav class="finance-actions" aria-label="Bill pages">
+        @if (page.Page > 1) { <a asp-action="Bills" asp-route-page="@(page.Page - 1)">Previous</a> }
+        @if ((long)page.Page * page.PageSize < page.TotalCount && (long)page.Page * page.PageSize <= int.MaxValue)
+        { <a asp-action="Bills" asp-route-page="@(page.Page + 1)">Next</a> }
+    </nav>
+}
+<p class="notice">Recording bill payments and viewing full payment history require the bill-payment schema and API support.</p>

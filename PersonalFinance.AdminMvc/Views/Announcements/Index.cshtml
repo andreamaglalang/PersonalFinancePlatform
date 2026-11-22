@@ -1,0 +1,47 @@
+@model PersonalFinance.AdminMvc.Controllers.AnnouncementList
+@{ ViewData["Title"] = "Announcements"; }
+<header class="page-heading mock-heading">
+    <h1>Announcements</h1>
+    @if (Model.Rows is not null) { <a class="button-link" asp-action="Edit">Create draft</a> }
+</header>
+<partial name="_ContentNotices" />
+<section class="card">
+@if (Model.Error is not null)
+{
+    <p role="alert">@Model.Error</p>
+    <a asp-action="Index" asp-route-page="@Model.Page">Retry</a>
+}
+else if (Model.Rows is { } rows)
+{
+    if (rows.Length == 0)
+    {
+        <div class="state-card"><h2>No announcements on this page</h2><p>Create a draft to prepare a message for users.</p></div>
+    }
+    foreach (var row in rows.Take(20))
+    {
+        <article class="content-item">
+            <div class="mock-heading">
+                <div><h2>@row.Title</h2><p>@row.Status · Updated @row.UpdatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</p></div>
+                <a asp-action="Edit" asp-route-id="@row.Id">@(row.Status == "Archived" ? "View" : "Edit")</a>
+            </div>
+            <p class="content-text">@row.Message</p>
+            @if (row.Status != "Archived")
+            {
+                <form asp-action="Status" asp-route-id="@row.Id" method="post" class="form-actions" data-busy="Updating announcement…">
+                    @if (row.Status == "Published") { <button class="secondary" type="submit" name="status" value="Draft">Unpublish</button> }
+                    else { <button type="submit" name="status" value="Published">Publish</button> }
+                    <button class="secondary" type="submit" name="status" value="Archived">Archive</button>
+                </form>
+            }
+        </article>
+    }
+    @if (Model.Page > 1 || rows.Length > 20)
+    {
+        <nav class="form-actions" aria-label="Announcement pages">
+            @if (Model.Page > 1) { <a asp-action="Index" asp-route-page="@(Model.Page - 1)">Previous</a> }
+            <span>Page @Model.Page</span>
+            @if (rows.Length > 20) { <a asp-action="Index" asp-route-page="@(Model.Page + 1)">Next</a> }
+        </nav>
+    }
+}
+</section>

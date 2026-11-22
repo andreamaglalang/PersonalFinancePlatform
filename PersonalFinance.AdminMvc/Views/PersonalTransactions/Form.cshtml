@@ -1,0 +1,33 @@
+@model PersonalTransactionForm
+@{ ViewData["Title"] = Model.Id.HasValue ? "Edit transaction" : Model.Type == "Income" ? "Add income" : "Add expense"; }
+<header class="page-heading mock-heading"><h1>@ViewData["Title"]</h1><a asp-action="Index">Back to transactions</a></header>
+<section class="card finance-form">
+    <form asp-action="@(Model.Id.HasValue ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" data-busy="Saving transaction…">
+        @if (!Model.Id.HasValue) { <input asp-for="DraftToken" type="hidden" /> }
+        <div asp-validation-summary="All" class="notice"></div>
+        <div class="finance-fields">
+            <div><label asp-for="Type"></label><select asp-for="Type">
+                <option value="Income">Income</option><option value="Expense">Expense</option>
+            </select></div>
+            <div><label asp-for="CategoryId">Category</label><select asp-for="CategoryId" required>
+                <option value="">Choose a category</option>
+                @foreach (var row in Model.Categories)
+                {
+                    <option value="@row.CategoryId">@row.Name (@row.Type@(row.IsActive ? "" : ", archived"))</option>
+                }
+            </select></div>
+            <div><label asp-for="Amount"></label><input asp-for="Amount" inputmode="decimal" required /></div>
+            <div><label asp-for="CurrencyCode">Currency code</label><input asp-for="CurrencyCode" minlength="3" maxlength="3" pattern="[A-Z]{3}" required /></div>
+            <div><label asp-for="TransactionDate">Transaction date</label><input asp-for="TransactionDate" asp-format="{0:yyyy-MM-dd}" type="date" required /></div>
+        </div>
+        <label asp-for="Description"></label><textarea asp-for="Description" maxlength="200" rows="3"></textarea>
+        @if (Model.CategoriesAvailable && Model.Categories.Count == 0)
+        {
+            <p>There are no active categories. <a asp-controller="PersonalCategories" asp-action="Create">Create a category</a> to continue.</p>
+        }
+        <div class="finance-actions">
+            <button type="submit" disabled="@(!Model.CategoriesAvailable || Model.Categories.Count == 0)">Save transaction</button>
+            <a asp-action="Index">Cancel</a>
+        </div>
+    </form>
+</section>

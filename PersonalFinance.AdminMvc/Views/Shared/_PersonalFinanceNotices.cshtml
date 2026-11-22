@@ -1,0 +1,18 @@
+@using System.Security.Claims
+@using Microsoft.Extensions.Caching.Memory
+@using PersonalFinance.AdminMvc.Authentication
+@inject IMemoryCache Notices
+@if (TempData["PersonalFinanceNotice"] is string notice)
+{
+    <p class="success-notice" role="status">@notice</p>
+}
+@if (TempData["AffectedBudgetNoticeId"] is string encoded && encoded.StartsWith("budget:", StringComparison.Ordinal)
+    && User.FindFirstValue(AdminSessionStore.SessionClaim) is { } sessionId
+    && Notices.TryGetValue<PersonalBudgetNotice>(encoded, out var result) && result?.SessionId == sessionId)
+{
+    Notices.Remove(encoded);
+    <section class="card finance-section" aria-labelledby="affected-budgets">
+        <h2 id="affected-budgets">Affected budgets</h2>
+        <ul>@foreach (var budget in result.Lines) { <li>@budget</li> }</ul>
+    </section>
+}

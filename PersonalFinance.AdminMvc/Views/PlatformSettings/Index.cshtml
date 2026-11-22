@@ -1,0 +1,23 @@
+@model PersonalFinance.AdminMvc.Controllers.SettingsPage
+@{ ViewData["Title"] = "Platform Settings"; }
+<header class="page-heading mock-heading"><h1>Platform Settings</h1><a class="button-link" asp-action="Index">Refresh</a></header>
+<partial name="_ContentNotices" />
+<section class="card">
+@if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+@if (Model.Rows is { Length: 0 }) { <p>No editable settings are available.</p> }
+@if (Model.Rows is { } rows)
+{
+    @foreach (var row in rows.Where(x => x.Key is "welcomeMessage" or "supportInstructions"))
+    {
+        var label = row.Key == "welcomeMessage" ? "Welcome message" : "Support instructions";
+        <form class="content-item" asp-action="Save" method="post" data-busy="Saving setting…">
+            <input type="hidden" name="key" value="@row.Key" />
+            <label for="@row.Key">@label</label>
+            <p>Visible to signed-in users.</p>
+            <textarea id="@row.Key" name="value" maxlength="500" rows="3">@(Model.FailedKey == row.Key ? Model.Draft : row.Value)</textarea>
+            <p>@(row.UpdatedAtUtc is { } updated ? $"Updated {updated:yyyy-MM-dd HH:mm} UTC" : "Not yet configured")</p>
+            <button type="submit">Save @label.ToLowerInvariant()</button>
+        </form>
+    }
+}
+</section>

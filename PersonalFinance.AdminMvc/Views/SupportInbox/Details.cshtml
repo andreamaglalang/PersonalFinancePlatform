@@ -1,0 +1,42 @@
+@model PersonalFinance.AdminMvc.Controllers.TicketDetail
+@{ ViewData["Title"] = "Request Details"; }
+<header class="page-heading mock-heading"><h1>Request Details</h1><a class="button-link" asp-action="Index">Back to Inbox</a></header>
+<partial name="_ContentNotices" />
+<section class="card">
+@if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+@if (Model.Ticket is { } ticket)
+{
+    <h2>@ticket.Subject</h2>
+    <p>@ticket.Kind · Submitted @ticket.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</p>
+    <p class="content-text">@ticket.Message</p>
+    <form asp-action="Status" asp-route-id="@ticket.Id" method="post" class="form-actions" data-busy="Saving status…">
+        <label for="request-status">Request status</label>
+        <select id="request-status" name="status">
+            <option selected="@(ticket.Status == "Open")" value="Open">Open</option>
+            <option selected="@(ticket.Status == "InProgress")" value="InProgress">In progress</option>
+            <option selected="@(ticket.Status == "Resolved")" value="Resolved">Resolved</option>
+        </select>
+        <button type="submit">Save status</button>
+    </form>
+    <section class="content-item">
+        <h2>Administrator replies</h2>
+        @if (ticket.Replies.Length == 0) { <p>No replies yet.</p> }
+        @foreach (var reply in ticket.Replies)
+        {
+            <article class="content-item"><p>@reply.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</p><p class="content-text">@reply.Message</p></article>
+        }
+        @if (ticket.ReplyPage > 1 || ticket.HasMoreReplies)
+        {
+            <nav class="form-actions" aria-label="Support reply pages">
+                @if (ticket.ReplyPage > 1) { <a asp-action="Details" asp-route-id="@ticket.Id" asp-route-replyPage="@(ticket.ReplyPage - 1)">Newer replies</a> }
+                @if (ticket.HasMoreReplies) { <a asp-action="Details" asp-route-id="@ticket.Id" asp-route-replyPage="@(ticket.ReplyPage + 1)">Older replies</a> }
+            </nav>
+        }
+        <form asp-action="Reply" asp-route-id="@ticket.Id" method="post" data-busy="Sending reply…">
+            <label for="reply-message">Reply to request owner</label>
+            <textarea id="reply-message" name="message" maxlength="4000" rows="5" required>@Model.Draft</textarea>
+            <button type="submit">Send reply</button>
+        </form>
+    </section>
+}
+</section>

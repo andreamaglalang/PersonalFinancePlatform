@@ -1,0 +1,8 @@
+@if (TempData["ContentNotice"] is string notice)
+{
+    <p class="success-notice" role="status">@notice</p>
+}
+@if (TempData["ContentError"] is string error)
+{
+    <p class="notice" role="alert">@error</p>
+}

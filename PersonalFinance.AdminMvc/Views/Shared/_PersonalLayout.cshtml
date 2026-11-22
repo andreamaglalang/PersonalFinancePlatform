@@ -1,0 +1,75 @@
+@{
+    var personal = User.Identity?.IsAuthenticated == true && User.IsInRole("User") && !User.IsInRole("Administrator");
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var settings = personal && (controller == "PersonalCategories"
+        || controller == "Personal" && action is ("Account" or "Currency" or "Password"));
+    var aligned = personal && (settings || action == "Index" && controller is ("Personal" or "PersonalTransactions" or "PersonalBudgets" or "PersonalReports")
+        || controller == "PersonalPlan" && action is ("Goals" or "Goal" or "Bills"));
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — OWLI</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/owlight.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/personal.css" asp-append-version="true" />
+    @if (aligned) { <link rel="stylesheet" href="~/css/personal-android.css" asp-append-version="true" /> }
+    <script src="~/js/owli-ui.js" asp-append-version="true"></script>
+    <script src="~/js/personal-overview.js" asp-append-version="true"></script>
+</head>
+<body class="personal-shell @(aligned ? "android-personal" : null)">
+    <a class="skip-link" href="#main">Skip to main content</a>
+    @if (aligned)
+    {
+        <header class="android-session">
+            <a asp-controller="Personal" asp-action="Account"><span aria-hidden="true"></span> Signed in</a>
+            <form asp-controller="Personal" asp-action="Logout" method="post" data-busy="Signing out…"><button class="secondary" type="submit">Log out</button></form>
+        </header>
+        <nav class="android-dock" aria-label="OWLI navigation">
+            <a asp-controller="Personal" asp-action="Index" aria-current="@(controller == "Personal" && action == "Index" ? "page" : null)"><partial name="_NavIcon" model='"dashboard"' />Home</a>
+            <a asp-controller="PersonalTransactions" asp-action="Index" aria-current="@(controller == "PersonalTransactions" ? "page" : null)"><partial name="_NavIcon" model='"clock"' />Activity</a>
+            <a class="android-add" asp-controller="PersonalTransactions" asp-action="Create" asp-route-type="Expense"><partial name="_NavIcon" model='"plus"' />Add</a>
+            <a asp-controller="PersonalBudgets" asp-action="Index" asp-route-month="@PersonalFinance.AdminMvc.ViewModels.PersonalMonth.Format(PersonalFinance.AdminMvc.ViewModels.PersonalMonth.Current)" aria-current="@(controller is "PersonalBudgets" or "PersonalPlan" ? "location" : null)"><partial name="_NavIcon" model='"budget"' />Plan</a>
+            <a asp-controller="PersonalReports" asp-action="Index" aria-current="@(controller == "PersonalReports" ? "page" : null)"><partial name="_NavIcon" model='"report"' />Insights</a>
+        </nav>
+    }
+    else
+    {
+    <header class="personal-header">
+        <a class="brand" asp-controller="Personal" asp-action="@(personal ? "Index" : "Login")">
+            <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
+            <span class="brand-name"><b>OWLI</b></span>
+        </a>
+        <nav class="personal-nav" aria-label="OWLI navigation">
+            @if (personal)
+            {
+                <a asp-controller="Personal" asp-action="Index" aria-current="@(controller == "Personal" && action == "Index" ? "page" : null)">Home</a>
+                <a asp-controller="PersonalTransactions" asp-action="Index" aria-current="@(controller == "PersonalTransactions" ? "location" : null)">Activity</a>
+                <a asp-controller="PersonalCategories" asp-action="Index" aria-current="@(controller == "PersonalCategories" ? "location" : null)">Categories</a>
+                <a asp-controller="PersonalTransactions" asp-action="Create" asp-route-type="Expense">Add</a>
+                <a asp-controller="PersonalBudgets" asp-action="Index" aria-current="@(controller is "PersonalBudgets" or "PersonalPlan" ? "location" : null)">Plan</a>
+                <a asp-controller="PersonalReports" asp-action="Index" aria-current="@(controller == "PersonalReports" ? "page" : null)">Insights</a>
+                <a asp-controller="Personal" asp-action="Account" aria-current="@(action == "Account" ? "page" : null)">My account</a>
+                <form asp-controller="Personal" asp-action="Logout" method="post" data-busy="Signing out…">
+                    <button class="secondary" type="submit">Log out</button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Personal" asp-action="Login" aria-current="@(action == "Login" ? "page" : null)">Sign in</a>
+                <a asp-controller="Personal" asp-action="Register" aria-current="@(action == "Register" ? "page" : null)">Create account</a>
+                <a asp-controller="Account" asp-action="Login">Administrator portal</a>
+            }
+            <button class="secondary" type="button" data-personal-theme-toggle aria-label="Change theme" aria-pressed="false" hidden>
+                <span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span>
+                <span class="sun-icon"><partial name="_NavIcon" model='"sun"' /></span>
+            </button>
+        </nav>
+    </header>
+    }
+    <main id="main" tabindex="-1"><div class="workspace-content">@RenderBody()</div></main>
+</body>
+</html>

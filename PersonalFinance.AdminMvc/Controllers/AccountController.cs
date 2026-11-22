@@ -52,6 +52,8 @@ public sealed class AccountController(AuthenticationCoordinator coordinator) : C
         {
             model.Message = result.Failure switch
             {
+                ApiFailure.Forbidden => "This account cannot sign in to the Administrator portal. Use the regular-user portal for a personal account.",
+                ApiFailure.BadRequest => "Enter a valid email address and password.",
                 ApiFailure.RateLimited => "Too many sign-in attempts. Please wait before trying again.",
                 ApiFailure.Unavailable or ApiFailure.InvalidResponse => "Authentication is temporarily unavailable. Please try again later.",
                 _ => "Unable to sign in to the administrator application with these credentials."
@@ -87,13 +89,28 @@ public sealed class AccountController(AuthenticationCoordinator coordinator) : C
             : Forbid(AdminSessionStore.Scheme);
     }
 
+    [HttpGet, Authorize(Policy = "Administrator")]
+    public IActionResult SwitchPortal(string? destination) =>
+        View(new PersonalPortalSwitch(destination == "Register"));
+
+    [HttpPost, Authorize(Policy = "Administrator"), ValidateAntiForgeryToken, LocalLogout]
+    public async Task<IActionResult> ConfirmPersonalPortal([FromForm] bool register)
+    {
+        await EndAdministratorSessionAsync();
+        return RedirectToAction(register ? nameof(PersonalController.Register) : nameof(PersonalController.Login), "Personal");
+    }
+
     [HttpPost, ValidateAntiForgeryToken, LocalLogout]
     public async Task<IActionResult> Logout()
     {
+        await EndAdministratorSessionAsync();
+        return RedirectToAction(nameof(Login));
+    }
+
+    private async Task EndAdministratorSessionAsync()
+    {
         try { await coordinator.LogoutAsync(User.FindFirstValue(AdminSessionStore.SessionClaim)); }
         finally { await HttpContext.SignOutAsync(AdminSessionStore.Scheme); }
-        // No assertion that remote revocation succeeded when the backend is unavailable.
-        return RedirectToAction(nameof(Login));
     }
 
     [AllowAnonymous, HttpGet]

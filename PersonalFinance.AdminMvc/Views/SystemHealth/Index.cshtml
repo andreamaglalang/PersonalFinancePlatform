@@ -1,0 +1,22 @@
+@model PersonalFinance.AdminMvc.Controllers.SystemHealthViewModel
+@{ ViewData["Title"] = "System Health"; }
+<header class="page-heading mock-heading">
+    <h1>System Health</h1>
+    <a class="button-link" asp-action="Index">Refresh</a>
+</header>
+<section class="card">
+    <dl class="details-list">
+        <dt>API reachability</dt><dd>@(Model.Health is null ? "Unable to verify" : "Reachable")</dd>
+        <dt>Database connectivity</dt><dd>@(Model.Health is null ? "Unable to verify" : Model.Health.DatabaseHealthy ? "Healthy" : "Unavailable")</dd>
+        <dt>Last successful refresh (UTC)</dt>
+        <dd>@(Model.LastSuccessfulRefresh?.ToUniversalTime().ToString("MMM d, yyyy HH:mm:ss") ?? "—")</dd>
+    </dl>
+    @if (Model.Health is null)
+    {
+        <p role="alert">The API did not return a health result. Try refreshing shortly.</p>
+    }
+    else if (!Model.Health.DatabaseHealthy)
+    {
+        <p role="alert">The API responded, but its database connectivity check failed.</p>
+    }
+</section>

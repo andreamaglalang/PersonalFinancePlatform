@@ -1,0 +1,10 @@
+@model PersonalOverview
+<div class="monthly-totals">
+    <section class="card"><h2>Total income</h2><p class="overview-value">@Model.TotalIncome.ToString("N2") @Model.BaseCurrency</p></section>
+    <section class="card"><h2>Total expenses</h2><p class="overview-value">@Model.TotalExpenses.ToString("N2") @Model.BaseCurrency</p></section>
+    <section class="card">
+        <h2>Net transaction flow</h2><p class="overview-value">@Model.NetCashFlow.ToString("N2") @Model.BaseCurrency</p>
+        <p class="overview-detail">Income minus expenses. This figure does not represent a verified bank balance.</p>
+    </section>
+    <section class="card"><h2>Transactions</h2><p class="overview-value">@Model.TransactionCount.ToString("N0")</p></section>
+</div>

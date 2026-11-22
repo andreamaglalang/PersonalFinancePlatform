@@ -1,0 +1,42 @@
+@model PersonalGoalDetails
+@{ ViewData["Title"] = "Savings goal"; }
+<header class="android-heading android-goal-heading"><div><h1>@Model.Goal.Name</h1></div><a asp-action="Goals">Back to goals</a></header>
+@if (TempData["PersonalGoalNotice"] is string notice) { <p class="success-notice" role="status">@notice</p> }
+<section class="card">
+    <p>@PersonalMoneyDisplay.Format(Model.Goal.SavedAmount, Model.Goal.BaseCurrency) of @PersonalMoneyDisplay.Format(Model.Goal.TargetAmount, Model.Goal.BaseCurrency) · @Model.Goal.Status</p>
+    <progress class="android-plan-progress" max="100" value="@Math.Clamp(Model.Goal.ProgressPercentage, 0, 100).ToString(System.Globalization.CultureInfo.InvariantCulture)" aria-label="Goal progress"></progress>
+    <p>@PersonalMoneyDisplay.Format(Model.Goal.RemainingAmount, Model.Goal.BaseCurrency) remaining</p>
+</section>
+<section class="card android-plan-section">
+    <h2>Contributions</h2>
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+    else if (Model.Contributions is { } page)
+    {
+        if (page.Items.Count == 0) { <p>No contributions on this page.</p> }
+        else
+        {
+            <div class="table-scroll"><table>
+                <thead><tr><th scope="col">Date</th><th scope="col">Amount</th><th scope="col">Note</th></tr></thead>
+                <tbody>@foreach(var row in page.Items) { <tr><td>@row.ContributedOn.ToString("MMM d, yyyy")</td><td>@PersonalMoneyDisplay.Format(row.Amount, row.BaseCurrency)</td><td>@row.Note</td></tr> }</tbody>
+            </table></div>
+        }
+        <nav class="finance-actions" aria-label="Contribution pages">
+            @if (page.Page > 1) { <a asp-action="Goal" asp-route-id="@Model.Goal.GoalId" asp-route-page="@(page.Page - 1)">Previous</a> }
+            @if ((long)page.Page * page.PageSize < page.TotalCount) { <a asp-action="Goal" asp-route-id="@Model.Goal.GoalId" asp-route-page="@(page.Page + 1)">Next</a> }
+        </nav>
+    }
+    @if (Model.Goal.Status != "Cancelled" && Model.Contributions is not null)
+    {
+        <form asp-action="Contribute" asp-route-id="@Model.Goal.GoalId" method="post" class="finance-form" data-busy="Recording contribution…">
+            <input type="hidden" name="ClientId" value="@Model.Entry.ClientId" />
+            <div asp-validation-summary="All" class="notice"></div>
+            <label for="contribution-amount">Amount (@Model.Goal.BaseCurrency)</label>
+            <input id="contribution-amount" name="Amount" inputmode="decimal" value="@Model.Entry.Amount" required />
+            <label for="contribution-date">Date</label>
+            <input id="contribution-date" name="ContributedOn" type="date" value="@Model.Entry.ContributedOn?.ToString("yyyy-MM-dd")" required />
+            <label for="contribution-note">Note (optional)</label>
+            <input id="contribution-note" name="Note" value="@Model.Entry.Note" maxlength="200" />
+            <button type="submit">Add contribution</button>
+        </form>
+    }
+</section>

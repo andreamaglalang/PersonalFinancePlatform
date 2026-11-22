@@ -32,6 +32,7 @@ builder.Services.AddHttpClient<IAuthenticationApiClient, AuthenticationApiClient
     AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
 }).RemoveAllLoggers();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<ICategoryApiClient, CategoryApiClient>((provider, http) =>
 {
     http.BaseAddress = new Uri(provider.GetRequiredService<IOptions<BackendApiOptions>>().Value.BaseUrl);
@@ -64,8 +65,34 @@ builder.Services.AddHttpClient<ReportsApiClient>((provider, http) =>
 {
     AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
 }).RemoveAllLoggers();
+builder.Services.AddHttpClient<AdminApiClient>((provider, http) =>
+{
+    http.BaseAddress = new Uri(provider.GetRequiredService<IOptions<BackendApiOptions>>().Value.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(10);
+    http.MaxResponseContentBufferSize = 1024 * 1024;
+    http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+}).RemoveAllLoggers();
+builder.Services.AddHttpClient<PersonalFinanceApiClient>((provider, http) =>
+{
+    http.BaseAddress = new Uri(provider.GetRequiredService<IOptions<BackendApiOptions>>().Value.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(10);
+    http.MaxResponseContentBufferSize = 1024 * 1024;
+    http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    AllowAutoRedirect = false, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+}).RemoveAllLoggers();
 builder.Services.AddScoped<AuthenticationCoordinator>();
 builder.Services.AddScoped<AdminCookieEvents>();
+builder.Services.AddKeyedSingleton<AdminSessionStore>(PersonalSession.Scheme);
+builder.Services.AddKeyedScoped<AuthenticationCoordinator>(PersonalSession.Scheme, (services, key) =>
+    new AuthenticationCoordinator(services.GetRequiredKeyedService<AdminSessionStore>(key),
+        services.GetRequiredService<IAuthenticationApiClient>(),
+        PersonalFinance.AdminMvc.Services.Contracts.ContractValidation.RegularUser));
+builder.Services.AddScoped<PersonalCookieEvents>();
 builder.Services.AddAuthentication(AdminSessionStore.Scheme)
     .AddCookie(AdminSessionStore.Scheme, options =>
     {
@@ -79,14 +106,32 @@ builder.Services.AddAuthentication(AdminSessionStore.Scheme)
         options.SlidingExpiration = false;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.EventsType = typeof(AdminCookieEvents);
+    })
+    .AddCookie(PersonalSession.Scheme, options =>
+    {
+        options.Cookie.Name = "__Host-OWLI.Personal";
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.Path = "/";
+        options.LoginPath = "/Personal/Login";
+        options.AccessDeniedPath = "/Personal/AccessDenied";
+        options.SlidingExpiration = false;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.EventsType = typeof(PersonalCookieEvents);
     });
 builder.Services.AddOptions<CookieAuthenticationOptions>(AdminSessionStore.Scheme)
     .Configure<AdminSessionStore>((options, store) => options.SessionStore = store);
+builder.Services.AddOptions<CookieAuthenticationOptions>(PersonalSession.Scheme)
+    .Configure<IServiceProvider>((options, services) =>
+        options.SessionStore = services.GetRequiredKeyedService<AdminSessionStore>(PersonalSession.Scheme));
 var administrators = new AuthorizationPolicyBuilder(AdminSessionStore.Scheme)
     .RequireAuthenticatedUser().RequireRole("Administrator").Build();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Administrator", administrators);
+    options.AddPolicy(PersonalSession.Policy, policy => policy.AddAuthenticationSchemes(PersonalSession.Scheme)
+        .RequireAuthenticatedUser().RequireRole("User").RequireAssertion(context => !context.User.IsInRole("Administrator")));
     options.DefaultPolicy = administrators;
     options.FallbackPolicy = administrators;
 });

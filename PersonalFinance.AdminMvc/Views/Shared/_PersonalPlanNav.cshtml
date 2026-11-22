@@ -1,0 +1,9 @@
+@{
+    var current = ViewContext.RouteData.Values["action"]?.ToString();
+    var plan = ViewContext.RouteData.Values["controller"]?.ToString() == "PersonalPlan";
+}
+<nav class="android-segments android-type-tabs android-plan-tabs" aria-label="Plan sections">
+    <a asp-controller="PersonalBudgets" asp-action="Index" asp-route-month="@PersonalMonth.Format(PersonalMonth.Current)" aria-current="@(!plan ? "page" : null)">Budgets</a>
+    <a asp-controller="PersonalPlan" asp-action="Goals" aria-current="@(plan && current is ("Goals" or "Goal") ? "page" : null)">Goals</a>
+    <a asp-controller="PersonalPlan" asp-action="Bills" aria-current="@(plan && current == "Bills" ? "page" : null)">Bills</a>
+</nav>

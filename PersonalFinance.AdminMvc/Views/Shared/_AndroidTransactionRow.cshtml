@@ -1,0 +1,7 @@
+@model PersonalTransaction
+@{ var income = Model.Type == "Income"; }
+<a class="android-entry @(income ? "income" : "expense")" asp-controller="PersonalTransactions" asp-action="Details" asp-route-id="@Model.TransactionId">
+    <span class="android-entry-icon" aria-hidden="true"><partial name="_NavIcon" model='@(income ? "up" : "down")' /></span>
+    <span><strong>@Model.CategoryName</strong><small>@(string.IsNullOrWhiteSpace(Model.Description) ? Model.Type : Model.Description) · @Model.TransactionDate.ToString("MMM d")</small></span>
+    <strong class="android-entry-money" aria-label="@Model.Type @PersonalMoneyDisplay.Format(Model.Amount, Model.CurrencyCode)">@PersonalMoneyDisplay.Format(income ? Model.Amount : -Model.Amount, Model.CurrencyCode, signed: true)</strong>
+</a>

@@ -1,0 +1,10 @@
+@model FinanceFlowShare
+@if (Model.Income > 0 || Model.Expenses > 0)
+{
+    <section class="card finance-section" aria-labelledby="flow-share-heading">
+        <h2 id="flow-share-heading">Income and expense share</h2>
+        <p>Percentages are shares of recorded income plus recorded expenses.</p>
+        <partial name="_PersonalSpendingChart" model="@(new SpendingBreakdown(Model.Currency,
+            [new(1, "Income", Model.Income, 0), new(2, "Expenses", Model.Expenses, 0)], ShowTop: false))" />
+    </section>
+}

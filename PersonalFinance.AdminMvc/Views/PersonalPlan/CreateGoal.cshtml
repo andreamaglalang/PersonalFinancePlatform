@@ -1,0 +1,12 @@
+@model PersonalGoalForm
+@{ ViewData["Title"] = "Create savings goal"; }
+<header class="page-heading"><h1>Create savings goal</h1></header>
+<section class="card finance-form">
+    <form asp-action="CreateGoal" method="post" data-busy="Saving goal…">
+        <div asp-validation-summary="All" class="notice"></div>
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="100" required />
+        <label asp-for="TargetAmount">Target amount</label><input asp-for="TargetAmount" inputmode="decimal" required />
+        <label asp-for="TargetDate">Target date (optional)</label><input asp-for="TargetDate" type="date" />
+        <div class="finance-actions"><button type="submit">Create goal</button><a asp-action="Goals">Cancel</a></div>
+    </form>
+</section>

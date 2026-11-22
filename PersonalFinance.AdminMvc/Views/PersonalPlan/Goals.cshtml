@@ -1,0 +1,28 @@
+@model GoalOverview
+@{ ViewData["Title"] = "Savings goals"; }
+<header class="android-heading"><div><p>Manage your money</p><h1>Plan</h1></div></header>
+<partial name="_PersonalPlanNav" />
+@if (Model.Error is not null)
+{
+    <section class="card"><h2>Savings goals</h2><p class="notice" role="alert">@Model.Error Savings data requires a compatible goals schema.</p><a asp-action="Goals">Retry</a></section>
+}
+else if (Model.Goals is { } page)
+{
+    <header class="android-heading"><div><h2>Savings goals</h2></div><a class="android-outline" asp-action="CreateGoal">+ New goal</a></header>
+    if (page.Items.Count == 0) { <p>No savings goals on this page.</p> }
+    <div class="android-plan-grid">
+    @foreach (var goal in page.Items)
+    {
+        <section class="card android-plan-card">
+            <header><h3><a asp-action="Goal" asp-route-id="@goal.GoalId">@goal.Name</a></h3><span class="android-plan-badge">@goal.Status</span></header>
+            <p>@PersonalMoneyDisplay.Format(goal.SavedAmount, goal.BaseCurrency) of @PersonalMoneyDisplay.Format(goal.TargetAmount, goal.BaseCurrency)</p>
+            <progress class="android-plan-progress" max="100" value="@Math.Clamp(goal.ProgressPercentage, 0, 100).ToString(System.Globalization.CultureInfo.InvariantCulture)" aria-label="@goal.Name progress"></progress>
+            @if (goal.TargetDate is { } date) { <p>Target @date.ToString("MMM d, yyyy")</p> }
+        </section>
+    }
+    </div>
+    <nav class="finance-actions" aria-label="Savings goal pages">
+        @if (page.Page > 1) { <a asp-action="Goals" asp-route-page="@(page.Page - 1)">Previous</a> }
+        @if ((long)page.Page * page.PageSize < page.TotalCount) { <a asp-action="Goals" asp-route-page="@(page.Page + 1)">Next</a> }
+    </nav>
+}

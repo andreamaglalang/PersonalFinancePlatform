@@ -1,0 +1,14 @@
+@model BudgetEditViewModel
+@{
+    ViewData["Title"] = "Edit budget";
+    var budget = (PersonalFinance.AdminMvc.Services.BudgetResponse)ViewData["PersonalBudget"]!;
+}
+<header class="page-heading mock-heading"><h1>Edit budget</h1><a asp-action="Details" asp-route-id="@budget.BudgetId">Back to budget</a></header>
+<section class="card finance-form">
+    <p>@budget.CategoryName · @budget.PeriodMonth.ToString("MMMM yyyy") · @budget.BaseCurrency</p>
+    <form asp-action="Edit" asp-route-id="@budget.BudgetId" method="post" data-busy="Saving budget…">
+        <div asp-validation-summary="All" class="notice" role="alert"></div>
+        <partial name="~/Views/Budgets/_BudgetFields.cshtml" model="Model" />
+        <div class="finance-actions"><button type="submit">Save changes</button><a asp-action="Details" asp-route-id="@budget.BudgetId">Cancel</a></div>
+    </form>
+</section>

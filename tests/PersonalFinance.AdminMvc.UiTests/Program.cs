@@ -43,6 +43,7 @@ Check(account.GetMethod(nameof(AccountController.Logout))!.IsDefined(typeof(Vali
 
 Console.WriteLine("PASS: page-local category filtering and sorting, pagination, input validation, Administrator and antiforgery metadata.");
 await ReportsChecks.RunAsync();
+await PersonalAuthenticationChecks.RunAsync();
 
 sealed class PageFixture : ICategoryManagementService
 {

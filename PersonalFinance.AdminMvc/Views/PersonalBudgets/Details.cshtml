@@ -1,0 +1,12 @@
+@model PersonalBudgetDetails
+@{ ViewData["Title"] = "Budget details"; }
+<header class="page-heading mock-heading"><h1>Budget details</h1><a asp-action="Index">Back to budgets</a></header>
+@if (TempData["PersonalBudgetNotice"] is string notice) { <p class="success-notice" role="status">@notice</p> }
+<section class="card finance-form">
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+    @if (Model.Budget is { } row)
+    {
+        <partial name="_PersonalBudgetFacts" model="row" />
+        <div class="finance-actions"><a class="button-link" asp-action="Edit" asp-route-id="@row.BudgetId">Edit</a><a asp-action="Delete" asp-route-id="@row.BudgetId">Delete</a></div>
+    }
+</section>

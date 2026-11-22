@@ -1,0 +1,43 @@
+@model PersonalFinance.AdminMvc.Services.PlatformActivity
+@{ ViewData["Title"] = "Platform Activity"; }
+<header class="page-heading mock-heading">
+    <h1>Platform Activity</h1>
+    <a class="button-link" asp-action="Index">Refresh</a>
+</header>
+@if (Model is null)
+{
+    <section class="card"><p role="alert">Platform activity is temporarily unavailable.</p></section>
+}
+else
+{
+    <section class="card activity-card" aria-labelledby="activity-statistics">
+        <h2 id="activity-statistics">Aggregate statistics</h2>
+        <dl class="details-list">
+            <dt>Regular-user registrations in the last 7 days</dt><dd>@Model.RegistrationsLastSevenDays.ToString("N0")</dd>
+            <dt>Transactions currently stored across the platform</dt><dd>@Model.TransactionCount.ToString("N0")</dd>
+        </dl>
+    </section>
+    <section class="card activity-card" aria-labelledby="activity-events">
+        <h2 id="activity-events">Recent events</h2>
+        @if (!Model.SignInRecordingAvailable)
+        {
+            <p>Successful sign-in recording will begin after the platform journal migration is approved and applied.</p>
+        }
+        @if (Model.Events.Count == 0)
+        {
+            <p>No recorded activity in the last 7 days.</p>
+        }
+        else
+        {
+            <div class="table-scroll"><table>
+                <thead><tr><th scope="col">Event</th><th scope="col">Time (UTC)</th></tr></thead>
+                <tbody>
+                @foreach (var entry in Model.Events)
+                {
+                    <tr><td>@entry.Action</td><td>@entry.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</td></tr>
+                }
+                </tbody>
+            </table></div>
+        }
+    </section>
+}

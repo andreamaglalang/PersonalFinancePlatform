@@ -1,0 +1,8 @@
+@model PersonalTransaction
+<dl class="details-list">
+    <dt>Type</dt><dd>@Model.Type</dd>
+    <dt>Category</dt><dd>@Model.CategoryName</dd>
+    <dt>Date</dt><dd>@Model.TransactionDate.ToString("MMM d, yyyy")</dd>
+    <dt>Original amount</dt><dd>@Model.Amount.ToString("N2") @Model.CurrencyCode</dd>
+    <dt>Description</dt><dd class="content-text">@(string.IsNullOrWhiteSpace(Model.Description) ? "—" : Model.Description)</dd>
+</dl>

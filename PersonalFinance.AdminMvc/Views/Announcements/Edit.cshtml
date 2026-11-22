@@ -1,0 +1,19 @@
+@model PersonalFinance.AdminMvc.Controllers.AnnouncementForm
+@{ ViewData["Title"] = Model.Status == "Archived" ? "Archived Announcement" : Model.Id.HasValue ? "Edit Announcement" : "Create Announcement"; }
+<header class="page-heading mock-heading"><h1>@ViewData["Title"]</h1><a class="button-link" asp-action="Index">Back to Announcements</a></header>
+<section class="card">
+@if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+@if (Model.Status == "Archived")
+{
+    <h2>@Model.Title</h2><p class="content-text">@Model.Message</p>
+}
+else if (Model.Error is null || Model.Id.HasValue || Model.Title.Length > 0 || Model.Message.Length > 0)
+{
+    <form asp-action="Save" asp-route-id="@Model.Id" method="post" data-busy="Saving announcement…">
+        <div asp-validation-summary="All"></div>
+        <label asp-for="Title"></label><input asp-for="Title" maxlength="120" required />
+        <label asp-for="Message"></label><textarea asp-for="Message" rows="8" maxlength="4000" required></textarea>
+        <button type="submit">@(Model.Id.HasValue ? "Save changes" : "Save draft")</button>
+    </form>
+}
+</section>

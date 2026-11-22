@@ -1,0 +1,48 @@
+@model PersonalFinance.AdminMvc.Controllers.SupportList
+@{ ViewData["Title"] = "Feedback & Support"; }
+<header class="page-heading mock-heading"><h1>Feedback &amp; Support</h1><a class="button-link" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-kind="@Model.Kind" asp-route-page="@Model.Page">Refresh</a></header>
+<section class="card">
+    <form asp-action="Index" method="get" class="form-actions" data-busy="Searching requests…">
+        <label for="ticket-search">Subject or message</label>
+        <input id="ticket-search" name="search" type="search" value="@Model.Search" maxlength="100" />
+        <label for="ticket-status">Status</label>
+        <select id="ticket-status" name="status">
+            <option value="">All statuses</option>
+            <option selected="@(Model.Status == "Open")" value="Open">Open</option>
+            <option selected="@(Model.Status == "InProgress")" value="InProgress">In progress</option>
+            <option selected="@(Model.Status == "Resolved")" value="Resolved">Resolved</option>
+        </select>
+        <label for="ticket-kind">Type</label>
+        <select id="ticket-kind" name="kind">
+            <option value="">All types</option>
+            <option selected="@(Model.Kind == "Feedback")" value="Feedback">Feedback</option>
+            <option selected="@(Model.Kind == "Support")" value="Support">Support</option>
+        </select>
+        <button type="submit">Search</button>
+    </form>
+    @if (Model.Error is not null) { <p role="alert">@Model.Error</p> }
+    else if (Model.Rows is { } rows)
+    {
+        if (rows.Length == 0) { <div class="state-card"><h2>No requests found</h2><p>Requests submitted to OWLI appear here when they match your filters.</p><a asp-action="Index">Clear filters</a></div> }
+        else
+        {
+            <div class="table-scroll"><table>
+                <thead><tr><th scope="col">Subject</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Updated (UTC)</th></tr></thead>
+                <tbody>
+                @foreach (var row in rows.Take(20))
+                {
+                    <tr><td><a asp-action="Details" asp-route-id="@row.Id">@row.Subject</a></td><td>@row.Kind</td><td>@(row.Status == "InProgress" ? "In progress" : row.Status)</td><td>@row.UpdatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td></tr>
+                }
+                </tbody>
+            </table></div>
+        }
+        @if (Model.Page > 1 || rows.Length > 20)
+        {
+            <nav aria-label="Support inbox pages" class="form-actions">
+                @if (Model.Page > 1) { <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-kind="@Model.Kind">Previous</a> }
+                <span>Page @Model.Page</span>
+                @if (rows.Length > 20) { <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-kind="@Model.Kind">Next</a> }
+            </nav>
+        }
+    }
+</section>

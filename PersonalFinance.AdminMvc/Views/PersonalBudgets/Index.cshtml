@@ -1,0 +1,82 @@
+@model PersonalBudgetList
+@using System.Globalization
+@{
+    ViewData["Title"] = "Budgets";
+    DateOnly? month = PersonalMonth.TryParse(Model.Month, out var parsed) && PersonalMonth.IsReportMonth(parsed) ? parsed : null;
+    var rows = Model.MonthlySummary;
+    var currency = rows?.FirstOrDefault()?.BaseCurrency;
+    var complete = month is not null && rows is { Count: > 0 }
+        && rows.All(row => row.PeriodMonth == month && row.BaseCurrency == currency);
+}
+<header class="android-heading"><div><p>Manage your money</p><h1>Plan</h1></div>
+    @if (month is null) { <a class="android-outline" asp-action="Index" asp-route-month="@PersonalMonth.Format(PersonalMonth.Current)" asp-route-categoryId="@Model.CategoryId">This month</a> }
+</header>
+<partial name="_PersonalPlanNav" />
+<partial name="_AndroidMonthSelector" model="@(new PersonalMonthlyView(month, null))" view-data='new ViewDataDictionary(ViewData) { ["MonthCategory"] = Model.CategoryId }' />
+@if (TempData["PersonalBudgetNotice"] is string notice) { <p class="success-notice" role="status">@notice</p> }
+@if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+else if (complete && rows is not null && currency is not null)
+{
+    var limit = rows.Sum(row => row.LimitAmount);
+    var spent = rows.Sum(row => row.SpentAmount);
+    var remaining = rows.Sum(row => row.RemainingAmount);
+    var days = month == PersonalMonth.Current ? month.Value.AddMonths(1).DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber : 0;
+    <section class="android-hero">
+        <h2>Left to spend in budgets</h2>
+        <strong class="android-net">@PersonalMoneyDisplay.Format(remaining, currency)</strong>
+        <div class="android-flow-pair"><div>Budget <strong>@PersonalMoneyDisplay.Format(limit, currency)</strong></div><div>Spent <strong>@PersonalMoneyDisplay.Format(spent, currency)</strong></div></div>
+        @if (limit > 0)
+        { <progress class="android-plan-progress" max="@limit.ToString(CultureInfo.InvariantCulture)" value="@Math.Clamp(spent, 0, limit).ToString(CultureInfo.InvariantCulture)" aria-label="Monthly budget used"></progress> }
+        @if (days > 0 && remaining >= 0)
+        { <p>@days @(days == 1 ? "day" : "days") left including today · @PersonalMoneyDisplay.Format(remaining / days, currency) per day across these budgets</p> }
+    </section>
+}
+else if (month is not null)
+{ <p class="notice">@(rows is { Count: 0 } ? "No budgets for this month." : "Complete monthly budget totals are unavailable.")</p> }
+else
+{ <p class="notice">Choose one month to see how much is left to spend.</p> }
+<section class="android-plan-section">
+    <header class="android-heading"><div><h2>Budget categories</h2></div><a class="android-outline" asp-action="Create" asp-route-month="@Model.Month">+ New budget</a></header>
+    <details class="card">
+        <summary>Filter by category</summary>
+        <form asp-action="Index" method="get" class="finance-filters" data-busy="Loading budgets…">
+            @if (Model.Month is not null) { <input type="hidden" name="month" value="@Model.Month" /> }
+            <div><label for="category">Expense category</label><select id="category" name="categoryId">
+                <option value="">All categories</option>
+                @if (Model.CategoryId is int selected && !Model.Categories.Any(x => x.CategoryId == selected))
+                { <option value="@selected" selected>Selected category</option> }
+                @foreach (var category in Model.Categories)
+                { <option value="@category.CategoryId" selected="@(category.CategoryId == Model.CategoryId)">@category.Name@(category.IsActive ? "" : " (archived)")</option> }
+            </select></div>
+            <div class="finance-actions"><button type="submit">Apply filters</button><a asp-action="Index" asp-route-month="@Model.Month">Clear category</a><a asp-action="Index">All months</a></div>
+        </form>
+    </details>
+    @if (!Model.CategoriesAvailable) { <p class="notice" role="status">Category filters are temporarily unavailable.</p> }
+    @if (Model.Results is { } page)
+    {
+        if (page.Items.Count == 0) { <p class="card">No budgets match this selection.</p> }
+        <div class="android-plan-grid">
+            @foreach (var row in page.Items)
+            {
+                var percent = row.LimitAmount > 0 ? row.SpentAmount / row.LimitAmount : 0;
+                <article class="card android-plan-card">
+                    <header><h3><a asp-action="Details" asp-route-id="@row.BudgetId">@row.CategoryName</a></h3><span class="android-plan-badge">@row.Status</span></header>
+                    <p>@PersonalMoneyDisplay.Format(row.SpentAmount, row.BaseCurrency) of @PersonalMoneyDisplay.Format(row.LimitAmount, row.BaseCurrency) · @percent.ToString("P0") used</p>
+                    <progress class="android-plan-progress" max="1" value="@Math.Clamp(percent, 0, 1).ToString(CultureInfo.InvariantCulture)" aria-label="@row.CategoryName budget used"></progress>
+                    <p>@PersonalMoneyDisplay.Format(row.RemainingAmount, row.BaseCurrency) remaining · @row.PeriodMonth.ToString("MMM yyyy")@(!row.IsCategoryActive ? " · Archived category" : "")</p>
+                    <a asp-action="Edit" asp-route-id="@row.BudgetId">Edit budget</a>
+                </article>
+            }
+        </div>
+        @if (page.Page > 1 || (long)page.Page * page.PageSize < page.TotalCount)
+        {
+            <nav class="finance-actions" aria-label="Budget pages">
+                @if (page.Page > 1)
+                { <a asp-action="Index" asp-route-month="@Model.Month" asp-route-categoryId="@Model.CategoryId" asp-route-page="@(page.Page - 1)">Previous</a> }
+                <span>Page @(page.Page)</span>
+                @if ((long)page.Page * page.PageSize < page.TotalCount && (long)page.Page * page.PageSize <= int.MaxValue)
+                { <a asp-action="Index" asp-route-month="@Model.Month" asp-route-categoryId="@Model.CategoryId" asp-route-page="@(page.Page + 1)">Next</a> }
+            </nav>
+        }
+    }
+</section>

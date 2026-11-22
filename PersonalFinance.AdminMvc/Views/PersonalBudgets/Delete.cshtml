@@ -1,0 +1,15 @@
+@model PersonalBudgetDetails
+@{ ViewData["Title"] = "Delete budget"; }
+<header class="page-heading"><h1>Delete budget</h1></header>
+<section class="card finance-form">
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+    @if (Model.Budget is { } row)
+    {
+        <partial name="_PersonalBudgetFacts" model="row" />
+        <p>This removes the budget for this category and month. Your transactions stay in your history.</p>
+        <form asp-action="Delete" asp-route-id="@row.BudgetId" method="post" data-busy="Deleting budget…">
+            <label class="finance-confirm"><input type="checkbox" name="confirmed" value="true" required /> I confirm deletion of this budget.</label>
+            <div class="finance-actions"><button type="submit">Delete budget</button><a asp-action="Details" asp-route-id="@row.BudgetId">Cancel</a></div>
+        </form>
+    }
+</section>

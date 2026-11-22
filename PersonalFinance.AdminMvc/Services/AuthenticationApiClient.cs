@@ -10,6 +10,9 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
+    public Task<ApiResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct) =>
+        SendAsync<CurrentUserResponse>(HttpMethod.Post, "api/auth/register", request, null, ct, HttpStatusCode.Created);
+
     public Task<ApiResult<AuthenticationResponse>> LoginAsync(LoginRequest request, CancellationToken ct) =>
         SendAsync<AuthenticationResponse>(HttpMethod.Post, "api/auth/login", request, null, ct);
     public Task<ApiResult<AuthenticationResponse>> RefreshAsync(RefreshRequest request, CancellationToken ct) =>
@@ -20,7 +23,7 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
         SendAsync<bool>(HttpMethod.Post, "api/auth/logout", request, null, ct);
 
     private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string route, object? body,
-        string? bearer, CancellationToken ct)
+        string? bearer, CancellationToken ct, HttpStatusCode expected = HttpStatusCode.OK)
     {
         try
         {
@@ -35,13 +38,14 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
                     HttpStatusCode.BadRequest => ApiFailure.BadRequest,
                     HttpStatusCode.Unauthorized => ApiFailure.Unauthorized,
                     HttpStatusCode.Forbidden => ApiFailure.Forbidden,
+                    HttpStatusCode.Conflict => ApiFailure.Conflict,
                     HttpStatusCode.TooManyRequests => ApiFailure.RateLimited,
                     _ => ApiFailure.Unavailable
                 });
             if (typeof(T) == typeof(bool))
                 return response.StatusCode == HttpStatusCode.NoContent
                     ? ApiResult<T>.Success((T)(object)true) : ApiResult<T>.Fail(ApiFailure.InvalidResponse);
-            if (response.StatusCode != HttpStatusCode.OK
+            if (response.StatusCode != expected
                 || response.Content.Headers.ContentType?.MediaType != "application/json")
                 return ApiResult<T>.Fail(ApiFailure.InvalidResponse);
             var value = await response.Content.ReadFromJsonAsync<T>(Json, ct);

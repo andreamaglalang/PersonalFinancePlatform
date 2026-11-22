@@ -1,0 +1,20 @@
+@model PersonalOverview
+@using System.Globalization
+@if (Model.Days.Count == 0) { <p>No transactions in this period.</p> }
+else
+{
+    var max = Math.Max(1, Model.Days.Max(row => Math.Max(row.Income, row.Expenses)));
+    <div class="table-scroll"><table>
+        <thead><tr><th scope="col">Date</th><th scope="col">Income</th><th scope="col">Expenses</th></tr></thead>
+        <tbody>
+        @foreach(var day in Model.Days)
+        {
+            <tr>
+                <th scope="row">@day.Date.ToString("MMM d, yyyy")</th>
+                <td><meter class="monthly-meter" min="0" max="@max.ToString(CultureInfo.InvariantCulture)" value="@day.Income.ToString(CultureInfo.InvariantCulture)" aria-hidden="true"></meter>@day.Income.ToString("N2") @Model.BaseCurrency</td>
+                <td><meter class="monthly-meter" min="0" max="@max.ToString(CultureInfo.InvariantCulture)" value="@day.Expenses.ToString(CultureInfo.InvariantCulture)" aria-hidden="true"></meter>@day.Expenses.ToString("N2") @Model.BaseCurrency</td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
+}

@@ -1,0 +1,12 @@
+@model PersonalPortalSwitch
+@{ ViewData["Title"] = "Switch to the personal portal"; }
+<header class="page-heading"><h1>Switch to the personal portal</h1></header>
+<section class="card">
+    <p>You’re signed in as an Administrator. Sign out of this session to @(Model.Register ? "create a personal account" : "sign in with a regular-user account") in this browser.</p>
+    <form asp-controller="Account" asp-action="ConfirmPersonalPortal" method="post" class="form-actions" data-busy="Signing out…">
+        <input type="hidden" name="register" value="@(Model.Register ? "true" : "false")" />
+        <button type="submit">Sign out and continue</button>
+        <a asp-controller="Dashboard" asp-action="Index">Stay on Administrator dashboard</a>
+    </form>
+    <p>To keep both dashboards open, use a separate browser profile or an InPrivate window for the personal account.</p>
+</section>

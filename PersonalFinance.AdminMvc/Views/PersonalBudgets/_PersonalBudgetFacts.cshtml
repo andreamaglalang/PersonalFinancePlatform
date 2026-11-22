@@ -1,0 +1,10 @@
+@model PersonalFinance.AdminMvc.Services.BudgetResponse
+<dl class="details-list">
+    <dt>Category</dt><dd>@Model.CategoryName@(Model.IsCategoryActive ? "" : " (archived)")</dd>
+    <dt>Month</dt><dd>@Model.PeriodMonth.ToString("MMMM yyyy")</dd>
+    <dt>Limit</dt><dd>@Model.LimitAmount.ToString("N2") @Model.BaseCurrency</dd>
+    <dt>Alert threshold</dt><dd>@Model.AlertThresholdPct%</dd>
+    <dt>Spent</dt><dd>@Model.SpentAmount.ToString("N2") @Model.BaseCurrency</dd>
+    <dt>Remaining</dt><dd>@Model.RemainingAmount.ToString("N2") @Model.BaseCurrency</dd>
+    <dt>Status</dt><dd><span class="budget-status budget-@Model.Status.ToLowerInvariant()">@Model.Status</span></dd>
+</dl>

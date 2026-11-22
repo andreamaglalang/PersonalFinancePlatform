@@ -1,0 +1,36 @@
+@model PersonalCategoryList
+@{ ViewData["Title"] = "Category settings"; }
+<header class="android-heading"><a class="android-outline" asp-controller="Personal" asp-action="Account" aria-label="Back to account"><partial name="_NavIcon" model='"chevl"' /></a><div><h1>Category settings</h1></div></header>
+<nav class="android-segments android-type-tabs" aria-label="Category type">
+    <a asp-action="Index" asp-route-type="Expense" aria-current="@(Model.Type == "Expense" ? "page" : null)">Expense</a>
+    <a asp-action="Index" asp-route-type="Income" aria-current="@(Model.Type == "Income" ? "page" : null)">Income</a>
+</nav>
+<partial name="_PersonalFinanceNotices" />
+<section class="card android-category-panel">
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p><a asp-action="Index" asp-route-type="@Model.Type">Reload categories</a> }
+    else if (Model.Results is { } result)
+    {
+        var shown = result.Items.Where(c => !c.IsSystemDefault || c.IsActive).ToArray();
+        if (shown.Length == 0) { <p>No categories on this page.</p> }
+        <ul class="android-entries">
+            @foreach (var row in shown)
+            {
+                <li class="android-category-row">
+                    <span class="android-entry-icon"><partial name="_NavIcon" model='"tag"' /></span>
+                    <span><strong>@row.Name</strong><small>@(row.IsSystemDefault ? "Shared default · read-only" : (row.IsActive ? "Personal" : "Personal · archived"))</small></span>
+                    @if (!row.IsSystemDefault) { <a class="android-outline" asp-action="Edit" asp-route-id="@row.CategoryId" aria-label="Edit @row.Name">Edit</a> }
+                </li>
+            }
+        </ul>
+        @if (result.Page > 1 || (long)result.Page * result.PageSize < result.TotalCount)
+        {
+            <nav class="finance-actions" aria-label="Category pages">
+                @if (result.Page > 1) { <a asp-action="Index" asp-route-type="@Model.Type" asp-route-page="@(result.Page - 1)">Previous</a> }
+                <span>Page @result.Page</span>
+                @if ((long)result.Page * result.PageSize < result.TotalCount && (long)result.Page * result.PageSize <= int.MaxValue)
+                { <a asp-action="Index" asp-route-type="@Model.Type" asp-route-page="@(result.Page + 1)">Next</a> }
+            </nav>
+        }
+    }
+    <a class="button-link android-category-add" asp-action="Create" asp-route-type="@Model.Type">Add category</a>
+</section>

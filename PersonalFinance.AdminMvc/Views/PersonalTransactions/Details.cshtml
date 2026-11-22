@@ -1,0 +1,22 @@
+@model TransactionDetails
+@{ ViewData["Title"] = "Transaction details"; }
+<header class="page-heading mock-heading"><h1>Transaction details</h1><a asp-action="Index">Back to transactions</a></header>
+<partial name="_PersonalFinanceNotices" />
+<section class="card finance-form">
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+    @if (Model.Transaction is { } row)
+    {
+        <partial name="_TransactionFacts" model="row" />
+        @if (row.BillLinked)
+        {
+            <p>Bill-linked entries are read-only here.</p>
+        }
+        else
+        {
+            <div class="finance-actions">
+                <a class="button-link" asp-action="Edit" asp-route-id="@row.TransactionId">Edit</a>
+                <a asp-action="Delete" asp-route-id="@row.TransactionId">Delete</a>
+            </div>
+        }
+    }
+</section>

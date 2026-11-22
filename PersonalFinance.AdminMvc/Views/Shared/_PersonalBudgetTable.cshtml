@@ -1,0 +1,27 @@
+@model IReadOnlyList<PersonalFinance.AdminMvc.Services.BudgetResponse>
+@if (Model.Count == 0)
+{
+    <p>No budgets for this selection.</p>
+}
+else
+{
+    <div class="table-scroll"><table>
+        <thead><tr><th scope="col">Category</th><th scope="col">Month</th><th scope="col">Limit</th><th scope="col">Spent</th><th scope="col">Remaining</th><th scope="col">Status</th><th scope="col">Budget used</th></tr></thead>
+        <tbody>
+        @foreach (var row in Model)
+        {
+            <tr>
+                <th scope="row"><a asp-controller="PersonalBudgets" asp-action="Details" asp-route-id="@row.BudgetId">@row.CategoryName</a>
+                    @if (!row.IsCategoryActive) { <small>(archived)</small> }
+                </th>
+                <td>@row.PeriodMonth.ToString("MMM yyyy")</td>
+                <td class="finance-money">@row.LimitAmount.ToString("N2") @row.BaseCurrency</td>
+                <td class="finance-money">@row.SpentAmount.ToString("N2") @row.BaseCurrency</td>
+                <td class="finance-money">@row.RemainingAmount.ToString("N2") @row.BaseCurrency</td>
+                <td><span class="budget-status budget-@row.Status.ToLowerInvariant()">@row.Status</span></td>
+                <td><progress max="100" value="@((Math.Clamp(row.SpentAmount, 0, row.LimitAmount) / row.LimitAmount * 100).ToString(System.Globalization.CultureInfo.InvariantCulture))" aria-label="@row.CategoryName budget used"></progress></td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
+}

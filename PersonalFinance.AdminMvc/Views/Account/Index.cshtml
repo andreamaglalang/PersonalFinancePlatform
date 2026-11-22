@@ -15,6 +15,7 @@
         <form class="account-actions" asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…" data-confirm-logout>
             <button type="submit" class="secondary"><partial name="_NavIcon" model='"logout"' />Log out</button>
         </form>
+        <p><a asp-action="SwitchPortal">Switch to the personal portal</a></p>
     </section>
     <section class="card compact-card session-card">
         <h2>Session</h2>

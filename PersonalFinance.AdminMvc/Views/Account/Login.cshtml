@@ -34,6 +34,8 @@
             <span asp-validation-for="Password"></span>
             <button class="btn block" type="submit">Sign in</button>
         </form>
+        <p>Personal account? <a asp-controller="Personal" asp-action="Login">Regular-user sign in</a> or
+            <a asp-controller="Personal" asp-action="Register">Create account</a>.</p>
         <div class="lg-foot"><p><partial name="_NavIcon" model='"lock"' />Access is limited to authorized administrators. Administrator accounts are not created on this page.</p></div>
     </div></div>
 </section>

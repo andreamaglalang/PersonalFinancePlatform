@@ -246,3 +246,75 @@
         });
     });
 })();
+
+document.addEventListener("DOMContentLoaded", () => {
+    const panel = document.querySelector("[data-admin-statistics]");
+    if (!panel) return;
+
+    const status = panel.querySelector("[data-stat-status]");
+    const message = panel.querySelector("[data-stat-message]");
+    const updated = panel.querySelector("[data-stat-updated]");
+    const refreshButton = panel.querySelector("[data-stat-refresh]");
+    const fields = [...panel.querySelectorAll("[data-stat]")];
+    const formatTime = new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium", timeStyle: "medium"
+    });
+    const showTime = date => {
+        updated.dateTime = date.toISOString();
+        updated.textContent = formatTime.format(date);
+        updated.title = date.toUTCString();
+    };
+    if (updated.dateTime) showTime(new Date(updated.dateTime));
+
+    let pending = false;
+    let accessRequired = false;
+    const showStatus = (state, label, detail) => {
+        status.dataset.state = state;
+        if (status.textContent.trim() !== label) status.textContent = label;
+        if (message.textContent.trim() !== detail) message.textContent = detail;
+    };
+    const refresh = async () => {
+        if (pending || accessRequired) return;
+        pending = true;
+        refreshButton.setAttribute("aria-disabled", "true");
+        try {
+            const response = await fetch(panel.dataset.adminStatistics, {
+                cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(25000)
+            });
+            if (response.type === "opaqueredirect" || response.status === 401 || response.status === 403) {
+                accessRequired = true;
+                clearInterval(timer);
+                showStatus("unavailable", "Sign-in required", "Refresh the page to restore Administrator access.");
+                return;
+            }
+            if (response.status === 429) {
+                showStatus("unavailable", "Temporarily limited", "Too many requests. Automatic refresh will retry.");
+                return;
+            }
+            if (!response.ok) throw new Error("Statistics unavailable");
+            const data = await response.json();
+            const timestamp = new Date(data.updatedAtUtc);
+            if (typeof data.updatedAtUtc !== "string" || !Number.isFinite(timestamp.getTime()) ||
+                fields.some(field => !Number.isSafeInteger(data[field.dataset.stat]) || data[field.dataset.stat] < 0))
+                throw new Error("Invalid statistics");
+
+            for (const field of fields) field.textContent = data[field.dataset.stat].toLocaleString();
+            showTime(timestamp);
+            showStatus("connected", "Connected", "Refreshing every 10 seconds.");
+        } catch {
+            showStatus("unavailable", "Unavailable", updated.dateTime
+                ? "Showing the last successful values. Retrying automatically."
+                : "Live statistics could not be loaded. Retrying automatically.");
+        } finally {
+            pending = false;
+            refreshButton.removeAttribute("aria-disabled");
+        }
+    };
+
+    const timer = setInterval(refresh, 10000);
+    refreshButton.addEventListener("click", event => {
+        if (accessRequired || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        refresh();
+    });
+});

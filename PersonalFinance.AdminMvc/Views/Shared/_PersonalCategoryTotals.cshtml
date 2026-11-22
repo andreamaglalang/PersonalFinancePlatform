@@ -1,0 +1,30 @@
+@using System.Globalization
+@model IReadOnlyList<PersonalFinance.AdminMvc.Services.ReportCategoryTotal>
+@{
+    var currency = ViewData["Currency"] as string;
+    var android = ViewData["AndroidMoney"] is true && currency is not null;
+    var max = Math.Max(1m, Model.Count == 0 ? 0m : Model.Max(row => row.Total));
+}
+@if (Model.Count == 0)
+{
+    <p>No transactions in this breakdown.</p>
+}
+else
+{
+    <div class="table-scroll"><table>
+        <thead><tr><th scope="col">Category</th><th scope="col">Transactions</th><th scope="col">Total (@currency)</th><th scope="col">Relative total</th></tr></thead>
+        <tbody>
+        @foreach (var row in Model)
+        {
+            <tr>
+                <th scope="row">@row.CategoryName</th>
+                <td>@row.TransactionCount.ToString("N0")</td>
+                <td class="finance-money">@(android ? PersonalMoneyDisplay.Format(row.Total, currency!) : row.Total.ToString("N2"))</td>
+                <td><meter class="monthly-meter" min="0" max="@max.ToString(CultureInfo.InvariantCulture)"
+                           value="@Math.Max(0, row.Total).ToString(CultureInfo.InvariantCulture)"
+                           aria-label="@row.CategoryName relative category total"></meter></td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
+}

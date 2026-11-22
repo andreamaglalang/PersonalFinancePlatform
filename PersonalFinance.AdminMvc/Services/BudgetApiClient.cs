@@ -27,14 +27,16 @@ public sealed class BudgetApiClient(HttpClient http)
         RespectRequiredConstructorParameters = true
     };
 
-    public Task<BudgetResult<BudgetPage>> ListAsync(DateOnly? month, int page, string bearer, CancellationToken ct)
+    public Task<BudgetResult<BudgetPage>> ListAsync(DateOnly? month, int page, string bearer, CancellationToken ct, int? categoryId = null)
     {
         var route = FormattableString.Invariant($"api/budgets?Page={page}&PageSize={PageSize}");
         if (month is { } value) route += "&PeriodMonth=" + value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (categoryId is int id) route += "&CategoryId=" + id.ToString(CultureInfo.InvariantCulture);
         return SendAsync<BudgetPage>(HttpMethod.Get, route, null, 200, bearer,
             response => response.Page == page && response.PageSize == PageSize && response.Items is not null
                 && response.Items.Count <= PageSize && response.TotalCount >= response.Items.Count
-                && response.Items.All(item => Valid(item) && (month is null || item.PeriodMonth == month)), ct);
+                && response.Items.All(item => Valid(item) && (month is null || item.PeriodMonth == month)
+                    && (categoryId is null || item.CategoryId == categoryId)), ct);
     }
 
     public Task<BudgetResult<BudgetResponse>> GetAsync(int id, string bearer, CancellationToken ct) =>

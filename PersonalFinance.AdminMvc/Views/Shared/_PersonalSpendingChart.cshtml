@@ -1,0 +1,31 @@
+@model SpendingBreakdown
+@{
+    var total = Model.Categories.Sum(row => row.Total);
+}
+@if (total <= 0)
+{
+    <p>No spending in this period.</p>
+}
+else
+{
+    <div class="spending-chart @(Model.Android ? "android-donut" : null)" data-spending-chart>
+        <div class="donut-graphic">
+            <canvas width="240" height="240" aria-hidden="true" hidden></canvas>
+            @if (Model.Android) { <span class="android-donut-total"><small>Total expenses</small><strong>@PersonalMoneyDisplay.Format(total, Model.Currency)</strong></span> }
+        </div>
+        <p class="spending-selection" data-spending-selection role="status"></p>
+        <ul class="spending-legend">
+            @foreach (var row in Model.Categories.Where(row => row.Total > 0))
+            {
+                <li>
+                    <button type="button" class="secondary" data-spending-slice="@row.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)" aria-pressed="false" hidden>
+                        @if (Model.Android) { <span>@row.CategoryName</span><strong>@PersonalMoneyDisplay.Format(row.Total, Model.Currency)</strong><small>@((row.Total / total).ToString("P1"))</small> }
+                        else { <text>Select @row.CategoryName</text> }
+                    </button>
+                    <span data-spending-label>@row.CategoryName · @row.Total.ToString("N2") @Model.Currency · @((row.Total / total).ToString("P1"))</span>
+                </li>
+            }
+        </ul>
+        @if (Model.ShowTop) { <p class="spending-top">Top spending category <strong>@Model.Categories.OrderByDescending(row => row.Total).First().CategoryName</strong></p> }
+    </div>
+}

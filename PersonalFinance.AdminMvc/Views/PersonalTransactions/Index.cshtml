@@ -1,0 +1,156 @@
+@model TransactionHistory
+@{
+    ViewData["Title"] = "Activity";
+    var filters = Model.Filters;
+    var dates = System.Globalization.CultureInfo.InvariantCulture;
+    var paging = new Dictionary<string, string>
+    {
+        ["sortBy"] = filters.SortBy, ["sortDirection"] = filters.SortDirection
+    };
+    if (filters.Type is not null) paging["type"] = filters.Type;
+    if (filters.CategoryId is int categoryId) paging["categoryId"] = categoryId.ToString(dates);
+    if (filters.FromDate is { } from) paging["fromDate"] = from.ToString("yyyy-MM-dd", dates);
+    if (filters.ToDate is { } to) paging["toDate"] = to.ToString("yyyy-MM-dd", dates);
+    if (filters.Month is not null) paging["month"] = filters.Month;
+    if (filters.Search is not null) paging["search"] = filters.Search;
+    var all = new Dictionary<string, string>(paging);
+    all.Remove("type");
+    var expenses = new Dictionary<string, string>(paging) { ["type"] = "Expense" };
+    var income = new Dictionary<string, string>(paging) { ["type"] = "Income" };
+    var allTime = new Dictionary<string, string>(paging);
+    allTime.Remove("month");
+    allTime.Remove("fromDate");
+    allTime.Remove("toDate");
+    var previousMonth = new Dictionary<string, string>(allTime);
+    var nextMonth = new Dictionary<string, string>(allTime);
+    if (filters.SelectedMonth is { } selectedMonth)
+    {
+        if (selectedMonth > new DateOnly(2000, 1, 1)) previousMonth["month"] = PersonalMonth.Format(selectedMonth.AddMonths(-1));
+        if (selectedMonth < new DateOnly(9998, 12, 1)) nextMonth["month"] = PersonalMonth.Format(selectedMonth.AddMonths(1));
+    }
+    var previous = new Dictionary<string, string>(paging) { ["page"] = (filters.Page - 1).ToString(dates) };
+    var next = new Dictionary<string, string>(paging) { ["page"] = (filters.Page + 1).ToString(dates) };
+}
+<header class="android-heading">
+    <div><p>Your transactions</p><h1>Activity</h1></div>
+    <a class="android-outline" href="#activity-search" aria-label="Search transactions"><partial name="_NavIcon" model='"search"' /></a>
+    <a class="android-outline" href="#activity-filters" aria-label="Transaction filters"><partial name="_NavIcon" model='"sortn"' /></a>
+</header>
+<partial name="_PersonalFinanceNotices" />
+<nav class="android-month-strip" aria-label="Activity period">
+    @if (previousMonth.ContainsKey("month")) { <a asp-action="Index" asp-all-route-data="previousMonth" aria-label="Previous month">‹</a> }
+    <a href="#activity-month">@(filters.SelectedMonth?.ToString("MMMM yyyy") ?? "Choose month")</a>
+    @if (nextMonth.ContainsKey("month")) { <a asp-action="Index" asp-all-route-data="nextMonth" aria-label="Next month">›</a> }
+    <a class="android-outline" asp-action="Index" asp-all-route-data="allTime" aria-current="@(filters.SelectedMonth is null && filters.FromDate is null && filters.ToDate is null ? "page" : null)">All time</a>
+</nav>
+@if (Model.Overview is { } overview)
+{
+    <section class="android-hero android-activity-hero">
+        <h2>Net Transaction Flow</h2>
+        <strong class="android-net">@PersonalMoneyDisplay.Format(overview.NetCashFlow, overview.BaseCurrency, signed: true)</strong>
+        <p>@(filters.HasFilters ? "Filtered totals" : "Period totals") · @(overview.Month?.ToString("MMMM yyyy") ?? "All time") · @overview.TransactionCount @(overview.TransactionCount == 1 ? "entry" : "entries")</p>
+        <div class="android-flow-pair"><div class="income">Income <strong>@PersonalMoneyDisplay.Format(overview.TotalIncome, overview.BaseCurrency)</strong></div><div class="expense">Expenses <strong>@PersonalMoneyDisplay.Format(overview.TotalExpenses, overview.BaseCurrency)</strong></div></div>
+        <h3>Daily transaction activity</h3>
+        @if (overview.Days.Count == 0) { <p>No transactions in this period.</p> }
+        else
+        {
+            var peak = Math.Max(1, overview.Days.Max(day => Math.Max(day.Income, day.Expenses)));
+            <div class="android-day-chart" aria-label="Daily income and expenses">
+                @foreach (var day in overview.Days.OrderBy(day => day.Date))
+                {
+                    var date = day.Date.ToString("yyyy-MM-dd", dates);
+                    var dayFilters = new Dictionary<string, string>(paging) { ["fromDate"] = date, ["toDate"] = date };
+                    var label = $"{day.Date:MMM d, yyyy} · Income {PersonalMoneyDisplay.Format(day.Income, overview.BaseCurrency)} · Expenses {PersonalMoneyDisplay.Format(day.Expenses, overview.BaseCurrency)}";
+                    <a asp-action="Index" asp-all-route-data="dayFilters" asp-fragment="activity-results" title="@label" aria-label="@label">
+                        <span aria-hidden="true" class="android-day-bars">
+                            <progress class="income" max="@peak.ToString(dates)" value="@day.Income.ToString(dates)"></progress>
+                            <progress class="expense" max="@peak.ToString(dates)" value="@day.Expenses.ToString(dates)"></progress>
+                        </span>
+                        <span>@day.Date.ToString("MMM d")</span>
+                    </a>
+                }
+            </div>
+            <p class="android-flow-note">Scroll the chart to browse days. Select a day to see its transactions.</p>
+        }
+    </section>
+}
+else if (Model.OverviewUnavailable)
+{
+    <p class="notice" role="status">The activity summary is temporarily unavailable.</p>
+}
+<nav class="android-segments android-type-tabs" aria-label="Transaction type">
+    <a asp-action="Index" asp-all-route-data="all" aria-current="@(filters.Type is null ? "page" : null)">All</a>
+    <a asp-action="Index" asp-all-route-data="expenses" aria-current="@(filters.Type == "Expense" ? "page" : null)">Expenses</a>
+    <a asp-action="Index" asp-all-route-data="income" aria-current="@(filters.Type == "Income" ? "page" : null)">Income</a>
+</nav>
+<section class="card android-activity-list">
+    <details class="android-filters" id="activity-filters" >
+    <summary>Search and filters</summary>
+    <form asp-action="Index" method="get" class="finance-filters" data-busy="Loading transactions…">
+        <div><label for="activity-month">Month (blank for all time)</label><input id="activity-month" name="month" type="month"
+            value="@(filters.SelectedMonth is { } month ? PersonalMonth.Format(month) : null)" /></div>
+        <div><label for="activity-search">Search descriptions or categories</label><input id="activity-search" name="search" type="search" maxlength="100" value="@filters.Search" /></div>
+        <div><label for="type">Type</label><select id="type" name="type">
+            <option value="">Income and expenses</option>
+            <option value="Income" selected="@(filters.Type == "Income")">Income</option>
+            <option value="Expense" selected="@(filters.Type == "Expense")">Expense</option>
+        </select></div>
+        <div><label for="category">Category</label><select id="category" name="categoryId">
+            <option value="">All categories</option>
+            @if (filters.CategoryId is int selectedId && !Model.Categories.Any(c => c.CategoryId == selectedId))
+            {
+                <option value="@selectedId" selected>Selected category</option>
+            }
+            @foreach (var row in Model.Categories)
+            {
+                <option value="@row.CategoryId" selected="@(row.CategoryId == filters.CategoryId)">@row.Name (@row.Type@(row.IsActive ? "" : ", archived"))</option>
+            }
+        </select></div>
+        <div><label for="from">From</label><input id="from" type="date" name="fromDate" value="@filters.FromDate?.ToString("yyyy-MM-dd", dates)" /></div>
+        <div><label for="to">To</label><input id="to" type="date" name="toDate" value="@filters.ToDate?.ToString("yyyy-MM-dd", dates)" /></div>
+        <div><label for="sort">Sort by</label><select id="sort" name="sortBy">
+            <option value="date" selected="@(filters.SortBy == "date")">Transaction date</option>
+            <option value="amount" selected="@(filters.SortBy == "amount")">Original amount</option>
+            <option value="createdAt" selected="@(filters.SortBy == "createdAt")">Date added</option>
+        </select></div>
+        <div><label for="direction">Order</label><select id="direction" name="sortDirection">
+            <option value="desc" selected="@(filters.SortDirection == "desc")">Descending</option>
+            <option value="asc" selected="@(filters.SortDirection == "asc")">Ascending</option>
+        </select></div>
+        <div class="finance-actions"><button type="submit">Apply filters</button><a asp-action="Index">Reset</a></div>
+    </form>
+    </details>
+    <div id="activity-results"></div>
+    @if (!Model.CategoriesAvailable) { <p class="notice" role="status">Category choices are temporarily unavailable.</p> }
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+    else if (Model.Results is { } result)
+    {
+        if (result.Items.Count == 0)
+        {
+            <div class="state-card">
+                <h2>@(filters.Page > 1 ? "No transactions on this page" : "No matching transactions")</h2>
+                <p>Change your filters or add an income or expense.</p>
+            </div>
+        }
+        else
+        {
+            var groups = result.Items.GroupBy(row => filters.SortBy == "date" ? (DateOnly?)row.TransactionDate : null);
+            @foreach (var group in groups)
+            {
+                @if (group.Key is { } date) { <h2 class="android-group-date">@date.ToString("dddd, MMM d, yyyy")</h2> }
+                <ul class="android-entries">
+                    @foreach (var row in group) { <li><partial name="_AndroidTransactionRow" model="row" /></li> }
+                </ul>
+            }
+        }
+        @if (filters.Page > 1 || (long)result.Page * result.PageSize < result.TotalCount)
+        {
+            <nav class="finance-actions" aria-label="Transaction pages">
+                @if (filters.Page > 1) { <a asp-action="Index" asp-all-route-data="@previous">Previous</a> }
+                <span>Page @filters.Page</span>
+                @if ((long)result.Page * result.PageSize < result.TotalCount && (long)result.Page * result.PageSize <= int.MaxValue)
+                { <a asp-action="Index" asp-all-route-data="@next">Next</a> }
+            </nav>
+        }
+    }
+</section>

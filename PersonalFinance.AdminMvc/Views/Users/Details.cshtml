@@ -1,0 +1,22 @@
+@model PersonalFinance.AdminMvc.Services.AdminResult<PersonalFinance.AdminMvc.Services.RegisteredUser>
+@{ ViewData["Title"] = "User Details"; }
+<header class="page-heading mock-heading">
+    <h1>User Details</h1>
+    <a class="button-link" asp-action="Index">Back to Users</a>
+</header>
+<section class="card">
+@if (Model.Data is { } user)
+{
+    <dl class="details-list">
+        <dt>Name</dt><dd>@user.FullName</dd>
+        <dt>Email</dt><dd>@(user.Email ?? "—")</dd>
+        <dt>Registered (UTC)</dt><dd>@user.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</dd>
+        <dt>Role</dt><dd>@user.Role</dd>
+        <dt>Status</dt><dd>@(user.IsLockedOut ? "Locked out" : "Active")</dd>
+    </dl>
+}
+else
+{
+    <p role="alert">@(Model.Status == 404 ? "This registered user could not be found." : "Account details are temporarily unavailable. Try again shortly.")</p>
+}
+</section>

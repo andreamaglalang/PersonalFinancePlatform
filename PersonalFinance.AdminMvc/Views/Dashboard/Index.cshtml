@@ -1,30 +1,63 @@
 @model DashboardViewModel
-@{ ViewData["Title"] = "Administrator Dashboard"; }
-<header class="page-heading mock-heading">
-    <div><p class="welcome-name">Welcome, @Model.AdministratorDisplayName</p><h1>Dashboard</h1></div>
-    <a class="button-link" asp-controller="Categories" asp-action="Create" data-form-dialog="Create category"><partial name="_NavIcon" model='"plus"' />Create category</a>
-</header>
-<div class="dashboard-grid">
-    <section class="card dashboard-welcome" aria-labelledby="dashboard-categories">
-        <img class="stars" src="~/images/dashboard-stars.svg" alt="" />
-        <div class="dashboard-panel-body">
-            <h2 id="dashboard-categories" class="eyebrow">Default categories</h2>
-            <p class="dashboard-panel-title">Category overview</p>
-            <p class="dashboard-panel-message">The API does not provide totals or a status breakdown for shared default categories.</p>
+@{
+    ViewData["Title"] = "Administrator Dashboard";
+    var statistics = Model.Statistics;
+}
+<div data-admin-statistics="@Url.Action("Statistics", "Dashboard")">
+    <header class="page-heading mock-heading">
+        <div>
+            <p class="welcome-name">Welcome, @Model.AdministratorDisplayName</p>
+            <h1>Dashboard</h1>
         </div>
-        <div class="dashboard-panel-footer">
-            <span>Role: Administrator</span>
-            <a asp-controller="Categories" asp-action="Index">Manage categories <partial name="_NavIcon" model='"chev"' /></a>
-        </div>
-    </section>
-    <div class="dashboard-tools">
-        <a class="card mock-row" asp-controller="Budgets" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"budget"' /></span><span><strong>Budget Administration</strong><small>Manage monthly budgets</small></span><partial name="_NavIcon" model='"chev"' /></a>
-        <a class="card mock-row" asp-controller="Reports" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"report"' /></span><span><strong>Financial Reports</strong><small>View monthly reports</small></span><partial name="_NavIcon" model='"chev"' /></a>
+        <a class="button-link" asp-action="Index" data-stat-refresh>
+            <partial name="_NavIcon" model='"refresh"' />Refresh
+        </a>
+    </header>
+
+    <div class="dashboard-overview">
+        <section class="card overview-card">
+            <span class="overview-icon" aria-hidden="true"><partial name="_NavIcon" model='"account"' /></span>
+            <h2>Registered Users</h2>
+            <p class="overview-value" data-stat="registeredUsers">@(statistics?.RegisteredUsers.ToString("N0") ?? "—")</p>
+            <a class="overview-action" asp-controller="Users" asp-action="Index">View Users <partial name="_NavIcon" model='"chev"' /></a>
+        </section>
+        <section class="card overview-card">
+            <span class="overview-icon" aria-hidden="true"><partial name="_NavIcon" model='"tag"' /></span>
+            <h2>Active Shared Categories</h2>
+            <p class="overview-value" data-stat="activeSharedCategories">@(statistics?.ActiveSharedCategories.ToString("N0") ?? "—")</p>
+            <a class="overview-action" asp-controller="Categories" asp-action="Index">Manage Categories <partial name="_NavIcon" model='"chev"' /></a>
+        </section>
+        <section class="card overview-card">
+            <span class="overview-icon" aria-hidden="true"><partial name="_NavIcon" model='"power"' /></span>
+            <h2>Inactive Shared Categories</h2>
+            <p class="overview-value" data-stat="inactiveSharedCategories">@(statistics?.InactiveSharedCategories.ToString("N0") ?? "—")</p>
+            <a class="overview-action" asp-controller="Categories" asp-action="Index" asp-route-state="inactive">View Inactive <partial name="_NavIcon" model='"chev"' /></a>
+        </section>
+        <section class="card overview-card">
+            <span class="overview-icon" aria-hidden="true"><partial name="_NavIcon" model='"refresh"' /></span>
+            <h2>API Connection Status</h2>
+            <div class="overview-connection" role="status">
+                <p class="overview-status" data-stat-status data-state="@(statistics is null ? "unavailable" : "connected")">
+                    @(statistics is null ? "Unavailable" : "Connected")
+                </p>
+                <p class="overview-detail" data-stat-message>
+                    @(statistics is null ? "Waiting for live statistics." : "Refreshing every 10 seconds.")
+                </p>
+            </div>
+            <p class="overview-detail overview-updated">
+                Last successful update
+                <time data-stat-updated datetime="@(statistics?.UpdatedAtUtc.ToUniversalTime().ToString("O"))">
+                    @(statistics?.UpdatedAtUtc.ToUniversalTime().ToString("MMM d, yyyy 'at' h:mm:ss tt 'UTC'") ?? "—")
+                </time>
+            </p>
+        </section>
     </div>
-    <section class="card dashboard-shortcuts">
-        <h2>Management shortcuts</h2>
-        <a class="mock-row" asp-controller="Categories" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"tag"' /></span><span><strong>Manage default categories</strong><small>Search, filter, edit, activate or deactivate</small></span><partial name="_NavIcon" model='"chev"' /></a>
-        <a class="mock-row" asp-controller="Categories" asp-action="Create" data-form-dialog="Create category"><span class="mock-tile"><partial name="_NavIcon" model='"plus"' /></span><span><strong>Create a category</strong><small>Add an income or expense category</small></span><partial name="_NavIcon" model='"chev"' /></a>
-        <a class="mock-row" asp-controller="Categories" asp-action="Index" asp-route-state="inactive"><span class="mock-tile"><partial name="_NavIcon" model='"power"' /></span><span><strong>Review inactive categories</strong><small>Browse inactive defaults page by page</small></span><partial name="_NavIcon" model='"chev"' /></a>
+
+    <section class="dashboard-management" aria-labelledby="dashboard-management-title">
+        <h2 id="dashboard-management-title">Management shortcuts</h2>
+        <div class="dashboard-tools">
+            <a class="card mock-row" asp-controller="Budgets" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"budget"' /></span><span><strong>Budget Administration</strong><small>Manage monthly budgets</small></span><partial name="_NavIcon" model='"chev"' /></a>
+            <a class="card mock-row" asp-controller="Reports" asp-action="Index"><span class="mock-tile"><partial name="_NavIcon" model='"report"' /></span><span><strong>Financial Reports</strong><small>View monthly reports</small></span><partial name="_NavIcon" model='"chev"' /></a>
+        </div>
     </section>
 </div>

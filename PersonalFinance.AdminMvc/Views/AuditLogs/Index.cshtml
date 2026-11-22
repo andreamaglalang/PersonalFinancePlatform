@@ -1,0 +1,51 @@
+@model PersonalFinance.AdminMvc.Controllers.AuditLogViewModel
+@{ ViewData["Title"] = "Audit Logs"; }
+<header class="page-heading mock-heading"><h1>Audit Logs</h1></header>
+<section class="card">
+@if (Model.Error is not null)
+{
+    <p role="alert">@Model.Error</p>
+    <a asp-action="Index" asp-route-search="@Model.Search">Retry</a>
+}
+else if (Model.Page is { RecordingAvailable: false })
+{
+    <h2>Audit recording is pending</h2>
+    <p>Shared category and platform setting changes will be recorded after the platform journal migration is approved and applied.</p>
+}
+else if (Model.Page is { } page)
+{
+    <form asp-action="Index" method="get" class="form-actions">
+        <label for="audit-search">Action, target type, actor ID, or target ID</label>
+        <input id="audit-search" name="search" value="@Model.Search" maxlength="100" type="search" />
+        <button type="submit">Search</button>
+        @if (Model.Search.Length > 0) { <a asp-action="Index">Clear search</a> }
+    </form>
+    @if (page.Items.Count == 0)
+    {
+        <p>@(Model.Search.Length == 0 ? "No audit entries have been recorded yet." : "No audit entries match your search.")</p>
+    }
+    else
+    {
+        <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Time (UTC)</th><th scope="col">Actor ID</th><th scope="col">Action</th><th scope="col">Target type</th><th scope="col">Target ID</th></tr></thead>
+            <tbody>
+            @foreach (var entry in page.Items)
+            {
+                <tr><td>@entry.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@entry.ActorId</td><td>@entry.Action</td><td>@entry.TargetType</td><td>@entry.TargetId</td></tr>
+            }
+            </tbody>
+        </table></div>
+    }
+    @if (page.Page > 1 || page.TotalCount > page.PageSize)
+    {
+        <nav aria-label="Audit log pages" class="form-actions">
+            @if (page.Page > 1) { <a asp-action="Index" asp-route-page="@(page.Page - 1)" asp-route-search="@Model.Search">Previous</a> }
+            <span>Page @(page.Page)</span>
+            @if ((long)page.Page * page.PageSize < page.TotalCount && page.Page < int.MaxValue)
+            {
+                <a asp-action="Index" asp-route-page="@(page.Page + 1)" asp-route-search="@Model.Search">Next</a>
+            }
+        </nav>
+    }
+}
+</section>

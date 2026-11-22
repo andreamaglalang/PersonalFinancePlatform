@@ -1,0 +1,18 @@
+@model TransactionDetails
+@{ ViewData["Title"] = "Delete transaction"; }
+<header class="page-heading"><h1>Delete transaction</h1></header>
+<section class="card finance-form">
+    @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+    @if (Model.Transaction is { } row)
+    {
+        <partial name="_TransactionFacts" model="row" />
+        <p>Deleting this transaction removes it from your history and updates affected budgets.</p>
+        <form asp-action="Delete" asp-route-id="@row.TransactionId" method="post" data-busy="Deleting transaction…">
+            <label class="finance-confirm"><input type="checkbox" name="confirmed" value="true" required /> I confirm deletion of this transaction.</label>
+            <div class="finance-actions">
+                <button type="submit">Delete transaction</button>
+                <a asp-action="Details" asp-route-id="@row.TransactionId">Cancel</a>
+            </div>
+        </form>
+    }
+</section>

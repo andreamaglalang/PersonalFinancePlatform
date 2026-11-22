@@ -1,0 +1,20 @@
+@model PersonalCategoryForm
+@{ ViewData["Title"] = Model.Id.HasValue ? "Edit personal category" : "Add personal category"; }
+<header class="android-heading"><a class="android-outline" asp-action="Index" asp-route-type="@Model.Type" aria-label="Back to categories"><partial name="_NavIcon" model='"chevl"' /></a><div><h1>@ViewData["Title"]</h1></div></header>
+<section class="card finance-form android-settings-editor">
+    @if (Model.Id.HasValue && !Model.Active) { <p role="status">Archived. Existing transactions keep this category.</p> }
+    <form asp-action="@(Model.Id.HasValue ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" data-busy="Saving category…">
+        <div asp-validation-summary="All" class="notice"></div>
+        <label asp-for="Name"></label><input asp-for="Name" maxlength="50" required />
+        <label asp-for="Type"></label><select asp-for="Type"><option value="Income">Income</option><option value="Expense">Expense</option></select>
+        <label asp-for="ColorHEX">Color hex code (optional)</label><input asp-for="ColorHEX" maxlength="7" placeholder="#7850B5" />
+        <div class="finance-actions"><button type="submit">Save category</button><a asp-action="Index" asp-route-type="@Model.Type">Cancel</a></div>
+    </form>
+    @if (Model.Id is int id && Model.Active)
+    {
+        <form asp-action="Archive" asp-route-id="@id" method="post" class="finance-archive" data-busy="Archiving category…">
+            <p>Archive this category to remove it from new transactions.</p>
+            <button class="secondary" type="submit">Archive category</button>
+        </form>
+    }
+</section>

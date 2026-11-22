@@ -1,0 +1,82 @@
+@model PersonalFinance.AdminMvc.Controllers.RegisteredUsersViewModel
+@{ ViewData["Title"] = "Registered Users"; }
+<header class="page-heading">
+    <h1>Registered Users</h1>
+    <a class="button-link secondary" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@Model.Page">
+        <partial name="_NavIcon" model='"refresh"' />Refresh
+    </a>
+</header>
+<section class="card">
+    <form asp-action="Index" method="get" class="form-actions">
+        <label for="user-search">Name or email</label>
+        <input id="user-search" name="search" value="@Model.Search" maxlength="100" type="search" />
+        <label for="account-status">Account status</label>
+        <select id="account-status" name="status">
+            <option value="" selected="@(Model.Status == "")">All statuses</option>
+            <option value="active" selected="@(Model.Status == "active")">Active</option>
+            <option value="locked" selected="@(Model.Status == "locked")">Locked out</option>
+        </select>
+        <button type="submit">Search</button>
+        @if (Model.Search.Length > 0 || Model.Status.Length > 0) { <a asp-action="Index">Clear search</a> }
+    </form>
+    @if (Model.Error is not null)
+    {
+        <p role="alert">@Model.Error</p>
+    }
+    else if (Model.Users is { } users)
+    {
+
+        if (users.Items.Count == 0)
+        {
+            <div class="state-card">
+                @if (Model.Search.Length == 0 && Model.Status.Length == 0)
+                {
+                    <h2>No registered users yet</h2>
+                    <p>Regular-user accounts will appear here after registration.</p>
+                    <a asp-action="Index">Refresh users</a>
+                }
+                else if (users.TotalCount == 0)
+                {
+                    <h2>No matching users</h2>
+                    <p>Try a different name, email address, or account status.</p>
+                    <a asp-action="Index">Clear search</a>
+                }
+                else
+                {
+                    <h2>No users on this page</h2>
+                    <p>The results may have changed. Return to the first page.</p>
+                    <a asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status">First page</a>
+                }
+            </div>
+        }
+        else
+        {
+            <p>@users.TotalCount matching accounts</p>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Registered (UTC)</th><th scope="col">Role</th><th scope="col">Account status</th></tr></thead>
+                    <tbody>
+                    @foreach (var user in users.Items)
+                    {
+                        <tr><td><a asp-action="Details" asp-route-id="@user.Id">@user.FullName</a></td><td>@user.Email</td><td>@user.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td><td>@user.Role</td><td>@(user.IsLockedOut ? "Locked out" : "Active")</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (users.Items.Count > 0 && (users.Page > 1 || users.TotalCount > users.PageSize))
+        {
+        <nav aria-label="Registered users pages" class="form-actions">
+            @if (users.Page > 1)
+            {
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@(users.Page - 1)">Previous</a>
+            }
+            <span>Page @users.Page</span>
+            @if ((long)users.Page * users.PageSize < users.TotalCount && users.Page < int.MaxValue)
+            {
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@(users.Page + 1)">Next</a>
+            }
+        </nav>
+        }
+    }
+</section>

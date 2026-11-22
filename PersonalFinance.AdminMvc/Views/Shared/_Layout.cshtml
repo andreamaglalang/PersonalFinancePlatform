@@ -6,11 +6,20 @@
     var displayName = User.Identity?.Name ?? "Administrator";
     var email = User.FindFirstValue(ClaimTypes.Email);
     var authenticated = User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator");
-    var page = new (string Controller, string Label, string Icon)[]
+    var page = new (string Group, string Controller, string Label, string Icon)[]
     {
-        ("Dashboard", "Dashboard", "dashboard"), ("Categories", "Default Categories", "tag"),
-        ("Budgets", "Budget Administration", "budget"), ("Reports", "Financial Reports", "report"),
-        ("Account", "Account", "account")
+        ("Overview", "Dashboard", "Dashboard", "dashboard"),
+        ("Management", "Users", "Registered Users", "account"),
+        ("Management", "Categories", "Default Categories", "tag"),
+        ("Management", "Announcements", "Announcements", "report"),
+        ("Management", "SupportInbox", "Feedback & Support", "account"),
+        ("System", "PlatformSettings", "Platform Settings", "tag"),
+        ("System", "Activity", "Platform Activity", "dashboard"),
+        ("System", "AuditLogs", "Audit Logs", "report"),
+        ("System", "SystemHealth", "System Health", "refresh"),
+        ("Administrator Finance", "Budgets", "Budget Administration", "budget"),
+        ("Administrator Finance", "Reports", "Financial Reports", "report"),
+        ("Account", "Account", "Account", "account")
     };
     var current = page.FirstOrDefault(item => string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase));
 }
@@ -36,14 +45,20 @@
             </a>
             @if (authenticated)
             {
-                <div class="nav-heading">Manage</div>
                 <nav id="administrator-nav" aria-label="Administrator navigation">
-                    @foreach (var item in page)
+                    @foreach (var group in page.GroupBy(item => item.Group))
                     {
-                        <a asp-controller="@item.Controller" asp-action="Index" class="nav-link" title="@item.Label"
-                           aria-current="@(current.Controller == item.Controller ? (action == "Index" ? "page" : "location") : null)">
-                            <partial name="_NavIcon" model="item.Icon" /><span class="nav-label">@item.Label</span>
-                        </a>
+                        var headingId = "nav-" + group.Key.ToLowerInvariant().Replace(" ", "-");
+                        <div class="nav-group" role="group" aria-labelledby="@headingId">
+                            <div class="nav-heading" id="@headingId">@group.Key</div>
+                            @foreach (var item in group)
+                            {
+                                <a asp-controller="@item.Controller" asp-action="Index" class="nav-link" title="@item.Label"
+                                   aria-current="@(current.Controller == item.Controller ? (action == "Index" ? "page" : "location") : null)">
+                                    <partial name="_NavIcon" model="item.Icon" /><span class="nav-label">@item.Label</span>
+                                </a>
+                            }
+                        </div>
                     }
                 </nav>
                 <div class="sidebar-actions">

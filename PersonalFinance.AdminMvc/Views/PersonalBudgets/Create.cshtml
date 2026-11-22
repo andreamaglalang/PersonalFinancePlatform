@@ -1,0 +1,23 @@
+@model BudgetCreateViewModel
+@{ ViewData["Title"] = "Create budget"; }
+<header class="page-heading mock-heading"><h1>Create budget</h1><a asp-action="Index">Back to budgets</a></header>
+<section class="card finance-form">
+    @if (Context.Items[PersonalFinance.AdminMvc.Authentication.PersonalSession.ProfileItem] is PersonalFinance.AdminMvc.Services.Contracts.CurrentUserResponse profile)
+    {
+        <p>Budget limits are in @profile.BaseCurrency.</p>
+    }
+    <form asp-action="Create" method="post" data-busy="Creating budget…">
+        <div asp-validation-summary="All" class="notice" role="alert"></div>
+        <label asp-for="CategoryId"></label><select asp-for="CategoryId" required>
+            <option value="">Choose an active expense category</option>
+            @foreach (var category in Model.Categories) { <option value="@category.CategoryId">@category.Name</option> }
+        </select>
+        <label asp-for="Month"></label><input asp-for="Month" type="month" required />
+        <partial name="~/Views/Budgets/_BudgetFields.cshtml" model="Model" />
+        @if (Model.Categories.Count == 0 && ViewData.ModelState.IsValid)
+        {
+            <p>No active expense categories. <a asp-controller="PersonalCategories" asp-action="Create">Create a category</a> to continue.</p>
+        }
+        <div class="finance-actions"><button type="submit" disabled="@(Model.Categories.Count == 0)">Create budget</button><a asp-action="Index">Cancel</a></div>
+    </form>
+</section>

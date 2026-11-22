@@ -4,6 +4,19 @@ using System.Text.Json.Serialization;
 namespace PersonalFinance.AdminMvc.Services.Contracts;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class RegisterRequest
+{
+    [Required, StringLength(100)]
+    public string FullName { get; set; } = string.Empty;
+    [Required, EmailAddress, StringLength(256)]
+    public string Email { get; set; } = string.Empty;
+    [Required, StringLength(128, MinimumLength = 12)]
+    public string Password { get; set; } = string.Empty;
+    [Required, Compare(nameof(Password)), StringLength(128)]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class LoginRequest
 {
     [Required, EmailAddress, StringLength(256)]
@@ -54,4 +67,8 @@ public static class ContractValidation
 
     public static bool Administrator(CurrentUserResponse user) =>
         User(user) && user.Roles.Contains("Administrator", StringComparer.Ordinal);
+
+    public static bool RegularUser(CurrentUserResponse user) =>
+        User(user) && user.Roles.Contains("User", StringComparer.Ordinal)
+        && !user.Roles.Contains("Administrator", StringComparer.Ordinal);
 }

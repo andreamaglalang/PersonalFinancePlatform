@@ -1,0 +1,11 @@
+@model PersonalMonthlyView
+<form asp-action="Index" method="get" class="finance-actions month-picker" data-busy="Loading month…">
+    <div>
+        <label for="month">Month</label>
+        <input id="month" type="month" name="month" value="@(Model.Month is { } month ? PersonalMonth.Format(month) : null)"
+               min="2000-01" max="9998-12" required />
+    </div>
+    <button type="submit">Show month</button>
+    @if (Model.Previous is { } previous) { <a asp-action="Index" asp-route-month="@PersonalMonth.Format(previous)">Previous month</a> }
+    @if (Model.Next is { } next) { <a asp-action="Index" asp-route-month="@PersonalMonth.Format(next)">Next month</a> }
+</form>

@@ -1,0 +1,22 @@
+@model PersonalFinance.AdminMvc.Services.Contracts.RegisterRequest
+@{ ViewData["Title"] = "Create account"; }
+<section class="card personal-form">
+    <h1>Create an OWLI account</h1>
+    @if (ViewData["Message"] is string message) { <p class="notice" role="alert">@message</p> }
+    <form asp-action="Register" method="post" data-busy="Creating account…">
+        <label asp-for="FullName">Full name</label>
+        <input asp-for="FullName" required maxlength="100" autocomplete="name" />
+        <span asp-validation-for="FullName"></span>
+        <label asp-for="Email">Email address</label>
+        <input asp-for="Email" type="email" required maxlength="256" autocomplete="username" />
+        <span asp-validation-for="Email"></span>
+        <label for="Password">Password</label>
+        <input id="Password" name="Password" type="password" required minlength="12" maxlength="128"
+               autocomplete="new-password" aria-describedby="password-rules" />
+        <p id="password-rules">Use 12–128 characters with uppercase, lowercase, a number, a symbol, and at least four distinct characters.</p>
+        <label for="ConfirmPassword">Confirm password</label>
+        <input id="ConfirmPassword" name="ConfirmPassword" type="password" required maxlength="128" autocomplete="new-password" />
+        <button type="submit">Create account</button>
+    </form>
+    <p><a asp-action="Login">Already have an account? Sign in</a></p>
+</section>

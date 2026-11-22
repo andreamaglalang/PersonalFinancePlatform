@@ -1,0 +1,31 @@
+@model PersonalConversion
+@{ ViewData["Title"] = "Currency converter"; }
+<header class="android-heading"><a class="android-outline" asp-action="Account" aria-label="Back to account"><partial name="_NavIcon" model='"chevl"' /></a><div><h1>Currency converter</h1></div></header>
+<section class="card android-settings-editor">
+    <form asp-action="Currency" method="post" class="finance-form android-settings-form" data-busy="Getting exchange rate…">
+        <div asp-validation-summary="All" class="notice"></div>
+        @if (ViewData["ConversionError"] is string error) { <p class="notice" role="alert">Rate unavailable. @error</p> }
+        <label asp-for="Amount"></label><input asp-for="Amount" inputmode="decimal" required />
+        <div class="android-currency-pair">
+            <div><label asp-for="Source">From currency</label><input asp-for="Source" list="currency-codes" maxlength="3" placeholder="USD" required /></div>
+            <button class="secondary" type="button" data-currency-swap aria-label="Swap currencies" hidden>⇄</button>
+            <div><label asp-for="Target">To currency</label><input asp-for="Target" list="currency-codes" maxlength="3" required /></div>
+        </div>
+        <datalist id="currency-codes">
+            <option value="PHP">Philippine peso</option><option value="USD">US dollar</option>
+            <option value="EUR">Euro</option><option value="JPY">Japanese yen</option>
+            <option value="GBP">British pound</option><option value="SGD">Singapore dollar</option>
+            <option value="AUD">Australian dollar</option><option value="CAD">Canadian dollar</option>
+        </datalist>
+        <p>Choose a suggested currency or enter its three-letter code.</p>
+        <button type="submit">Convert</button>
+    </form>
+    @if (ViewData["Quote"] is PersonalCurrencyQuote quote)
+    {
+        <div class="android-converted" role="status">
+            <strong>@PersonalMoneyDisplay.Format(quote.Amount, quote.Source) = @PersonalMoneyDisplay.Format(quote.ConvertedAmount, quote.Target)</strong>
+            @if (quote.Source == quote.Target) { <p>Same currency · no exchange rate needed</p> }
+            else { <p>Rate @quote.Rate.ToString("0.########") · @quote.RateDate.ToString("MMM d, yyyy") · Frankfurter</p> }
+        </div>
+    }
+</section>

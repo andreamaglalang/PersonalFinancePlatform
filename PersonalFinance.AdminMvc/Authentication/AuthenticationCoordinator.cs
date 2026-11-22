@@ -5,8 +5,11 @@ using PersonalFinance.AdminMvc.Services.Contracts;
 
 namespace PersonalFinance.AdminMvc.Authentication;
 
-public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenticationApiClient api)
+public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenticationApiClient api,
+    Func<CurrentUserResponse, bool>? allowedAccount = null)
 {
+    private readonly Func<CurrentUserResponse, bool> accepts = allowedAccount ?? ContractValidation.Administrator;
+
     public async Task<ApiResult<AdminSession>> LoginAsync(LoginRequest request, CancellationToken ct)
     {
         var login = await api.LoginAsync(request, ct);
@@ -14,7 +17,7 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
         var tokens = login.Value!;
         var me = await api.GetCurrentUserAsync(tokens.AccessToken, ct);
         if (!me.Succeeded || me.Value!.Id != tokens.User.Id
-            || !ContractValidation.Administrator(tokens.User) || !ContractValidation.Administrator(me.Value))
+            || !accepts(tokens.User) || !accepts(me.Value))
         {
             await RevokeAsync(tokens.RefreshToken);
             return ApiResult<AdminSession>.Fail(me.Succeeded ? ApiFailure.Forbidden : me.Failure);
@@ -25,7 +28,7 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
         return ApiResult<AdminSession>.Fail(ApiFailure.Unavailable);
     }
 
-    public async Task<ApiFailure> ValidateAsync(string? id, CancellationToken ct)
+    public async Task<ApiFailure> ValidateAsync(string? id, CancellationToken ct, Action<CurrentUserResponse>? onValidated = null)
     {
         var session = store.Find(id);
         if (session is null) return ApiFailure.Unauthorized;
@@ -43,7 +46,7 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
                 if (!refresh.Succeeded) return Fail(session, refresh.Failure);
                 var replacement = refresh.Value!;
                 if (!store.IsCurrent(session) || replacement.User.Id != session.User.Id
-                    || replacement.RefreshToken == oldRefresh || !ContractValidation.Administrator(replacement.User))
+                    || replacement.RefreshToken == oldRefresh || !accepts(replacement.User))
                 {
                     await RevokeAsync(replacement.RefreshToken);
                     return Fail(session, ApiFailure.Unauthorized);
@@ -55,13 +58,14 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
             if (me.Failure is ApiFailure.RateLimited or ApiFailure.Unavailable) return me.Failure;
             if (!me.Succeeded) return Fail(session, me.Failure);
             if (!store.IsCurrent(session) || me.Value!.Id != session.User.Id
-                || !ContractValidation.Administrator(me.Value))
+                || !accepts(me.Value))
             {
                 await RevokeAsync(session.Tokens.RefreshToken);
                 return Fail(session, ApiFailure.Forbidden);
             }
             session.User = me.Value;
             session.LastActivity = DateTimeOffset.UtcNow;
+            onValidated?.Invoke(me.Value);
             return ApiFailure.None;
         }
         catch
