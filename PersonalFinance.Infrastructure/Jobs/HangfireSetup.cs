@@ -7,13 +7,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace PersonalFinance.Infrastructure.Jobs;
 
-/// <summary>
-/// Hangfire wiring. Disabled unless configuration "Hangfire:Enabled" is "true". Even when enabled, Hangfire never
-/// creates or migrates its storage tables (PrepareSchemaIfNecessary = false): the schema must be installed
-/// separately and explicitly. Recurring jobs use fixed IDs, so re-registration on restart replaces, never duplicates.
-/// </summary>
+/// <summary>Opt-in Hangfire setup using the separately provisioned OWLI_Hangfire catalog.</summary>
 public static class HangfireSetup
 {
+    public const string ManilaTimeZoneId = "Asia/Manila";
+    public static TimeZoneInfo ManilaTimeZone { get; } = TimeZoneInfo.FindSystemTimeZoneById(ManilaTimeZoneId);
+
+    // Keep the established IDs so a later approved activation updates these recurring entries in place.
     public const string BillRemindersJobId = "owli-bill-reminders";
     public const string BudgetAlertsJobId = "owli-budget-alerts";
     public const string MonthlySummariesJobId = "owli-monthly-summaries";
@@ -21,18 +21,54 @@ public static class HangfireSetup
     public static bool IsEnabled(IConfiguration configuration) =>
         string.Equals(configuration["Hangfire:Enabled"], "true", StringComparison.OrdinalIgnoreCase);
 
+    public static DateOnly ManilaToday(TimeProvider clock) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), ManilaTimeZone).DateTime);
+
+    public static void EnsureDedicatedStorage(string hangfireConnectionString, string financeConnectionString)
+    {
+        if (string.IsNullOrWhiteSpace(hangfireConnectionString))
+            throw new InvalidOperationException("Hangfire requires a dedicated SQL storage connection.");
+        if (string.IsNullOrWhiteSpace(financeConnectionString))
+            throw new InvalidOperationException("Hangfire requires the existing finance connection for isolation validation.");
+
+        var hangfire = new SqlConnectionStringBuilder(hangfireConnectionString);
+        var finance = new SqlConnectionStringBuilder(financeConnectionString);
+        if (!string.Equals(hangfire.InitialCatalog, "OWLI_Hangfire", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Hangfire storage must target the OWLI_Hangfire database.");
+        if (string.IsNullOrWhiteSpace(hangfire.DataSource)
+            || !string.Equals(hangfire.DataSource, finance.DataSource, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Hangfire storage must use the finance SQL instance and the separate OWLI_Hangfire catalog.");
+        if (string.Equals(hangfire.InitialCatalog, finance.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Hangfire storage cannot share the finance database.");
+    }
+
+    public static void RegisterRecurringJobs(IRecurringJobManager jobs)
+    {
+        ArgumentNullException.ThrowIfNull(jobs);
+        var local = new RecurringJobOptions { TimeZone = ManilaTimeZone };
+        jobs.AddOrUpdate<FinanceJobs>(BillRemindersJobId,
+            job => job.SendBillRemindersAsync(CancellationToken.None), Cron.Daily(7), local);
+        jobs.AddOrUpdate<FinanceJobs>(BudgetAlertsJobId,
+            job => job.SendBudgetAlertsAsync(CancellationToken.None), Cron.Hourly(), local);
+        jobs.AddOrUpdate<FinanceJobs>(MonthlySummariesJobId,
+            job => job.GenerateMonthlySummariesAsync(CancellationToken.None), Cron.Monthly(1, 0, 30), local);
+    }
+
     public static IServiceCollection AddFinanceJobs(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<FinanceJobs>();
         if (!IsEnabled(configuration)) return services;
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException("Hangfire is enabled but ConnectionStrings:DefaultConnection is missing.");
+        var financeConnection = configuration.GetConnectionString("DefaultConnection");
+        var hangfireConnection = configuration.GetConnectionString("Hangfire");
+        if (string.IsNullOrWhiteSpace(financeConnection) || string.IsNullOrWhiteSpace(hangfireConnection))
+            throw new InvalidOperationException("Hangfire requires separate finance and Hangfire SQL connection strings.");
+        EnsureDedicatedStorage(hangfireConnection, financeConnection);
+
         services.AddHangfire(config => config
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(() => new SqlConnection(connectionString), new SqlServerStorageOptions
+            .UseSqlServerStorage(() => new SqlConnection(hangfireConnection), new SqlServerStorageOptions
             {
                 PrepareSchemaIfNecessary = false,
                 QueuePollInterval = TimeSpan.FromSeconds(15),
@@ -43,15 +79,12 @@ public static class HangfireSetup
     }
 }
 
-/// <summary>Registers (or replaces) the three recurring jobs once at startup.</summary>
+/// <summary>Registers the stable recurring job IDs once at startup, only when Hangfire is explicitly enabled.</summary>
 internal sealed class FinanceJobRegistration(IRecurringJobManager jobs) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        var local = new RecurringJobOptions { TimeZone = TimeZoneInfo.Local };
-        jobs.AddOrUpdate<FinanceJobs>(HangfireSetup.BillRemindersJobId, j => j.SendBillRemindersAsync(CancellationToken.None), "0 7 * * *", local);
-        jobs.AddOrUpdate<FinanceJobs>(HangfireSetup.BudgetAlertsJobId, j => j.SendBudgetAlertsAsync(CancellationToken.None), "0 * * * *", local);
-        jobs.AddOrUpdate<FinanceJobs>(HangfireSetup.MonthlySummariesJobId, j => j.GenerateMonthlySummariesAsync(CancellationToken.None), "30 0 1 * *", local);
+        HangfireSetup.RegisterRecurringJobs(jobs);
         return Task.CompletedTask;
     }
 

@@ -94,6 +94,9 @@ fun AddTransactionFlow(
     demoLedger: DemoLedger? = null,
     /** Optional session-bound active-category reader for chooser/form only; management stays online. */
     selectionCategories: CategoryRepository? = null,
+    defaultCurrency: String? = null,
+    reviewRateBeforeSave: Boolean = false,
+    historicalQuotes: com.elect3.mobdev.personalfinance.domain.currency.HistoricalExchangeRateQuoteRepository? = null,
 ) {
     require(workflow == FormWorkflow.Authenticated || (accountCreation == null)) { "Mock Demo cannot save to an account" }
     val demo = workflow == FormWorkflow.MockDemo
@@ -147,7 +150,7 @@ fun AddTransactionFlow(
                     onCancel = { pop() })
                 is FlowStep.Form -> key(top.key) {
                     FormStep(top.category, picker.iconKey(top.category), workflow, selectionCategories ?: categories, currency, isCurrent, onExpired,
-                        accountCreation, demoLedger, registerBack = { formBack = it },
+                        accountCreation, demoLedger, defaultCurrency, reviewRateBeforeSave, historicalQuotes, registerBack = { formBack = it },
                         onLeave = { pop() }, onClose = onClose,
                         onCompleted = { receipt -> onSaved(); stack.clear(); stack.add(FlowStep.Confirm(receipt)) })
                 }
@@ -179,17 +182,20 @@ fun AddTransactionFlow(
 @Composable
 private fun FormStep(
     category: Category, iconKey: String, workflow: FormWorkflow, categories: CategoryRepository, currency: String?,
-    isCurrent: () -> Boolean, onExpired: () -> Unit, accountCreation: TransactionCreationRepository?, demoLedger: DemoLedger?,
+    isCurrent: () -> Boolean, onExpired: () -> Unit, accountCreation: TransactionCreationRepository?, demoLedger: DemoLedger?, defaultCurrency: String?,
+    reviewRateBeforeSave: Boolean, historicalQuotes: com.elect3.mobdev.personalfinance.domain.currency.HistoricalExchangeRateQuoteRepository?,
     registerBack: ((() -> Unit)?) -> Unit, onLeave: () -> Unit, onClose: () -> Unit, onCompleted: (TransactionReceipt) -> Unit,
 ) {
     val store = remember { ViewModelStore() }
     DisposableEffect(store) { onDispose { store.clear() } }
     val model = rememberOwned(store) {
         AddTransactionViewModel(categories, workflow, currency, isCurrent, onExpired,
-            accountCreation = if (workflow == FormWorkflow.Authenticated) accountCreation else null)
+            accountCreation = if (workflow == FormWorkflow.Authenticated) accountCreation else null, defaultCurrency = defaultCurrency,
+            reviewRateBeforeSave = workflow == FormWorkflow.Authenticated && reviewRateBeforeSave, historicalQuotes = historicalQuotes)
     }
     LaunchedEffect(model) { model.preselect(category) }
     val state by model.state.collectAsStateWithLifecycle()
+    RateReviewDialog(state, model)
     var discardAsk by remember { mutableStateOf(false) }
     var finished by remember { mutableStateOf(false) }
     val leave: () -> Unit = {

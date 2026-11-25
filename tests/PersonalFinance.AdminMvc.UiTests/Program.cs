@@ -13,6 +13,43 @@ static void Check(bool condition, string description)
     if (!condition) throw new InvalidOperationException(description);
 }
 
+try
+{
+await AuthorizationChecks.Run();
+AuthenticationPreservationChecks.Run();
+RoleClaimsChecks.Run();
+OwliLandingChecks.Run();
+MemberAreaChecks.Run();
+RegistrationChecks.Run();
+MemberShellChecks.Run();
+DesignTokenChecks.Run();
+MemberLayoutChecks.Run();
+MemberDashboardChecks.Run();
+MemberSessionGateChecks.Run();
+TransactionApiChecks.Run();
+await MemberActivityRedesignChecks.RunAsync();
+await ActivityParityChecks.RunAsync();
+await ActivityRenderChecks.RunAsync();
+MemberActivityWriteChecks.Run();
+MemberDashboardDataChecks.Run();
+await MemberDashboardAllTimeChecks.RunAsync();
+MemberBudgetChecks.Run();
+PlanBudgetSummaryChecks.Run();
+MemberInsightsChecks.Run();
+await InsightsRedesignChecks.RunAsync();
+await InsightsRenderChecks.RunAsync();
+MemberGoalBillChecks.Run();
+MemberNotificationChecks.Run();
+MemberCurrencyChecks.Run();
+await MemberAccountCurrencyConverterChecks.RunAsync();
+await AccountRenderChecks.RunAsync();
+await AccountWorkflowChecks.RunAsync();
+await MemberTransactionEditChecks.RunAsync();
+await MemberCategoryManagementChecks.RunAsync();
+await SavingsGoalContributionMvcChecks.RunAsync();
+await SavingsGoalResponseChecks.RunAsync();
+await BillPaymentResponseChecks.RunAsync();
+
 var categories = new PageFixture();
 var controller = new CategoriesController(categories)
 {
@@ -43,6 +80,12 @@ Check(account.GetMethod(nameof(AccountController.Logout))!.IsDefined(typeof(Vali
 
 Console.WriteLine("PASS: page-local category filtering and sorting, pagination, input validation, Administrator and antiforgery metadata.");
 await ReportsChecks.RunAsync();
+}
+catch (Exception error)
+{
+    Console.Error.WriteLine(error);
+    Environment.ExitCode = 1;
+}
 
 sealed class PageFixture : ICategoryManagementService
 {

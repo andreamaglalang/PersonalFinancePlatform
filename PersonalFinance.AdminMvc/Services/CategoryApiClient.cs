@@ -26,6 +26,35 @@ public sealed class CategoryApiClient(HttpClient http) : ICategoryApiClient
     public Task<CategoryResult<CategoryResponse>> UpdateAsync(int id, CategoryWriteRequest request, string bearer, CancellationToken ct) =>
         SendAsync<CategoryResponse>(HttpMethod.Put, "api/categories/defaults/" + id.ToString(CultureInfo.InvariantCulture), request, bearer, ct);
 
+    public Task<CategoryResult<CategoryResponse>> CreateMemberAsync(CategoryWriteRequest request, string bearer, CancellationToken ct) =>
+        SendAsync<CategoryResponse>(HttpMethod.Post, "api/categories", request, bearer, ct);
+
+    public Task<CategoryResult<CategoryResponse>> UpdateMemberAsync(int id, CategoryWriteRequest request, string bearer, CancellationToken ct) =>
+        SendAsync<CategoryResponse>(HttpMethod.Put, "api/categories/" + id.ToString(CultureInfo.InvariantCulture), request, bearer, ct);
+
+    public async Task<CategoryResult<bool>> DeleteMemberAsync(int id, string bearer, CancellationToken ct)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Delete, "api/categories/" + id.ToString(CultureInfo.InvariantCulture));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                return CategoryResult<bool>.Success(true);
+            return CategoryResult<bool>.Fail((int)response.StatusCode switch
+            {
+                400 => CategoryFailure.BadRequest, 401 => CategoryFailure.Unauthorized,
+                403 => CategoryFailure.Forbidden, 404 => CategoryFailure.NotFound,
+                409 => CategoryFailure.Conflict, 429 => CategoryFailure.RateLimited,
+                _ => CategoryFailure.Unavailable
+            });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
+        {
+            return CategoryResult<bool>.Fail(CategoryFailure.Unavailable);
+        }
+    }
+
     private async Task<CategoryResult<T>> SendAsync<T>(HttpMethod method, string route, CategoryWriteRequest? body, string bearer, CancellationToken ct)
     {
         try

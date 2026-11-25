@@ -1,0 +1,31 @@
+@model PersonalFinance.AdminMvc.Services.SavingsGoalResponse
+@{
+    ViewData["Title"] = "Cancel savings goal";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head">
+        <span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Stop tracking a goal</p>
+            <h1 class="owli-screen-title">Cancel savings goal</h1>
+        </div>
+    </header>
+
+    <p class="member-honest">Contributions already recorded stay in your history.</p>
+
+    <div class="member-card">
+        <dl class="member-detail">
+            <dt>Name</dt><dd>@Model.Name</dd>
+            <dt>Saved</dt><dd class="member-amount">@Model.SavedAmount.ToString("0.00", invariant) @Model.BaseCurrency</dd>
+            <dt>Target</dt><dd class="member-amount">@Model.TargetAmount.ToString("0.00", invariant) @Model.BaseCurrency</dd>
+            <dt>Status</dt><dd>@Model.Status</dd>
+        </dl>
+        <p class="owli-caption">This cannot be undone. A cancelled goal is financially immutable on every platform.</p>
+        <form class="member-form-actions" method="post" asp-action="Cancel" asp-route-id="@Model.GoalId">
+            <button class="member-btn member-btn-danger" type="submit">Cancel goal</button>
+            <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Keep goal</a>
+        </form>
+    </div>
+</section>

@@ -8,6 +8,8 @@ public interface IAuthenticationService
     Task<AuthResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct);
     Task<AuthResult<AuthenticationResponse>> LoginAsync(LoginRequest request, CancellationToken ct);
     Task<CurrentUserResponse?> GetCurrentUserAsync(int userId, CancellationToken ct);
+    Task<AuthResult<CurrentUserResponse>> UpdateProfileAsync(int userId, UpdateProfileRequest request, CancellationToken ct);
+    Task<AuthResult<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct);
 }
 
 public interface IRefreshTokenService

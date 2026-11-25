@@ -329,9 +329,9 @@ class DashboardScreenTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(other))
         compose.onNodeWithText(other, useUnmergedTree = true).assertIsDisplayed()
         compose.onAllNodesWithText("+" + (ranked.size - 5), useUnmergedTree = true).onFirst().assertExists()
-        // The existing note about unlisted categories is kept.
+        // Redundant source prose is removed; the chart and other-categories totals remain.
         compose.onAllNodesWithText(text(R.string.dashboard_where_more,
-            text(R.string.dashboard_where_source_demo), ranked.size - 5)).onFirst().assertExists()
+            text(R.string.dashboard_where_source_demo), ranked.size - 5)).assertCountEquals(0)
     }
 
     @Test fun whereYourMoneyWentChartRendersInDarkThemeAtTwiceTheFontSize() {

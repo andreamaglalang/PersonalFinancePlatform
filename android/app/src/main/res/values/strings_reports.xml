@@ -5,9 +5,9 @@
     <string name="reports_subtitle">Financial reports</string>
     <string name="reports_refresh">Refresh</string>
     <string name="reports_ribbon_account">Your account</string>
-    <string name="reports_ribbon_account_detail">Totals in %1$s, your base currency</string>
+    <string name="reports_ribbon_account_detail">Totals in %1$s</string>
     <string name="reports_ribbon_demo">Sample data</string>
-    <string name="reports_ribbon_demo_detail">Mock Demo · nothing is sent to a server</string>
+    <string name="reports_ribbon_demo_detail">Mock Demo</string>
 
     <!-- Period navigation -->
     <string name="reports_period_label">Reporting month</string>
@@ -20,7 +20,7 @@
     <string name="reports_loading">Preparing your %1$s report…</string>
     <string name="reports_refreshing">Refreshing %1$s…</string>
     <string name="reports_unavailable_title">Report unavailable</string>
-    <string name="reports_unavailable_message">OWLI couldn\'t be reached. You may be offline, or the server may be busy. Reports need a connection because figures come straight from your account.</string>
+    <string name="reports_unavailable_message">Check your connection and try again. Reports need internet access.</string>
     <string name="reports_invalid_title">Report couldn\'t be verified</string>
     <string name="reports_invalid_message">The figures OWLI received didn\'t add up, so they aren\'t shown. Please try again.</string>
     <string name="reports_currency_title">Base currency unavailable</string>
@@ -83,6 +83,6 @@
     <string name="reports_change_none">No spending recorded in %1$s to compare with.</string>
 
     <!-- Source note -->
-    <string name="reports_source_account">Totals come from the transactions saved to your OWLI account, using the %1$s amounts the server stored for each one. Exchange rates are never fetched or estimated on this device. Entries waiting to sync appear after they upload.</string>
-    <string name="reports_source_demo">Sample figures from Mock Demo. Nothing here is real account data.</string>
+    <string name="reports_source_account">Totals in %1$s. Pending entries appear after syncing.</string>
+    <string name="reports_source_demo">Mock Demo · Sample data only.</string>
 </resources>

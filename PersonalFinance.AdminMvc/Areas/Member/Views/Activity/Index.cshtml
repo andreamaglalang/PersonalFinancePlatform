@@ -1,0 +1,330 @@
+@model PersonalFinance.AdminMvc.ViewModels.ActivityIndexViewModel
+@using PersonalFinance.AdminMvc.Services
+@using System.Globalization
+@{
+    ViewData["Title"] = "Activity";
+    Layout = "_MemberLayout";
+    var phToday = BudgetPlanSummary.PhilippineToday;
+    var month = Model.Period == "Month" && DateOnly.TryParseExact(Model.Month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture,
+        DateTimeStyles.None, out var parsedMonth) && parsedMonth.Year >= 2000 && parsedMonth.Year <= phToday.Year ? parsedMonth : Model.Period == "Month" ? new DateOnly(phToday.Year, phToday.Month, 1) : (DateOnly?)null;
+    var monthLabel = month?.ToDateTime(TimeOnly.MinValue).ToString("MMMM yyyy", CultureInfo.GetCultureInfo("en-PH")) ?? "All recorded time";
+    var periodLabel = Model.Period == "Range" && Model.FromDate is not null && Model.ToDate is not null
+        ? $"{Model.FromDate.Value.ToString("d MMM yyyy", CultureInfo.GetCultureInfo("en-PH"))} – {Model.ToDate.Value.ToString("d MMM yyyy", CultureInfo.GetCultureInfo("en-PH"))}"
+        : monthLabel;
+    var previousMonth = month is { Year: 2000, Month: 1 } ? null : month?.AddMonths(-1).ToString("yyyy-MM", CultureInfo.InvariantCulture);
+    var nextMonth = month is { Year: 9999, Month: 12 } ? null : month?.AddMonths(1).ToString("yyyy-MM", CultureInfo.InvariantCulture);
+    var nextIsCurrentOrFuture = month is { } currentMonth && currentMonth >= new DateOnly(phToday.Year, phToday.Month, 1);
+    var currencySymbol = Model.BaseCurrency == "PHP" ? "₱" : Model.BaseCurrency + " ";
+    string Money(decimal value) => currencySymbol + value.ToString("N2", CultureInfo.InvariantCulture);
+    string SignedMoney(decimal value, string type) => (type == "Income" ? "+" : "−") + Money(value);
+    string OriginalMoney(decimal value, string type, string currency) => (type == "Income" ? "+" : "\u2212") + currency + " " + value.ToString("N2", CultureInfo.InvariantCulture);
+    var clearPeriod = Model.Period == "Range" ? "Month" : Model.Period;
+    var clearMonth = clearPeriod == "Month" ? (Model.Period == "Range" ? phToday.ToString("yyyy-MM", CultureInfo.InvariantCulture) : month?.ToString("yyyy-MM", CultureInfo.InvariantCulture)) : null;
+    var totalPages = Math.Max(1, Model.TotalPages);
+    var pageSet = new SortedSet<int> { 1, totalPages };
+    for (var candidate = Math.Max(1, Model.Page - 1); candidate <= Math.Min(totalPages, Model.Page + 1); candidate++) pageSet.Add(candidate);
+    if (Model.Page <= 3) for (var candidate = 1; candidate <= Math.Min(4, totalPages); candidate++) pageSet.Add(candidate);
+    if (Model.Page >= totalPages - 2) for (var candidate = Math.Max(1, totalPages - 3); candidate <= totalPages; candidate++) pageSet.Add(candidate);
+    var pageLinks = new List<int?>();
+    var prior = 0;
+    foreach (var number in pageSet)
+    {
+        if (prior != 0 && number - prior > 1) pageLinks.Add(null);
+        pageLinks.Add(number);
+        prior = number;
+    }
+}
+
+<section class="member-dashboard member-activity-page" data-activity-page>
+    <header class="member-dashboard-head member-page-heading">
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Everything you’ve recorded</p>
+            <h1 class="owli-screen-title">Activity</h1>
+        </div>
+        <a class="member-btn activity-add-button" href="@Url.Action("Create")">
+            <partial name="_NavIcon" model='"plus"' /><span>Add transaction</span>
+        </a>
+    </header>
+
+    @if (Model.Error is not null && Model.DataLoaded)
+    {
+        <p class="notice login-notice" role="alert">@Model.Error</p>
+    }
+    @if (Model.Notice is not null)
+    {
+        <p class="notice login-notice" role="status">@Model.Notice</p>
+    }
+
+    <section class="member-activity-overview" aria-label="Transaction overview">
+        <div class="activity-period-switch" role="group" aria-label="Reporting period">
+            <a class="activity-period-option @(Model.Period == "Month" ? "is-active" : "")"
+               aria-current="@(Model.Period == "Month" ? "page" : null)"
+               href="@Url.Action("Index", new { Period = "Month", Month = month?.ToString("yyyy-MM", CultureInfo.InvariantCulture) ?? DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8)).ToString("yyyy-MM", CultureInfo.InvariantCulture), Type = Model.Type, Model.CategoryId, Model.Search, Model.AmountOrder })">Month</a>
+            <a class="activity-period-option @(Model.Period == "AllTime" ? "is-active" : "")"
+               aria-current="@(Model.Period == "AllTime" ? "page" : null)"
+               href="@Url.Action("Index", new { Period = "AllTime", Type = Model.Type, Model.CategoryId, Model.Search })">All time</a>
+        </div>
+
+        @if (Model.Period == "Month" && month is not null)
+        {
+            <nav class="activity-month-control" aria-label="Activity month">
+                @if (previousMonth is not null) { <a class="activity-month-arrow" aria-label="Previous month" href="@Url.Action("Index", new { Period = "Month", Month = previousMonth, Type = Model.Type, Model.CategoryId, Model.Search, Model.AmountOrder })"><partial name="_NavIcon" model='"chevl"' /></a> }
+                else { <span class="activity-month-arrow is-disabled" aria-disabled="true"><partial name="_NavIcon" model='"chevl"' /></span> }
+                <details class="activity-month-picker"><summary><span>@monthLabel</span><partial name="_NavIcon" model='"chev"' /></summary>
+                    <form method="get" action="@Url.Action("Index")" data-activity-month-form>
+                        <input type="hidden" name="Period" value="Month" />
+                        @if (Model.Type is not null) { <input type="hidden" name="Type" value="@Model.Type" /> }
+                        @if (Model.CategoryId is not null) { <input type="hidden" name="CategoryId" value="@Model.CategoryId" /> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Search)) { <input type="hidden" name="Search" value="@Model.Search" /> }
+                        @if (Model.AmountOrder is not null) { <input type="hidden" name="AmountOrder" value="@Model.AmountOrder" /> }
+                        <label for="activity-month">Choose month</label><input id="activity-month" type="month" name="Month" value="@month.Value.ToString("yyyy-MM", CultureInfo.InvariantCulture)" min="2000-01" max="@phToday.ToString("yyyy-MM", CultureInfo.InvariantCulture)" required />
+                        <button class="member-btn member-btn-small" type="submit">Go to month</button>
+                    </form>
+                </details>
+                @if (!nextIsCurrentOrFuture) { <a class="activity-month-arrow" aria-label="Next month" href="@Url.Action("Index", new { Period = "Month", Month = nextMonth, Type = Model.Type, Model.CategoryId, Model.Search, Model.AmountOrder })"><partial name="_NavIcon" model='"chev"' /></a> }
+                else { <span class="activity-month-arrow is-disabled" aria-disabled="true" aria-label="Next month"><partial name="_NavIcon" model='"chev"' /></span> }
+            </nav>
+        }
+        else if (Model.Period == "Range")
+        {
+            <p class="activity-period-caption">Custom reporting period</p>
+        }
+        else
+        {
+            <p class="activity-period-caption">All recorded transactions</p>
+        }
+
+        @if (Model.DataLoaded)
+        {
+        <div class="activity-overview-card @(month is not null ? "has-daily-chart" : "")" aria-live="polite">
+            <div class="activity-overview-main">
+                <div class="activity-overview-heading">
+                    <div>
+                        <p class="activity-overview-eyebrow">NET TRANSACTION FLOW</p>
+                        <h2 class="activity-net-amount">@(Model.NetFlow < 0 ? "−" : "+")@Money(Math.Abs(Model.NetFlow))</h2>
+                        <p class="activity-overview-caption">@periodLabel · @Model.SummaryCount transaction@(Model.SummaryCount == 1 ? "" : "s")
+                            @if (Model.HasActiveFilters) { <span class="activity-filtered-indicator"><partial name="_NavIcon" model='"filter"' /> Filtered</span> }
+                        </p>
+                    </div>
+                    @if (Model.Period == "Month")
+                    {
+                        <span class="activity-month-pill"><partial name="_NavIcon" model='"calendar"' /> @monthLabel</span>
+                    }
+                </div>
+                <div class="activity-overview-totals">
+                    <div class="activity-overview-total">
+                        <span class="activity-overview-dot is-income" aria-hidden="true"></span>
+                        <span><small>Income</small><strong>@Money(Model.IncomeTotal)</strong></span>
+                    </div>
+                    <div class="activity-overview-total">
+                        <span class="activity-overview-dot is-expense" aria-hidden="true"></span>
+                        <span><small>Expenses</small><strong>@Money(Model.ExpenseTotal)</strong></span>
+                    </div>
+                </div>
+                @if (Model.Period == "Month" && month is not null)
+                {
+                    var maxVolume = Model.DailyVolume.Count == 0 ? 0m : Model.DailyVolume.Values.Max();
+                    <div class="activity-chart-block">
+                        <div class="activity-chart-heading"><span>Daily transaction activity</span><span>Income + expenses</span></div>
+                        <div class="activity-day-chart" data-days="@DateTime.DaysInMonth(month.Value.Year, month.Value.Month)" role="group" aria-label="Daily transaction volume for @monthLabel">
+                            @for (var dayNumber = 1; dayNumber <= DateTime.DaysInMonth(month.Value.Year, month.Value.Month); dayNumber++)
+                            {
+                                var date = new DateOnly(month.Value.Year, month.Value.Month, dayNumber);
+                                var volume = Model.DailyVolume.GetValueOrDefault(date);
+                                var barHeight = maxVolume <= 0 || volume <= 0 ? 0d : Math.Clamp((double)(volume / maxVolume) * 52d, 0d, 52d);
+                                var isSelectedDay = Model.Day == date;
+                                if (volume > 0)
+                                {
+                                    <a class="activity-day-column @(isSelectedDay ? "is-selected" : "")"
+                                       aria-label="@date.ToString("dddd, d MMMM", CultureInfo.GetCultureInfo("en-PH")): @Money(volume) transaction volume"
+                                       title="@date.ToString("d MMM", CultureInfo.GetCultureInfo("en-PH")) · @Money(volume)"
+                                       href="@Url.Action("Index", new { Period = "Month", Month = month.Value.ToString("yyyy-MM", CultureInfo.InvariantCulture), Day = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), Type = Model.Type, Model.CategoryId, Model.Search, Model.AmountOrder })">
+                                        <svg class="activity-day-svg" viewBox="0 0 10 52" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="@((52d - barHeight).ToString("0.##", CultureInfo.InvariantCulture))" width="10" height="@barHeight.ToString("0.##", CultureInfo.InvariantCulture)" rx="2" /></svg>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="activity-day-column is-empty" role="img" aria-label="@date.ToString("d MMMM", CultureInfo.GetCultureInfo("en-PH")): no recorded activity" title="@date.ToString("d MMM", CultureInfo.GetCultureInfo("en-PH")): no recorded activity"></span>
+                                }
+                            }
+                        </div>
+                        <div class="activity-chart-axis"><span>1</span><span>Choose a day to view its transactions</span><span>@DateTime.DaysInMonth(month.Value.Year, month.Value.Month)</span></div>
+                        @if (Model.Day is not null)
+                        {
+                            <div class="activity-day-selection">Showing @Model.Day.Value.ToDateTime(TimeOnly.MinValue).ToString("d MMMM", CultureInfo.GetCultureInfo("en-PH"))
+                                <a href="@Url.Action("Index", new { Period = "Month", Month = month.Value.ToString("yyyy-MM", CultureInfo.InvariantCulture), Type = Model.Type, Model.CategoryId, Model.Search, Model.AmountOrder })">Clear day</a>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <p class="activity-flow-disclaimer">Net transaction flow is income minus expenses for this reporting period. It is not an account balance.</p>
+        </div>
+        }
+    </section>
+
+    <p class="activity-loading" role="status" hidden>Loading transactions...</p>
+    <nav class="activity-type-segments" aria-label="Transaction type">
+        @foreach (var option in new[] { (Value: (string?)null, Label: "All"), (Value: "Expense", Label: "Expenses"), (Value: "Income", Label: "Income") })
+        {
+            var isTypeSelected = Model.Type == option.Value;
+                    <a class="activity-type-segment @(isTypeSelected ? "is-active" : "")" aria-current="@(isTypeSelected ? "page" : null)"
+               href="@Url.Action("Index", new { Period = Model.Period, Month = Model.Period == "Month" ? month?.ToString("yyyy-MM", CultureInfo.InvariantCulture) : null, Type = option.Value, Model.Search, Day = Model.Day?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), FromDate = Model.Period == "Range" ? Model.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : null, ToDate = Model.Period == "Range" ? Model.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : null, Model.AmountOrder })">@option.Label</a>
+        }
+    </nav>
+
+    <section class="member-activity-workspace" aria-label="Transaction activity">
+        <form id="transaction-filters" class="activity-filter-toolbar" data-activity-filter-form method="get" action="@Url.Action("Index")">
+            <input type="hidden" name="Period" value="@Model.Period" />
+            @if (Model.Period == "Month" && month is not null) { <input type="hidden" name="Month" value="@month.Value.ToString("yyyy-MM", CultureInfo.InvariantCulture)" /> }
+            @if (Model.Type is not null) { <input type="hidden" name="Type" value="@Model.Type" /> }
+            <label class="activity-search-field"><span>Search transactions</span><span class="activity-search-input"><partial name="_NavIcon" model='"search"' /><input type="search" name="Search" value="@Model.Search" maxlength="100" placeholder="Description, category, or amount" /></span></label>
+            <label class="activity-category-field"><span>Category</span>
+                <select name="CategoryId">
+                    <option value="">All categories</option>
+                    @foreach (var category in Model.Categories.Where(category => Model.Type is null || category.Type == Model.Type))
+                    {
+                        <option value="@category.CategoryId" selected="@(Model.CategoryId == category.CategoryId)">@category.Name</option>
+                    }
+                </select>
+            </label>
+            @if (Model.Period != "AllTime")
+            {
+                <label class="activity-sort-field"><span>Amount order</span>
+                    <select name="AmountOrder">
+                        <option value="">Date order</option>
+                        <option value="Largest" selected="@(Model.AmountOrder == "Largest")">Largest first</option>
+                        <option value="Smallest" selected="@(Model.AmountOrder == "Smallest")">Smallest first</option>
+                    </select>
+                </label>
+            }
+            <details class="activity-date-range" open="@(Model.Period == "Range" ? "open" : null)">
+                <summary><partial name="_NavIcon" model='"calendar"' />
+                    <span>@(Model.Period == "Range" ? "Custom dates selected" : "Add date range")</span>
+                </summary>
+                <div class="activity-date-fields">
+                    <label><span>From date</span><input type="date" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" /></label>
+                    <label><span>To date</span><input type="date" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" /></label>
+                </div>
+            </details>
+            @if (Model.Day is not null) { <input type="hidden" name="Day" value="@Model.Day.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" /> }
+            <button class="member-btn activity-apply-button" type="submit"><partial name="_NavIcon" model='"filter"' /><span>Apply</span></button>
+            @if (Model.HasActiveFilters)
+            {
+                <a class="activity-clear-filters" href="@Url.Action("Index", new { Period = clearPeriod, Month = clearMonth })">Clear filters</a>
+            }
+            @if (Model.CategoryError is not null) { <span class="activity-filter-error" role="status">@Model.CategoryError</span> }
+        </form>
+
+        <div id="activity-results" class="activity-list-heading">
+            <div><h2>Transactions</h2><p>@(Model.HasActiveFilters ? "Matching your filters" : "Your recorded income and expenses")</p></div>
+            @if (Model.HasActiveFilters) { <span class="activity-active-filters">@Model.ActiveFilterCount active filter@(Model.ActiveFilterCount == 1 ? "" : "s")</span> }
+            <span class="activity-record-count">@Model.TotalCount record@(Model.TotalCount == 1 ? "" : "s")</span>
+        </div>
+
+        <section class="member-card member-table-wrap activity-table-card" aria-label="Transactions">
+            @if (!Model.DataLoaded)
+            {
+                <div class="activity-state activity-error-state" role="status">
+                    <span class="activity-state-icon"><partial name="_NavIcon" model='"alert"' /></span>
+                    <h3>Transactions are unavailable</h3>
+                    <p>@(Model.Error ?? "We could not load your activity. Try again shortly.")</p>
+                    <a class="member-btn member-btn-secondary" href="@Url.Action("Index", new { Period = Model.Period, Month = Model.Month, Type = Model.Type, Model.CategoryId, Model.Search, Model.Day, Model.FromDate, Model.ToDate, Model.AmountOrder })">Try again</a>
+                </div>
+            }
+            else if (Model.Items.Count == 0)
+            {
+                <div class="activity-state activity-empty-state">
+                    <span class="activity-state-icon"><partial name="_NavIcon" model='"list"' /></span>
+                    <h3>@(Model.HasActiveFilters ? "No matching transactions" : "Nothing recorded for this period yet")</h3>
+                    <p>@(Model.HasActiveFilters ? "Try changing or clearing your filters." : "Income and expenses you record will appear here.")</p>
+                    @if (Model.HasActiveFilters)
+                    {
+                        <a class="member-btn member-btn-secondary" href="@Url.Action("Index", new { Period = clearPeriod, Month = clearMonth })">Clear filters</a>
+                    }
+                    else
+                    {
+                        <a class="member-btn" href="@Url.Action("Create")"><partial name="_NavIcon" model='"plus"' /><span>Add transaction</span></a>
+                    }
+                </div>
+            }
+            else
+            {
+                <table class="member-table activity-table @(Model.AmountOrder is null ? "is-grouped" : "")">
+                    <thead><tr><th scope="col">Date</th><th scope="col">Category</th><th scope="col">Description</th><th scope="col">Type</th><th scope="col" class="member-amount">Amount (@Model.BaseCurrency)</th><th scope="col" class="activity-actions-heading">Actions</th></tr></thead>
+                    <tbody>
+                    @{ DateOnly? priorDate = null; }
+                    @foreach (var item in Model.Items)
+                    {
+                        var category = Model.Categories.FirstOrDefault(row => row.CategoryId == item.CategoryId);
+                        var color = ActivityProjection.DisplayColor(item.CategoryId, category?.ColorHEX);
+                        var icon = ActivityProjection.IconKey(item.CategoryName, item.Type);
+                        var isProtected = item.BillId is not null || item.BillDueDate is not null;
+                        @if (Model.AmountOrder is null && priorDate != item.TransactionDate)
+                        {
+                            var dayNet = Model.DailyNet.GetValueOrDefault(item.TransactionDate);
+                            <tr class="activity-date-group"><th colspan="6" scope="rowgroup"><div><time datetime="@item.TransactionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@item.TransactionDate.ToString("dddd, d MMMM yyyy", CultureInfo.GetCultureInfo("en-PH"))</time><span>Day net <strong class="@(dayNet < 0 ? "member-amount-expense" : "member-amount-income")">@(dayNet < 0 ? "\u2212" : "+")@Money(Math.Abs(dayNet))</strong> &#183; @Model.DailyCount.GetValueOrDefault(item.TransactionDate) transactions</span></div></th></tr>
+                            priorDate = item.TransactionDate;
+                        }
+                        <tr class="activity-transaction-row">
+                            <td data-label="Date"><time datetime="@item.TransactionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@item.TransactionDate.ToDateTime(TimeOnly.MinValue).ToString("d MMM yyyy", CultureInfo.GetCultureInfo("en-PH"))</time></td>
+                            <td data-label="Category"><span class="activity-category"><span class="activity-category-mark"><svg class="activity-colored-icon" viewBox="0 0 24 24" color="@color" aria-hidden="true"><partial name="_ActivityCategoryIcon" model="icon" /></svg></span><span>@item.CategoryName</span></span></td>
+                            <td class="activity-description" data-label="Description">@(string.IsNullOrWhiteSpace(item.Description) ? "—" : item.Description)</td>
+                            <td data-label="Type"><span class="member-pill member-pill-@item.Type.ToLowerInvariant()">@item.Type</span></td>
+                            <td class="member-amount activity-amount-cell" data-label="Amount">
+                                <span class="@(item.Type == "Income" ? "member-amount-income" : "member-amount-expense")">@SignedMoney(item.AmountBase, item.Type)</span>
+                                @if (Model.ShowOriginalAmounts && item.CurrencyCode != Model.BaseCurrency)
+                                {
+                                    <small class="activity-original-amount">@OriginalMoney(item.Amount, item.Type, item.CurrencyCode) original</small>
+                                }
+                            </td>
+                            <td class="member-row-actions activity-actions-cell" data-label="Actions">
+                                <div class="activity-actions">
+                                @if (isProtected)
+                                {
+                                    <span class="activity-protected" title="Bill payment transactions are protected" aria-label="Protected bill payment"><partial name="_NavIcon" model='"lock"' /><span>Protected</span></span>
+                                }
+                                else
+                                {
+                                    <a class="activity-action activity-edit" aria-label="Edit transaction on @item.TransactionDate.ToString("d MMM yyyy", CultureInfo.GetCultureInfo("en-PH"))" href="@Url.Action("Edit", new { id = item.TransactionId })"><partial name="_NavIcon" model='"edit"' /><span>Edit</span></a>
+                                    <a class="activity-action activity-delete" aria-label="Delete transaction on @item.TransactionDate.ToString("d MMM yyyy", CultureInfo.GetCultureInfo("en-PH"))" href="@Url.Action("Delete", new { id = item.TransactionId })"><partial name="_NavIcon" model='"x"' /><span>Delete</span></a>
+                                }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+
+            @if (Model.DataLoaded && Model.TotalCount > 0)
+            {
+                <footer class="activity-pagination">
+                    <p>Showing <strong>@Model.FirstRecord–@Model.LastRecord</strong> of <strong>@Model.TotalCount</strong> transactions</p>
+                    <nav class="activity-page-links" aria-label="Transaction pages">
+                        @if (Model.HasPrevious)
+                        {
+                            <a class="activity-page-button" aria-label="Previous page" href="@(Url.Action("Index", new { Period = Model.Period, Month = Model.Period == "Month" ? month?.ToString("yyyy-MM", CultureInfo.InvariantCulture) : null, Type = Model.Type, Model.CategoryId, Model.Search, Day = Model.Day?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), FromDate = Model.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), ToDate = Model.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), Model.AmountOrder, Page = Model.Page - 1 }) + "#activity-results")"><partial name="_NavIcon" model='"chevl"' /><span>Previous</span></a>
+                        }
+                        else { <span class="activity-page-button is-disabled" aria-disabled="true"><partial name="_NavIcon" model='"chevl"' /><span>Previous</span></span> }
+                        @foreach (var pageNumber in pageLinks)
+                        {
+                            if (pageNumber is null) { <span class="activity-page-ellipsis" aria-hidden="true">…</span> }
+                            else if (pageNumber.Value == Model.Page) { <span class="activity-page-number is-current" aria-current="page">@pageNumber</span> }
+                            else
+                            {
+                                <a class="activity-page-number" href="@(Url.Action("Index", new { Period = Model.Period, Month = Model.Period == "Month" ? month?.ToString("yyyy-MM", CultureInfo.InvariantCulture) : null, Type = Model.Type, Model.CategoryId, Model.Search, Day = Model.Day?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), FromDate = Model.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), ToDate = Model.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), Model.AmountOrder, Page = pageNumber }) + "#activity-results")" aria-label="Page @pageNumber">@pageNumber</a>
+                            }
+                        }
+                        @if (Model.HasNext)
+                        {
+                            <a class="activity-page-button" aria-label="Next page" href="@(Url.Action("Index", new { Period = Model.Period, Month = Model.Period == "Month" ? month?.ToString("yyyy-MM", CultureInfo.InvariantCulture) : null, Type = Model.Type, Model.CategoryId, Model.Search, Day = Model.Day?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), FromDate = Model.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), ToDate = Model.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), Model.AmountOrder, Page = Model.Page + 1 }) + "#activity-results")"><span>Next</span><partial name="_NavIcon" model='"chev"' /></a>
+                        }
+                        else { <span class="activity-page-button is-disabled" aria-disabled="true"><span>Next</span><partial name="_NavIcon" model='"chev"' /></span> }
+                    </nav>
+                </footer>
+            }
+        </section>
+    </section>
+</section>
+

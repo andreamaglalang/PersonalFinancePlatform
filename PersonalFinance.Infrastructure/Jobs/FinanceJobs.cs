@@ -22,7 +22,7 @@ public sealed class FinanceJobs(ApplicationDbContext db, IBudgetUsageService bud
     public const string BudgetAlertType = "BudgetAlert";
     public const string MonthlySummaryType = "MonthlySummary";
 
-    private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+    private DateOnly Today => HangfireSetup.ManilaToday(clock);
     private static string Money(decimal v, string currency) => currency + " " + v.ToString("#,##0.00", CultureInfo.InvariantCulture);
 
     /// <summary>One reminder per bill per due date, from ReminderDaysBefore days ahead up to the due date.</summary>

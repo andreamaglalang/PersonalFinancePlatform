@@ -2,7 +2,7 @@ using PersonalFinance.AdminMvc.Services.Contracts;
 
 namespace PersonalFinance.AdminMvc.Services;
 
-public enum ApiFailure { None, BadRequest, Unauthorized, Forbidden, RateLimited, Unavailable, InvalidResponse }
+public enum ApiFailure { None, BadRequest, Unauthorized, Forbidden, Conflict, RateLimited, Unavailable, InvalidResponse }
 
 // Never carry upstream bodies, credentials or exception messages in error results.
 public sealed class ApiResult<T>
@@ -19,5 +19,8 @@ public interface IAuthenticationApiClient
     Task<ApiResult<AuthenticationResponse>> LoginAsync(LoginRequest request, CancellationToken ct);
     Task<ApiResult<AuthenticationResponse>> RefreshAsync(RefreshRequest request, CancellationToken ct);
     Task<ApiResult<CurrentUserResponse>> GetCurrentUserAsync(string accessToken, CancellationToken ct);
+    Task<ApiResult<CurrentUserResponse>> UpdateProfileAsync(UpdateProfileRequest request, string accessToken, CancellationToken ct);
+    Task<ApiResult<bool>> ChangePasswordAsync(ChangePasswordRequest request, string accessToken, CancellationToken ct);
+    Task<ApiResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct);
     Task<ApiResult<bool>> LogoutAsync(RefreshRequest request, CancellationToken ct);
 }

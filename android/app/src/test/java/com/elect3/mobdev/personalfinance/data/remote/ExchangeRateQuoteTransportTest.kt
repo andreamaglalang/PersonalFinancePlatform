@@ -83,4 +83,14 @@ class ExchangeRateQuoteTransportTest {
         f.respond = { throw SocketTimeoutException() }
         assertEquals(FinanceFailure.Timeout, (f.repos.exchangeRateQuotes.quote("USD", "PHP", BigDecimal.ONE) as FinanceResult.Failure).reason)
     }
+
+    @Test fun historicalQuoteSendsExplicitDateAndRejectsDifferentRequestedDate() = runTest {
+        val f=Fixture(); f.login()
+        val historical=f.repos.exchangeRateQuotes as com.elect3.mobdev.personalfinance.domain.currency.HistoricalExchangeRateQuoteRepository
+        val day=LocalDate.parse("2026-11-20")
+        assertTrue(historical.quote("USD","PHP",BigDecimal("10.25"),day) is FinanceResult.Success)
+        assertTrue(f.requests.single().url.toString().contains("date=2026-11-20"))
+        f.respond={FinanceHttpResponse(200,body(requested="2026-11-21"))}
+        assertEquals(FinanceFailure.InvalidResponse,(historical.quote("USD","PHP",BigDecimal("10.25"),day) as FinanceResult.Failure).reason)
+    }
 }

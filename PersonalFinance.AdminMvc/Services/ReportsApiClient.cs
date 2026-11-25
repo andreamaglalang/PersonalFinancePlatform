@@ -37,7 +37,7 @@ public sealed class ReportsApiClient(HttpClient http)
             return IsValid(report, month) ? new(200, report) : new(503);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException or JsonException
-            or NotSupportedException or InvalidOperationException or FormatException)
+            or NotSupportedException or InvalidOperationException or FormatException or OverflowException)
         {
             return new(503);
         }
@@ -46,13 +46,20 @@ public sealed class ReportsApiClient(HttpClient http)
     private static bool IsValid(MonthlyReportResponse? report, DateOnly month) =>
         report is { BaseCurrency.Length: 3, TransactionCount: >= 0, ExpenseByCategory: not null,
             IncomeByCategory: not null, Budgets: not null }
+        && report.TotalIncome >= 0 && report.TotalExpenses >= 0 && report.SavingsContributed >= 0
+        && report.NetCashFlow == report.TotalIncome - report.TotalExpenses
         && report.Month == month
         && report.BaseCurrency.All(c => c is >= 'A' and <= 'Z')
         && report.ExpenseByCategory.All(IsValidCategory)
         && report.IncomeByCategory.All(IsValidCategory)
+        && report.ExpenseByCategory.Sum(row => row.Total) == report.TotalExpenses
+        && report.IncomeByCategory.Sum(row => row.Total) == report.TotalIncome
+        && report.ExpenseByCategory.Sum(row => (long)row.TransactionCount) + report.IncomeByCategory.Sum(row => (long)row.TransactionCount) == report.TransactionCount
+        && report.ExpenseByCategory.Select(row => row.CategoryId).Distinct().Count() == report.ExpenseByCategory.Count
+        && report.IncomeByCategory.Select(row => row.CategoryId).Distinct().Count() == report.IncomeByCategory.Count
         && report.Budgets.All(budget => BudgetApiClient.Valid(budget) && budget.PeriodMonth == month
             && budget.BaseCurrency == report.BaseCurrency);
 
     private static bool IsValidCategory(ReportCategoryTotal? row) =>
-        row is { CategoryId: > 0, TransactionCount: > 0 } && !string.IsNullOrWhiteSpace(row.CategoryName);
+        row is { CategoryId: > 0, TransactionCount: > 0, Total: >= 0 } && !string.IsNullOrWhiteSpace(row.CategoryName);
 }

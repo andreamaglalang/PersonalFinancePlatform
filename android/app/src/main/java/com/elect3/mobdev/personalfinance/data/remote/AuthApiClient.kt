@@ -3,6 +3,7 @@ package com.elect3.mobdev.personalfinance.data.remote
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.SocketTimeoutException
+import java.net.URL
 import java.time.Instant
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLException
@@ -21,12 +22,14 @@ import kotlin.coroutines.resume
 /** Safe categories only. Raw response bodies and exception messages never reach UI state. */
 enum class AuthFailure {
     NotConfigured, InvalidInput, InvalidCredentials, RateLimited, Timeout,
-    SecureConnection, Unavailable, InvalidResponse, AccessDenied, SessionExpired,
+    SecureConnection, ConnectionFailed, Unavailable, InvalidResponse, AccessDenied, SessionExpired, RenewalUnconfirmed, SecureStorage,
 }
+
+internal enum class RequestDelivery { NotSent, Rejected, Unknown }
 
 internal sealed interface ApiResult<out T> {
     class Success<T>(val value: T) : ApiResult<T>
-    class Failure(val reason: AuthFailure) : ApiResult<Nothing>
+    class Failure(val reason: AuthFailure, val delivery: RequestDelivery = RequestDelivery.Unknown) : ApiResult<Nothing>
 }
 
 /** Deliberately not a data class: generated toString/copy must not expose secrets. */
@@ -83,6 +86,7 @@ internal fun parseAuthPayload(body: String, now: Instant = Instant.now()): AuthP
 internal class AuthApiClient(
     private val configuration: ApiConfiguration = ApiConfiguration.unconfigured(),
     private val diagnostics: AuthDiagnosticSink = NoAuthDiagnostics,
+    private val open: (URL) -> HttpsURLConnection = { it.openConnection() as HttpsURLConnection },
 ) : AuthApi {
     private val diagnosticId = AuthDiagnosticIds.next()
     override suspend fun login(email: String, password: String): ApiResult<AuthPayload> =
@@ -112,13 +116,17 @@ internal class AuthApiClient(
 
     private suspend fun post(operation: String, body: JSONObject): ApiResult<String> {
         val url = configuration.authUrl(operation) ?: return ApiResult.Failure(AuthFailure.NotConfigured)
-        return withContext(Dispatchers.IO) {
+        return withContext<ApiResult<String>>(Dispatchers.IO) {
             currentCoroutineContext().ensureActive()
-            val connection = url.openConnection() as HttpsURLConnection
+            val connection = try { open(url) }
+            catch (_: SSLException) { return@withContext ApiResult.Failure(AuthFailure.SecureConnection, RequestDelivery.NotSent) }
+            catch (_: IOException) { return@withContext ApiResult.Failure(AuthFailure.ConnectionFailed, RequestDelivery.NotSent) }
+            catch (_: Exception) { return@withContext ApiResult.Failure(AuthFailure.Unavailable, RequestDelivery.NotSent) }
             // Install cancellation before any blocking network operation begins.
-            suspendCancellableCoroutine { continuation ->
+            suspendCancellableCoroutine<ApiResult<String>> { continuation ->
                 continuation.invokeOnCancellation { connection.disconnect() }
                 if (!continuation.isActive) return@suspendCancellableCoroutine
+                var bodyStarted = false
                 val result = try {
                     connection.requestMethod = "POST"
                     connection.instanceFollowRedirects = false
@@ -131,7 +139,7 @@ internal class AuthApiClient(
                     val bytes = body.toString().toByteArray(Charsets.UTF_8)
                     connection.setFixedLengthStreamingMode(bytes.size)
                     try {
-                        connection.outputStream.use { it.write(bytes) }
+                        connection.outputStream.use { bodyStarted = true; it.write(bytes) }
                     } finally {
                         bytes.fill(0)
                     }
@@ -161,18 +169,18 @@ internal class AuthApiClient(
                             429 -> AuthFailure.RateLimited
                             in 500..599 -> AuthFailure.Unavailable
                             else -> AuthFailure.InvalidResponse
-                        })
+                        }, if (status in 400..499) RequestDelivery.Rejected else RequestDelivery.Unknown)
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: SocketTimeoutException) {
-                    ApiResult.Failure(AuthFailure.Timeout)
+                    ApiResult.Failure(AuthFailure.Timeout, if (bodyStarted) RequestDelivery.Unknown else RequestDelivery.NotSent)
                 } catch (_: SSLException) {
-                    ApiResult.Failure(AuthFailure.SecureConnection)
+                    ApiResult.Failure(AuthFailure.SecureConnection, if (bodyStarted) RequestDelivery.Unknown else RequestDelivery.NotSent)
                 } catch (_: InvalidAuthResponse) {
                     ApiResult.Failure(AuthFailure.InvalidResponse)
                 } catch (_: IOException) {
-                    ApiResult.Failure(AuthFailure.Unavailable)
+                    ApiResult.Failure(AuthFailure.ConnectionFailed, if (bodyStarted) RequestDelivery.Unknown else RequestDelivery.NotSent)
                 } catch (_: Exception) {
                     ApiResult.Failure(AuthFailure.Unavailable)
                 } finally {

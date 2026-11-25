@@ -525,8 +525,6 @@ internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, s
                 else stringResource(R.string.dashboard_where_scope_month, month)
             val fact = if (leaders.size == 1) stringResource(R.string.dashboard_where_fact_single, leaders.first().categoryName, leaderShare, scope)
                 else stringResource(R.string.dashboard_where_fact_tie, leaders.joinToString(", ") { it.categoryName }, leaderShare, scope)
-            val sourceNote = stringResource(if (source == DashboardSource.Demo) R.string.dashboard_where_source_demo
-                else R.string.dashboard_where_source_account)
             OwliGroupDivider()
             Row(Modifier.fillMaxWidth().background(owli.accentSoft.copy(alpha = 0.55f)).padding(horizontal = 14.dp, vertical = 11.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -534,9 +532,6 @@ internal fun DashboardWhereItWent(summary: DashboardSummary, allTime: Boolean, s
                     modifier = Modifier.padding(top = 1.dp).size(18.dp))
                 Column {
                     Text(fact, style = typography.caption, color = scheme.onSurface)
-                    val more = ranked.size - shown.size
-                    Text(if (more > 0) stringResource(R.string.dashboard_where_more, sourceNote, more) else sourceNote,
-                        style = typography.caption, color = scheme.onSurfaceVariant)
                 }
             }
         }

@@ -1,0 +1,116 @@
+﻿@model PersonalFinance.AdminMvc.ViewModels.MemberInsightsViewModel
+@using PersonalFinance.AdminMvc.Services
+@using static PersonalFinance.AdminMvc.Services.InsightsProjection
+@{
+    ViewData["Title"] = "Insights";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+    var month = DateOnly.TryParseExact(Model.Month + "-01", "yyyy-MM-dd", invariant, System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : CurrentMonth;
+    var monthLabel = month.ToString("MMMM yyyy", invariant);
+}
+<section class="member-dashboard insights-page" data-reports-page>
+    <header class="member-dashboard-head insights-heading">
+        <div class="member-dashboard-title"><p class="owli-greeting">Financial reports</p><h1 class="owli-screen-title">Insights</h1></div>
+        <a class="member-btn member-btn-secondary member-btn-small" href="@Url.Action("Index", new { Month = Model.Month })" data-report-refresh><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1" /></svg>Refresh</a>
+    </header>
+    <div class="insights-account"><span class="insights-account-mark" aria-hidden="true"><partial name="_NavIcon" model='"account"' /></span><div><strong>Your account</strong><p>@(Model.Report is { } accountReport ? $"Totals in {accountReport.BaseCurrency}, your base currency" : "Totals use your account’s base currency")</p></div></div>
+    <nav class="insights-period" aria-label="Reporting month">
+        @if (month > EarliestMonth) { <a class="member-btn member-btn-secondary insights-month-arrow" aria-label="Previous reporting month" href="@Url.Action("Index", new { Month = month.AddMonths(-1).ToString("yyyy-MM", invariant) })" data-report-navigation>‹</a> }
+        else { <button class="member-btn member-btn-secondary insights-month-arrow" disabled aria-label="Previous reporting month">‹</button> }
+        <details class="insights-month-picker"><summary><span>Reporting month</span><strong>@monthLabel</strong><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></summary><form method="get" asp-action="Index" data-report-month-form><label for="reporting-month">Choose reporting month</label><input id="reporting-month" type="month" name="Month" value="@month.ToString("yyyy-MM", invariant)" min="2000-06" max="@CurrentMonth.ToString("yyyy-MM", invariant)" required /><button class="member-btn member-btn-small" type="submit">Go to month</button></form></details>
+        @if (month < CurrentMonth) { <a class="member-btn member-btn-secondary insights-month-arrow" aria-label="Next reporting month" href="@Url.Action("Index", new { Month = month.AddMonths(1).ToString("yyyy-MM", invariant) })" data-report-navigation>›</a> }
+        else { <button class="member-btn member-btn-secondary insights-month-arrow" disabled aria-label="Next reporting month">›</button> }
+        @if (month != CurrentMonth) { <a class="insights-this-month" href="@Url.Action("Index")" data-report-navigation>This month</a> }
+    </nav>
+    <p class="insights-loading" role="status" hidden>Loading financial reports…</p>
+    @if (Model.MonthError is not null) { <p class="notice login-notice" role="alert">@Model.MonthError</p> }
+    @if (Model.ReportError is not null) { <div class="insights-state" role="alert"><h2>Reports unavailable</h2><p>@Model.ReportError</p><a class="member-btn member-btn-secondary" href="@Url.Action("Index", new { Model.Month })">Try again</a></div> }
+    @if (Model.Report is { } report)
+    {
+        var slices = Slices(report, Model.CategoryColors);
+        <section class="insights-overview" aria-labelledby="overview-title">
+            <div class="insights-overview-main"><h2 id="overview-title">Monthly overview <span>@monthLabel</span></h2><p class="insights-net-label">Net transaction flow</p><strong class="insights-net-amount @(report.NetCashFlow < 0 ? "is-negative" : "")">@SignedMoney(report.NetCashFlow, report.BaseCurrency)</strong><p class="insights-net-note">Income minus expenses recorded this month.</p></div>
+            <dl class="insights-overview-totals"><div><dt><span class="insights-direction" aria-hidden="true">↙</span> Income</dt><dd class="insights-panel-income">@Money(report.TotalIncome, report.BaseCurrency)</dd></div><div><dt><span class="insights-direction" aria-hidden="true">↗</span> Expenses</dt><dd class="insights-panel-expense">@Money(report.TotalExpenses, report.BaseCurrency)</dd></div></dl>
+            <p class="insights-overview-footer"><span><strong>@report.TransactionCount.ToString("N0", invariant)</strong> transactions</span><span>Recorded activity · not an account balance</span></p>
+        </section>
+        @if (report.TransactionCount == 0) { <p class="insights-empty-note" role="status">No transactions recorded in @monthLabel. Choose another month to explore your activity.</p> }
+        <section class="insights-card insights-breakdown" aria-labelledby="breakdown-title">
+            <header class="insights-section-heading"><h2 id="breakdown-title">Spending breakdown</h2><span>@monthLabel</span></header>
+            @if (report.TotalExpenses <= 0 || slices.Count == 0)
+            {
+                <div class="insights-state"><span class="insights-empty-icon" aria-hidden="true">◯</span><h3>No spending this month</h3><p>Your expense categories will appear here when you record an expense.</p></div>
+            }
+            else
+            {
+                <div class="insights-breakdown-layout">
+                    <figure class="insights-donut-figure"><div class="insights-donut-wrap">
+                        <svg class="insights-donut" viewBox="0 0 240 240" role="img" aria-labelledby="donut-title donut-desc"><title id="donut-title">Spending by category in @monthLabel</title><desc id="donut-desc">@Money(report.TotalExpenses, report.BaseCurrency) across @slices.Count categories. Exact category values and shares follow.</desc><circle class="insights-donut-track" cx="120" cy="120" r="94" fill="none" stroke-width="24" />
+                            @foreach (var slice in slices)
+                            {
+                                <circle class="insights-donut-segment" cx="120" cy="120" r="94" fill="none" stroke="@slice.Color" stroke-width="24" pathLength="100" stroke-dasharray="@Number(slice.Share) @Number(100m - slice.Share)" stroke-dashoffset="@Number(-slice.Offset)" transform="rotate(-90 120 120)"><title>@slice.Name: @Money(slice.Amount, report.BaseCurrency), @slice.Share.ToString("0.0", invariant)%</title></circle>
+                            }
+                        </svg><div class="insights-donut-center"><span>Total spent</span><strong>@Money(report.TotalExpenses, report.BaseCurrency)</strong><span>@slices.Count @(slices.Count == 1 ? "category" : "categories")</span></div>
+                    </div><figcaption>Monthly spending by category</figcaption></figure>
+                    <ol class="insights-category-list">
+                    @for (var i = 0; i < slices.Count; i++)
+                    {
+                        var slice = slices[i];
+                        <li><span class="insights-rank">@(i + 1)</span><svg class="insights-category-dot" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="@slice.Color" /></svg><div class="insights-category-body"><div class="insights-category-line"><div><h3>@slice.Name @if (slice.Amount == slices[0].Amount) { <span class="insights-top-tag">Top</span> }</h3><p>@slice.Count @(slice.Count == 1 ? "transaction" : "transactions")</p></div><div class="insights-category-amount"><strong>@Money(slice.Amount, report.BaseCurrency)</strong><span>@slice.Share.ToString("0.0", invariant)%</span></div></div><svg class="insights-category-track" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true"><rect class="insights-track" width="100" height="4" rx="2" /><rect width="@Number(slice.Share)" height="4" rx="2" fill="@slice.Color" /></svg></div></li>
+                    }
+                    </ol>
+                </div>
+            }
+        </section>
+        <section class="insights-card insights-trend" aria-labelledby="trend-title">
+            <header class="insights-section-heading"><h2 id="trend-title">Income vs. expenses</h2><span>@month.AddMonths(-5).ToString("MMM", invariant) – @month.ToString("MMM yyyy", invariant)</span></header>
+            @{ var comparison = SpendingComparison(month, Model.MonthlyHistory); var scale = Scale(Model.MonthlyHistory); var months = Months(month); }
+            @if (comparison is not null) { <p class="insights-comparison">@comparison</p> }
+            @if (Model.HistoryPartial) { <p class="insights-history-warning" role="status">Some monthly reports are unavailable. Missing values are shown as unavailable, not zero. Refresh to try again.</p> }
+            @if (Model.MonthlyHistory.Count == 0) { <div class="insights-state"><p>Monthly comparison is unavailable.</p></div> }
+            else
+            {
+                @if (!Model.HistoryPartial && Model.MonthlyHistory.All(p => p.TransactionCount == 0)) { <p class="insights-empty-note">No financial activity recorded in this six-month period.</p> }
+                <div class="insights-chart-legend"><span><i class="insights-income-swatch"></i>Income</span><span><i class="insights-expense-swatch"></i>Expenses</span><span class="insights-chart-hint">Hover or focus a month for exact values</span></div>
+                <div class="insights-bar-chart">
+                <svg class="insights-trend-svg" viewBox="0 0 720 280" role="group" aria-labelledby="trend-chart-title trend-chart-desc"><title id="trend-chart-title">Six-month income and expenses, @monthLabel</title><desc id="trend-chart-desc">Income is the left bar and expenses the right bar in each month. Both use a common scale starting at zero. Focus a month to read exact values.</desc>
+                    @for (var tick = 0; tick <= 4; tick++)
+                    {
+                        var y = 210m - tick * 45m;
+                        <g><line class="insights-gridline" x1="70" x2="704" y1="@Number(y)" y2="@Number(y)" />
+                        <text class="insights-axis-label" x="60" y="@Number(y + 4)" text-anchor="end">@((scale * tick / 4m).ToString(scale >= 1000 ? "#,0" : "0.##", invariant))</text></g>
+                    }
+                    <text class="insights-axis-unit" x="70" y="16">@report.BaseCurrency</text>
+                    @for (var i = 0; i < months.Length; i++)
+                    {
+                        var chartMonth = months[i]; var point = Model.MonthlyHistory.SingleOrDefault(p => p.Month == chartMonth); var center = 122m + i * 104m;
+                        var exact = point is null ? chartMonth.ToString("MMMM yyyy", invariant) + ": report unavailable" : chartMonth.ToString("MMMM yyyy", invariant) + ": income " + Money(point.Income, point.BaseCurrency) + ", expenses " + Money(point.Expenses, point.BaseCurrency) + ", net " + SignedMoney(point.NetFlow, point.BaseCurrency);
+                        <g class="insights-chart-month @(chartMonth == month ? "is-selected" : "")" tabindex="0" role="img" aria-label="@exact"><title>@exact</title><rect class="insights-month-hit" x="@Number(center - 46)" y="24" width="92" height="218" rx="9" />
+                            @if (point is not null)
+                            {
+                                var incomeHeight = BarHeight(point.Income, scale); var expenseHeight = BarHeight(point.Expenses, scale);
+                                <rect class="insights-income-bar" data-series="income" data-month="@chartMonth.ToString("yyyy-MM", invariant)" data-amount="@Number(point.Income)" x="@Number(center - 24)" y="@Number(210m - incomeHeight)" width="20" height="@Number(incomeHeight)" rx="3" />
+                                <rect class="insights-expense-bar" data-series="expenses" data-month="@chartMonth.ToString("yyyy-MM", invariant)" data-amount="@Number(point.Expenses)" x="@Number(center + 4)" y="@Number(210m - expenseHeight)" width="20" height="@Number(expenseHeight)" rx="3" />
+                            }
+                            else { <g><text class="insights-missing-label" x="@Number(center)" y="150" text-anchor="middle">N/A</text></g> }
+                            <text class="insights-month-label" x="@Number(center)" y="233" text-anchor="middle">@chartMonth.ToString("MMM", invariant)</text>
+                        </g>
+                    }
+                </svg>
+                <p class="insights-chart-value" aria-live="polite">Select a month’s bars to inspect its exact income and expenses.</p>
+                </div>
+            }
+            <div class="insights-comparison-table">
+                <h3>Monthly comparison</h3>
+                <table><caption class="visually-hidden">Six-month income, expenses and net transaction flow in @report.BaseCurrency</caption><colgroup><col class="insights-month-col" /><col /><col /><col /></colgroup><thead><tr><th scope="col">Month</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Net</th></tr></thead><tbody>
+                @foreach (var tableMonth in months)
+                {
+                    var point = Model.MonthlyHistory.SingleOrDefault(p => p.Month == tableMonth);
+                    <tr class="@(tableMonth == month ? "is-selected" : "")"><th scope="row"><time datetime="@tableMonth.ToString("yyyy-MM", invariant)">@tableMonth.ToString("MMM yyyy", invariant)</time>@if (tableMonth == month) { <span class="insights-selected-label">Selected</span> }</th>
+                    @if (point is not null) { <td>@Money(point.Income, point.BaseCurrency)</td><td>@Money(point.Expenses, point.BaseCurrency)</td><td class="@(point.NetFlow < 0 ? "insights-net-negative" : point.NetFlow > 0 ? "insights-net-positive" : "")">@SignedMoney(point.NetFlow, point.BaseCurrency)</td> }
+                    else { <td colspan="3" class="insights-unavailable">Report unavailable</td> }</tr>
+                }
+                </tbody></table>
+            </div>
+        </section>
+    }
+</section>

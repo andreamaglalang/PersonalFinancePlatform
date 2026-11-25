@@ -139,6 +139,7 @@ internal sealed class Fixture : IDisposable
     public FakeSessionStore Store { get; } = new();
     public TestClock Clock { get; } = new();
     public IAuthenticationService Auth { get; }
+    public IAccountService Account { get; }
     public IRefreshTokenService Sessions { get; }
     public Fixture()
     {
@@ -154,6 +155,7 @@ internal sealed class Fixture : IDisposable
         provider = services.BuildServiceProvider();
         scope = provider.CreateScope();
         Auth = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+        Account = scope.ServiceProvider.GetRequiredService<IAccountService>();
         Sessions = scope.ServiceProvider.GetRequiredService<IRefreshTokenService>();
     }
     public RegisterRequest Registration(string email = "person@example.test") =>

@@ -1,10 +1,10 @@
 @model DashboardViewModel
 @{ ViewData["Title"] = "Administrator Dashboard"; }
-<header class="page-heading mock-heading">
-    <div><p class="welcome-name">Welcome, @Model.AdministratorDisplayName</p><h1>Dashboard</h1></div>
+<header class="page-heading mock-heading admin-page-heading">
+    <div><p class="welcome-name">Administrator workspace · @Model.AdministratorDisplayName</p><h1>Dashboard</h1><p class="admin-page-intro">Manage shared categories, review budgets, and open real account reports.</p></div>
     <a class="button-link" asp-controller="Categories" asp-action="Create" data-form-dialog="Create category"><partial name="_NavIcon" model='"plus"' />Create category</a>
 </header>
-<div class="dashboard-grid">
+<div class="dashboard-grid admin-dashboard-grid">
     <section class="card dashboard-welcome" aria-labelledby="dashboard-categories">
         <img class="stars" src="~/images/dashboard-stars.svg" alt="" />
         <div class="dashboard-panel-body">

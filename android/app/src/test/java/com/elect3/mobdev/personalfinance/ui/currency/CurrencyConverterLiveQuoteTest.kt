@@ -65,6 +65,41 @@ class CurrencyConverterLiveQuoteTest {
         } finally { f.close() }
     }
 
+    @Test fun duplicateRequestsWhileLoadingUseOneCall() = runTest(main.dispatcher) {
+        val reply = CompletableDeferred<FinanceResult<ExchangeRateQuote>>()
+        val f = Fixture(reply = { _, _, _ -> reply.await() })
+        try {
+            f.model.amount("10")
+            f.model.requestQuote(); f.model.requestQuote(); f.model.refresh(); runCurrent()
+            assertEquals(1, f.calls.size)
+            reply.complete(FinanceResult.Success(quote("USD", "PHP", BigDecimal("10.00")))); runCurrent()
+            assertTrue(f.state.liveQuote is LiveQuote.Ready)
+        } finally { f.close() }
+    }
+
+    @Test fun liveQuickAmountsClearTheQuoteWithoutRequestingAnotherRate() = runTest(main.dispatcher) {
+        val f = Fixture()
+        try {
+            f.model.amount("10"); f.model.requestQuote(); runCurrent()
+            assertTrue(f.state.liveQuote is LiveQuote.Ready)
+            f.model.quickAmount(1000)
+            assertEquals("1000", f.state.amount)
+            assertEquals(LiveQuote.Idle, f.state.liveQuote)
+            assertEquals(1, f.calls.size)
+            f.model.quickAmount(7)
+            assertEquals("1000", f.state.amount)
+            f.model.from("EUR"); f.model.quickAmount(500)
+            assertEquals("EUR", f.state.from)
+            assertEquals("500", f.state.amount)
+        } finally { f.close() }
+        val demo = Fixture(demo = true)
+        try {
+            demo.model.amount("25"); demo.model.quickAmount(100)
+            assertEquals("25", demo.state.amount)
+            assertTrue(demo.calls.isEmpty())
+        } finally { demo.close() }
+    }
+
     @Test fun aStaleAnswerForPreviousInputIsDropped() = runTest(main.dispatcher) {
         val slow = CompletableDeferred<FinanceResult<ExchangeRateQuote>>()
         val f = Fixture(reply = { _, _, _ -> slow.await() })

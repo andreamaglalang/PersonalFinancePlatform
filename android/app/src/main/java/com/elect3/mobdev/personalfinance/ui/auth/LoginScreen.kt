@@ -151,6 +151,7 @@ fun LoginScreen(
                         Spacer(Modifier.height(14.dp))
                         LoginNotice(stringResource(authErrorResource(it)), isError = true)
                     }
+                    state.accountNotice?.let { LoginNotice(it, isError = false) }
                     if (state.revocationUnconfirmed) {
                         Spacer(Modifier.height(14.dp))
                         LoginNotice(stringResource(R.string.auth_logout_unconfirmed), isError = false)
@@ -261,8 +262,11 @@ private fun authErrorResource(failure: AuthFailure): Int = when (failure) {
     AuthFailure.RateLimited -> R.string.auth_rate_limited
     AuthFailure.Timeout -> R.string.auth_timeout
     AuthFailure.SecureConnection -> R.string.auth_secure_connection
+    AuthFailure.ConnectionFailed -> R.string.auth_connection_failed
     AuthFailure.Unavailable -> R.string.auth_unavailable
     AuthFailure.InvalidResponse -> R.string.auth_invalid_response
     AuthFailure.AccessDenied -> R.string.auth_access_denied
+    AuthFailure.RenewalUnconfirmed -> R.string.auth_renewal_unconfirmed
+    AuthFailure.SecureStorage -> R.string.auth_secure_storage
     AuthFailure.SessionExpired -> R.string.auth_session_expired
 }

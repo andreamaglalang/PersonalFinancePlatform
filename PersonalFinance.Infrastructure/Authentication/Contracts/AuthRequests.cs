@@ -26,6 +26,22 @@ public sealed class LoginRequest
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class UpdateProfileRequest
+{
+    [Required, StringLength(100, MinimumLength = 1)]
+    public string FullName { get; set; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class ChangePasswordRequest
+{
+    [Required, StringLength(128, MinimumLength = 12)]
+    public string CurrentPassword { get; set; } = string.Empty;
+    [Required, StringLength(128, MinimumLength = 12)]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class RefreshRequest
 {
     [Required, StringLength(86, MinimumLength = 86), RegularExpression("^[A-Za-z0-9_-]{86}$")]

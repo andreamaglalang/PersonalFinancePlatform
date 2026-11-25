@@ -100,7 +100,7 @@ fun DashboardScreen(
                         }
                         if (state is DashboardUiState.Content) DashboardPillAction(stringResource(R.string.dashboard_refresh), onRefresh, !state.isRefreshing)
                     }
-                    OwliRibbon(stringResource(copy.dataLabel), stringResource(copy.ribbonDetail))
+                    if (source == DashboardSource.Demo) OwliRibbon(stringResource(copy.dataLabel), stringResource(copy.ribbonDetail))
                 }
             }
             when (state) {

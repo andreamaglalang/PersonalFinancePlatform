@@ -206,8 +206,42 @@ await Check("Revoked predecessors remain stored for reuse detection", async () =
     await f.Sessions.LogoutAllAsync(response.User.Id, default);
     Require(f.Store.Tokens.Count == 2);
 });
-Console.WriteLine($"Authentication service checks: {passed} passed, {failed} failed.");
 Console.WriteLine("SQL Server transaction/lock/concurrency integration: NOT RUN (no isolated SQL test database configured).");
+await Check("Profile update changes only the authenticated name and detects stale versions", async () =>
+{
+    using var f = new Fixture(); var login = await f.LoginAsync();
+    var before = (await f.Account.GetProfileAsync(login.User.Id, default)).Value!;
+    var changed = await f.Account.UpdateProfileAsync(login.User.Id, new() { FullName = " Updated Name ", Version = before.Version }, default);
+    Require(changed.Succeeded && changed.Value!.FullName == "Updated Name" && changed.Value.Email == before.Email && changed.Value.BaseCurrency == before.BaseCurrency);
+    Require((await f.Account.UpdateProfileAsync(login.User.Id, new() { FullName = "Stale", Version = before.Version }, default)).StatusCode == 409);
+    Require((await f.Account.GetProfileAsync(login.User.Id, default)).Value!.FullName == "Updated Name");
+});
+await Check("Password change verifies old password, follows policy and revokes every refresh family", async () =>
+{
+    using var f = new Fixture(); var login = await f.LoginAsync();
+    var user = f.Users.Users[login.User.Id]; var oldStamp = user.SecurityStamp;
+    Require((await f.Account.ChangePasswordAsync(user.Id, new() { CurrentPassword = "WrongPassword!123", NewPassword = "DifferentValid!234", ConfirmPassword = "DifferentValid!234" }, default)).StatusCode == 400);
+    Require(user.SecurityStamp == oldStamp && f.Store.Tokens.Values.All(t => t.RevokedAtUtc is null));
+    Require((await f.Account.ChangePasswordAsync(user.Id, new() { CurrentPassword = Fixture.Password, NewPassword = "aaaaaaaaaaaa", ConfirmPassword = "aaaaaaaaaaaa" }, default)).StatusCode == 400);
+    var result = await f.Account.ChangePasswordAsync(user.Id, new() { CurrentPassword = Fixture.Password, NewPassword = "DifferentValid!234", ConfirmPassword = "DifferentValid!234" }, default);
+    Require(result.Succeeded && result.StatusCode == 204 && user.SecurityStamp != oldStamp);
+    Require(f.Store.Tokens.Values.All(t => t.RevokedAtUtc is not null));
+    Require((await f.Sessions.RotateAsync(new() { RefreshToken = login.RefreshToken }, default)).StatusCode == 401);
+    Require((await f.Auth.LoginAsync(new() { Email = login.User.Email, Password = Fixture.Password }, default)).StatusCode == 401);
+    Require((await f.Auth.LoginAsync(new() { Email = login.User.Email, Password = "DifferentValid!234" }, default)).Succeeded);
+});
+await Check("Profile/password request DTOs reject role, email, currency and identity overposting", () =>
+{
+    foreach (var extra in new[] { "\"roles\":[\"Administrator\"]", "\"email\":\"other@example.test\"", "\"id\":2", "\"baseCurrency\":\"USD\"" })
+    {
+        var rejected = false;
+        try { JsonSerializer.Deserialize<AccountUpdateProfileRequest>("{\"fullName\":\"Person\",\"version\":\"" + new string('A', 64) + "\"," + extra + "}", new JsonSerializerOptions(JsonSerializerDefaults.Web)); }
+        catch (JsonException) { rejected = true; }
+        Require(rejected);
+    }
+    return Task.CompletedTask;
+});
 Console.WriteLine("JWT cryptography and HTTP middleware are covered by the separate API security suite.");
+Console.WriteLine($"Authentication service checks: {passed} passed, {failed} failed.");
 return failed == 0 ? 0 : 1;
 

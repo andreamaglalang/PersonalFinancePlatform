@@ -1,0 +1,36 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberCategoryIndexViewModel
+@{
+ ViewData["Title"] = "Manage categories"; Layout = "_MemberLayout";
+ var scope = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anonymous")));
+}
+<section class="member-dashboard account-settings-page account-category-page">
+<header class="member-dashboard-head"><div class="member-dashboard-title"><p class="owli-greeting">Finance setup</p><h1 class="owli-screen-title">Manage categories</h1></div><a class="member-btn" asp-action="Create"><partial name="_NavIcon" model='"plus"' />New category</a></header>
+<a class="account-back" asp-area="Member" asp-controller="Account" asp-action="Index"><partial name="_NavIcon" model='"chevl"' />Back to Account</a>
+@if (Model.Error is not null) { <p class="notice login-notice" role="alert">@Model.Error <a asp-action="Index">Refresh</a></p> }
+@if (Model.Notice is not null) { <p class="notice" role="status">@Model.Notice</p> }
+<div class="member-category-toolbar"><p class="owli-caption">Personal categories can be edited or deactivated. Shared OWLI categories remain read-only here.</p>
+<form class="member-filter" method="get" asp-action="Index"><label>Type<select name="Type"><option value="">All categories</option><option value="Expense" selected="@(Model.Type == "Expense")">Expenses</option><option value="Income" selected="@(Model.Type == "Income")">Income</option></select></label><button class="member-btn member-btn-secondary" type="submit">Apply</button></form></div>
+@if (Model.Items.Count == 0 && Model.Error is null) { <p class="member-empty">No categories match this filter.</p> }
+@if (Model.Items.Count > 0) {
+<div class="category-order-toolbar"><p class="owli-caption" id="category-order-note">Reordering is saved in this browser for your account. It does not sync across devices.</p><button class="member-btn member-btn-secondary" type="button" data-category-reorder-toggle aria-pressed="false" hidden>Reorder</button></div>
+<p class="owli-caption" data-category-order-status role="status" aria-live="polite"></p>
+<div data-category-catalog data-category-scope="@scope">
+@foreach (var type in new[] { "Expense", "Income" }) {
+ var items=Model.Items.Where(item=>item.Type==type).ToArray();
+ if(items.Length==0) { continue; }
+ <section class="category-type-group"><h2>@(type=="Expense"?"Expenses":"Income") <small>@items.Length categories</small></h2><div class="category-settings-list" data-category-order-list="@type">
+ @foreach(var item in items) {
+ var color=item.ColorHEX is { Length:7 } && System.Text.RegularExpressions.Regex.IsMatch(item.ColorHEX,"^#[0-9A-Fa-f]{6}$")?item.ColorHEX:"#AE81F8";
+ <article class="member-category-card" data-category-id="@item.CategoryId">
+ <span class="member-category-chip" aria-hidden="true"><partial name="_ActivityCategoryIcon" model="PersonalFinance.AdminMvc.Services.ActivityProjection.IconKey(item.Name,item.Type)" /></span>
+ <div class="member-category-info"><h3>@item.Name</h3><p><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="5" fill="@color" /></svg> @(item.IsSystemDefault?"OWLI shared":"Personal")</p></div>
+ <span class="member-category-status @(item.IsActive?"is-active":"is-inactive")">@(item.IsActive?"Active":"Inactive")</span>
+ <div class="category-reorder-actions" hidden><button type="button" data-category-move="-1" aria-label="Move @item.Name up"><partial name="_NavIcon" model='"up"' /></button><button type="button" data-category-move="1" aria-label="Move @item.Name down"><partial name="_NavIcon" model='"down"' /></button></div>
+ @if(!item.IsSystemDefault) { <div class="member-category-actions"><a asp-action="Edit" asp-route-id="@item.CategoryId">Edit</a><a asp-action="Delete" asp-route-id="@item.CategoryId">Delete</a></div> }
+ </article>
+ }
+ </div></section>
+}
+</div>
+}
+</section>

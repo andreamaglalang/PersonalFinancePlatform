@@ -1,0 +1,17 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberCategoryFormViewModel
+@{
+    ViewData["Title"] = Model.IsEdit ? "Edit category" : "New category";
+    Layout = "_MemberLayout";
+}
+<section class="member-dashboard account-settings-page">
+    <header class="member-dashboard-head"><div class="member-dashboard-title"><p class="owli-greeting">Choose a clear name and color</p><h1 class="owli-screen-title">@(Model.IsEdit ? "Edit category" : "New category")</h1></div><a class="member-btn member-btn-secondary" asp-action="Index">Back to categories</a></header>
+    @if (Model.Error is not null) { <p class="notice login-notice" role="alert">@Model.Error</p> }
+    <section class="member-card account-editor"><form class="member-form" method="post" asp-action="@(Model.IsEdit ? "Edit" : "Create")" asp-route-id="@(ViewData["CategoryId"])" data-busy>
+        <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
+        <div class="member-field"><label class="member-label" for="Name">Category name</label><input id="Name" name="Name" type="text" maxlength="50" value="@Model.Name" required/><span asp-validation-for="Name" class="member-field-error"></span></div>
+        <div class="member-field"><label class="member-label" for="Type">Type</label><select id="Type" name="Type" disabled="@(Model.IsEdit ? "disabled" : null)"><option value="Expense" selected="@(Model.Type == "Expense")">Expense</option><option value="Income" selected="@(Model.Type == "Income")">Income</option></select>@if (Model.IsEdit) { <input type="hidden" name="Type" value="@Model.Type" /> }<span asp-validation-for="Type" class="member-field-error"></span></div>
+        <div class="member-field"><label class="member-label" for="ColorHEX">Category color</label><input id="ColorHEX" name="ColorHEX" type="color" value="@(Model.ColorHEX ?? "#AE81F8")"/><span asp-validation-for="ColorHEX" class="member-field-error"></span></div>
+        <div class="member-field member-category-active"><label class="member-check" for="IsActive"><span><strong>Category is active</strong><small>Inactive categories stay on past records but are no longer offered for new entries.</small></span><input asp-for="IsActive" /></label></div>
+        <div class="member-form-actions"><button class="member-btn" type="submit">@(Model.IsEdit ? "Save category" : "Create category")</button><a class="member-btn member-btn-secondary" asp-action="Index">Cancel</a></div>
+    </form></section>
+</section>

@@ -16,6 +16,12 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
         SendAsync<AuthenticationResponse>(HttpMethod.Post, "api/auth/refresh", request, null, ct);
     public Task<ApiResult<CurrentUserResponse>> GetCurrentUserAsync(string accessToken, CancellationToken ct) =>
         SendAsync<CurrentUserResponse>(HttpMethod.Get, "api/auth/me", null, accessToken, ct);
+    public Task<ApiResult<CurrentUserResponse>> UpdateProfileAsync(UpdateProfileRequest request, string accessToken, CancellationToken ct) =>
+        SendAsync<CurrentUserResponse>(HttpMethod.Put, "api/auth/me", request, accessToken, ct);
+    public Task<ApiResult<bool>> ChangePasswordAsync(ChangePasswordRequest request, string accessToken, CancellationToken ct) =>
+        SendAsync<bool>(HttpMethod.Post, "api/auth/change-password", request, accessToken, ct);
+    public Task<ApiResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct) =>
+        SendAsync<CurrentUserResponse>(HttpMethod.Post, "api/auth/register", request, null, ct);
     public Task<ApiResult<bool>> LogoutAsync(RefreshRequest request, CancellationToken ct) =>
         SendAsync<bool>(HttpMethod.Post, "api/auth/logout", request, null, ct);
 
@@ -35,6 +41,7 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
                     HttpStatusCode.BadRequest => ApiFailure.BadRequest,
                     HttpStatusCode.Unauthorized => ApiFailure.Unauthorized,
                     HttpStatusCode.Forbidden => ApiFailure.Forbidden,
+                    HttpStatusCode.Conflict => ApiFailure.Conflict,
                     HttpStatusCode.TooManyRequests => ApiFailure.RateLimited,
                     _ => ApiFailure.Unavailable
                 });

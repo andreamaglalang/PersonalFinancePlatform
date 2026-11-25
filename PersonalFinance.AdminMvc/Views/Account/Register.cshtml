@@ -1,0 +1,44 @@
+@model RegisterViewModel
+@{ ViewData["Title"] = "Create your OWLI account"; }
+<section class="login" aria-labelledby="register-title">
+    <button class="public-theme" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>
+        <span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span>
+        <span class="sun-icon"><partial name="_NavIcon" model='"sun"' /></span>
+    </button>
+    <div class="lg-art">
+        <img class="stars" src="~/images/login-stars.svg" alt="" />
+        <span class="crest" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <p class="lg-word">OWLI</p>
+        <p class="lg-tag">Your Wise Money Companion</p>
+        <p class="lg-portal"><partial name="_NavIcon" model='"lock"' />Member sign-up</p>
+        <p class="lg-blurb">Create one OWLI account for your transactions, budgets and insights.</p>
+    </div>
+    <div class="lg-form"><div class="lg-card">
+        <h1 id="register-title">Create your OWLI account</h1>
+        <p class="sub">Registration takes a moment. You will sign in afterwards.</p>
+        <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
+        <form asp-controller="Account" asp-action="Register" method="post" data-busy="Creating your account…">
+            <label asp-for="FullName">Full name</label>
+            <div class="box"><partial name="_NavIcon" model='"account"' />
+            <input asp-for="FullName" autocomplete="name" required maxlength="100" /></div>
+            <span asp-validation-for="FullName"></span>
+            <label asp-for="Email">Email address</label>
+            <div class="box"><partial name="_NavIcon" model='"mail"' />
+            <input asp-for="Email" type="email" autocomplete="username" required maxlength="256" /></div>
+            <span asp-validation-for="Email"></span>
+            <label asp-for="Password"></label>
+            <div class="box"><partial name="_NavIcon" model='"lock"' />
+                <input asp-for="Password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" />
+                <button type="button" class="show" data-password-toggle aria-label="Show password" aria-pressed="false">Show</button>
+            </div>
+            <span asp-validation-for="Password"></span>
+            <label asp-for="ConfirmPassword">Confirm password</label>
+            <div class="box"><partial name="_NavIcon" model='"lock"' />
+                <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required maxlength="128" /></div>
+            <span asp-validation-for="ConfirmPassword"></span>
+            <button class="btn block" type="submit">Create account</button>
+        </form>
+        <p class="lg-register">Already have an account? <a asp-controller="Account" asp-action="Login">Sign in</a></p>
+        <div class="lg-foot"><p><partial name="_NavIcon" model='"lock"' />Registration creates a member account.</p></div>
+    </div></div>
+</section>

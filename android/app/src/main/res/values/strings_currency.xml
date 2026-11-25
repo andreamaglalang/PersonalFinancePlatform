@@ -3,26 +3,26 @@
 <resources>
     <!-- Entry point (Account > Finance setup) -->
     <string name="cur_entry_title">Currency converter</string>
-    <string name="cur_entry_sub">%1$d currencies · how OWLI converts foreign amounts</string>
+    <string name="cur_entry_sub">%1$d currencies</string>
 
     <!-- Converter screen -->
     <string name="cur_title">Currency converter</string>
     <string name="cur_back">Back</string>
     <string name="cur_hero_title">OWLI speaks %1$d currencies</string>
     <string name="cur_hero_body">Record income and expenses in the currency you paid in. OWLI keeps the original amount and converts it to %1$s for your totals and budgets.</string>
-    <string name="cur_demo_note">Mock Demo uses sample data in PHP only. Sign in to record transactions in other currencies.</string>
+    <string name="cur_demo_note">Mock Demo · No live rates</string>
     <string name="cur_from">From</string>
     <string name="cur_to">To</string>
-    <string name="cur_swap">Swap currencies</string>
+    <string name="cur_swap">Swap</string>
     <string name="cur_amount">Amount</string>
     <string name="cur_amount_error">Enter an amount greater than zero, with up to two decimals.</string>
     <string name="cur_result_heading">Conversion</string>
-    <string name="cur_result_enter">Enter an amount to see how it converts.</string>
-    <string name="cur_result_same">Same currency: no conversion needed (rate 1).</string>
-    <string name="cur_result_unavailable_title">Live rate not available on this phone</string>
-    <string name="cur_result_unavailable_body">OWLI never estimates a rate. The OWLI server converts an amount only when you save a transaction, using the validated exchange rate for its date, and then shows you the exact rate and %1$s amount.</string>
-    <string name="cur_result_reference">Last rate confirmed in your account: 1 %1$s = %2$s %3$s, rate date %4$s. Historical, not a current quote.</string>
-    <string name="cur_record_action">Record a transaction in another currency</string>
+    <string name="cur_result_enter">Enter an amount.</string>
+    <string name="cur_result_same">Rate: 1</string>
+    <string name="cur_result_unavailable_title">Live rates unavailable</string>
+    <string name="cur_result_unavailable_body">No live rate is available for %1$s.</string>
+    <string name="cur_result_reference">Historical: 1 %1$s = %2$s %3$s · %4$s. Not a live quote.</string>
+    <string name="cur_record_action">Add transaction</string>
 
     <!-- How it works -->
     <string name="cur_how_title">How OWLI handles foreign currency</string>
@@ -48,7 +48,7 @@
     <!-- Transaction form currency field and conversion details -->
     <string name="cur_field_label">Transaction currency</string>
     <string name="cur_field_change">Change</string>
-    <string name="cur_field_hint">%1$d currencies supported · others are converted to %2$s when saved</string>
+    <string name="cur_field_hint">%1$d currencies · Totals in %2$s</string>
     <string name="cur_field_demo">Sample data uses PHP only</string>
     <string name="cur_details_title">Currency conversion</string>
     <string name="cur_details_confirmed">Confirmed by the OWLI server</string>
@@ -59,20 +59,25 @@
     <string name="cur_details_earlier_rate">Latest published rate before the transaction date.</string>
 
     <!-- Live quotes (GET api/exchange-rates/quote) -->
-    <string name="cur_live_get">Get live rate</string>
-    <string name="cur_live_refresh">Refresh rate</string>
+    <string name="cur_live_get">Convert</string>
+    <string name="cur_live_refresh">Refresh</string>
     <string name="cur_live_retry">Try again</string>
-    <string name="cur_live_prompt">Get the latest reference rate for this amount from the OWLI server.</string>
-    <string name="cur_live_loading">Getting the latest rate from the OWLI server…</string>
+    <string name="cur_live_prompt">Check the latest rate.</string>
+    <string name="cur_live_loading">Loading rate…</string>
     <string name="cur_live_rate_date">Rate date %1$s</string>
-    <string name="cur_live_rate_earlier">The latest published rate before today (no rate is published on weekends and holidays).</string>
+    <string name="cur_live_rate_earlier">Latest published rate before today.</string>
     <string name="cur_live_source">Source: %1$s via the OWLI server · retrieved %2$s</string>
-    <string name="cur_live_quote_only">Quote only: nothing is saved. A transaction gets its own validated rate when you save it.</string>
+    <string name="cur_live_quote_only">Estimate only · Not saved</string>
     <string name="cur_live_offline">Can\'t reach the OWLI server. Check your connection, then try again.</string>
     <string name="cur_live_provider">The rate provider has no acceptable rate right now. Try again later.</string>
     <string name="cur_live_not_supported">The server can\'t quote this currency or amount.</string>
     <string name="cur_live_not_deployed">Live rates aren\'t available on this OWLI server yet.</string>
     <string name="cur_live_failed">The quote couldn\'t be confirmed. Try again.</string>
-    <string name="cur_live_signin">Sign in to get live rates from the OWLI server.</string>
-    <string name="cur_live_demo_title">Live rates need a signed-in account</string>
+    <string name="cur_live_signin">Sign in for live rates.</string>
+    <string name="cur_live_demo_title">Demo · No live rates</string>
+    <string name="cur_live_mode">Live mode</string>
+    <string name="cur_search">Search currencies</string>
+    <string name="cur_search_clear">Clear</string>
+    <string name="cur_search_empty">No currencies found</string>
+    <string name="cur_picker_title">Choose currency</string>
 </resources>

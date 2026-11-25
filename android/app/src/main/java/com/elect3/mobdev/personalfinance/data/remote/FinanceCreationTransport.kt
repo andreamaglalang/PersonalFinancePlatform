@@ -94,7 +94,7 @@ class RemoteTransactionCreationRepository private constructor(
 
     override suspend fun create(request: CreateTransactionRequest): CreationResult {
         val url = configuration.transactionCreateUrl() ?: return CreationResult.Failure(FinanceFailure.NotConfigured)
-        val lease = when (val access = auth.financeSession()) {
+        val lease = when (val access = auth.readyFinanceSession()) {
             is FinanceResult.Success -> access.value
             is FinanceResult.Failure -> return CreationResult.Failure(access.reason)
         }
@@ -118,7 +118,8 @@ class RemoteTransactionCreationRepository private constructor(
                             CreationResult.Success(FinanceJson.createdTransaction(response.body, request), response.status == 200)
                         } catch (_: Exception) { CreationResult.UnknownOutcome(UnknownCreationReason.InvalidResponse) }
                         in 500..599 -> CreationResult.UnknownOutcome(UnknownCreationReason.ServerFailure)
-                        400, 401, 403, 404, 409, 429 -> CreationResult.Failure(statusFailure(response.status))
+                        401 -> { lease.rejectAuthorization(); auth.refreshIfDue(); CreationResult.Failure(auth.financeAccessFailure()) }
+                        400, 403, 404, 409, 429 -> CreationResult.Failure(statusFailure(response.status))
                         else -> CreationResult.UnknownOutcome(UnknownCreationReason.InvalidResponse)
                     }
                     ensureActive()
@@ -127,6 +128,8 @@ class RemoteTransactionCreationRepository private constructor(
                 val registration = lease.lifetime.invokeOnCompletion { work.cancel(CreationSessionChanged()) }
                 try { work.start(); work.await() } finally { registration.dispose() }
             }
+        } catch (_: ExpiredFinanceAccess) {
+            CreationResult.Failure(auth.financeAccessFailure())
         } catch (_: CreationSessionChanged) {
             currentCoroutineContext().ensureActive(); lostSession()
         } catch (cancelled: CancellationException) { throw cancelled

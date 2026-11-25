@@ -1,9 +1,11 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Domain.Enums;
 using PersonalFinance.Infrastructure.Authentication;
+using PersonalFinance.Infrastructure.Identity;
 using PersonalFinance.Infrastructure.Finance;
 using PersonalFinance.Infrastructure.Finance.Contracts;
 using PersonalFinance.Infrastructure.Persistence;
@@ -13,6 +15,12 @@ namespace PersonalFinance.FinanceTests;
 internal static class BillPaymentTests
 {
     private static readonly DateOnly Today = new(2026, 11, 3);
+
+    private sealed class CountingClock(DateTimeOffset instant) : TimeProvider
+    {
+        public int Reads { get; private set; }
+        public override DateTimeOffset GetUtcNow() { Reads++; return instant.AddDays(Reads - 1); }
+    }
 
     private sealed class TestUser(int? id, bool administrator = false) : ICurrentUser
     {
@@ -25,11 +33,13 @@ internal static class BillPaymentTests
     {
         public int Reads { get; private set; }
         public int Recalculations { get; private set; }
+        public IReadOnlyCollection<BudgetPeriod> Periods { get; private set; } = [];
         public Task<IReadOnlyList<BudgetResponse>> ReadAsync(int userId, IReadOnlyCollection<BudgetPeriod> periods, CancellationToken ct)
         { Reads++; return inner.ReadAsync(userId, periods, ct); }
         public Task<IReadOnlyList<BudgetResponse>> RecalculateAsync(int userId, IReadOnlyCollection<BudgetPeriod> periods, CancellationToken ct)
         {
             Recalculations++;
+            Periods = periods;
             if (fail) throw new InvalidOperationException("Injected bill budget failure");
             return inner.RecalculateAsync(userId, periods, ct);
         }
@@ -81,10 +91,10 @@ internal static class BillPaymentTests
         new() { ClientId = client ?? Guid.NewGuid(), DueDate = due ?? Today };
 
     private static BillPaymentService Service(FinanceFixture f, IServiceProvider provider, int? user = 1,
-        IConversionService? conversion = null, IBudgetUsageService? budgets = null, IFinancialWriteScope? writes = null) =>
+        IConversionService? conversion = null, IBudgetUsageService? budgets = null, IFinancialWriteScope? writes = null, TimeProvider? clock = null) =>
         new(provider.GetRequiredService<ApplicationDbContext>(), new TestUser(user, user == 3),
             writes ?? provider.GetRequiredService<IFinancialWriteScope>(),
-            conversion ?? provider.GetRequiredService<IConversionService>(), f.Clock,
+            conversion ?? provider.GetRequiredService<IConversionService>(), clock ?? f.Clock,
             budgets ?? provider.GetRequiredService<IBudgetUsageService>());
 
     private static async Task<FinanceResult<BillPaymentResponse>> Pay(FinanceFixture f, int billId,
@@ -380,14 +390,159 @@ internal static class BillPaymentTests
             f.Fx.Unavailable = true; var r = Expect(await Pay(f, id)).Receipt;
             Assert(r.FxRate == 55m && r.AmountBase == 550m && f.Fx.Calls == 0);
         });
-        await Case("UTC midnight change rejects before payment staging", async f =>
+        await Case("one captured instant survives UTC midnight during conversion", async f =>
         {
-            var id = await SeedBill(f); var before = await Snapshot(f);
+            f.Clock.Now = new DateTimeOffset(2026, 11, 3, 23, 59, 59, TimeSpan.Zero);
+            var instant = f.Clock.Now;
+            var id = await SeedBill(f);
             using var scope = f.Services.CreateScope();
-            var fx = new ObservedConversion(scope.ServiceProvider.GetRequiredService<IConversionService>(), () => f.Clock.Now = f.Clock.Now.AddDays(1));
-            Reject(await Service(f, scope.ServiceProvider, conversion: fx).PayAsync(id, Request(), default), 409);
-            Assert(await Snapshot(f) == before && !scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().ChangeTracker.Entries().Any());
+            var clock = new CountingClock(instant);
+            var fx = new ObservedConversion(scope.ServiceProvider.GetRequiredService<IConversionService>(),
+                () => f.Clock.Now = f.Clock.Now.AddDays(1));
+            var receipt = Expect(await Service(f, scope.ServiceProvider, conversion: fx, clock: clock)
+                .PayAsync(id, Request(), default)).Receipt;
+            Assert(clock.Reads == 1 && receipt.PaidOn == new DateOnly(2026, 11, 4)
+                && receipt.RecordedAtUtc == instant.UtcDateTime);
         });
+
+        foreach (var (utc, local) in new[]
+        {
+            ("2026-11-02T15:59:59Z", new DateOnly(2026, 11, 2)),
+            ("2026-11-02T16:00:00Z", Today),
+            ("2026-11-02T16:00:01Z", Today),
+            ("2026-11-02T23:59:59Z", Today),
+            ("2026-11-03T00:00:00Z", Today),
+            ("2026-11-30T16:00:00Z", new DateOnly(2026, 12, 1))
+        })
+            await Case("Philippine calendar boundary " + utc, async f =>
+            {
+                f.Clock.Now = DateTimeOffset.Parse(utc, System.Globalization.CultureInfo.InvariantCulture);
+                var instant = f.Clock.Now;
+                var id = await SeedBill(f, b => { b.AnchorDate = local; b.NextDueDate = local;
+                    b.IntendedDayOfMonth = (byte)local.Day; });
+                using var scope = f.Services.CreateScope();
+                var budgets = new ObservedBudgets(scope.ServiceProvider.GetRequiredService<IBudgetUsageService>());
+                var clock = new CountingClock(instant);
+                var receipt = Expect(await Service(f, scope.ServiceProvider, budgets: budgets, clock: clock)
+                    .PayAsync(id, Request(due: local), default)).Receipt;
+                Assert(clock.Reads == 1 && receipt.PaidOn == local && receipt.FxRateDate == local
+                    && receipt.RecordedAtUtc == instant.UtcDateTime);
+                Assert(budgets.Periods.Single() == BudgetPeriod.For(2, local));
+                await f.DbAsync(async db => { var transaction = await db.Transactions.SingleAsync();
+                    Assert(transaction.TransactionDate == local && transaction.CreatedAtUtc == instant.UtcDateTime); });
+            });
+
+        await Case("captured instant survives Philippine month rollover during conversion", async f =>
+        {
+            f.Clock.Now = new DateTimeOffset(2026, 11, 30, 15, 59, 59, TimeSpan.Zero);
+            var instant = f.Clock.Now;
+            var due = new DateOnly(2026, 11, 30);
+            var id = await SeedBill(f, b => { b.AnchorDate = due; b.NextDueDate = due; b.IntendedDayOfMonth = 30; });
+            using var scope = f.Services.CreateScope();
+            var budgets = new ObservedBudgets(scope.ServiceProvider.GetRequiredService<IBudgetUsageService>());
+            var fx = new ObservedConversion(scope.ServiceProvider.GetRequiredService<IConversionService>(),
+                () => f.Clock.Now = f.Clock.Now.AddSeconds(2));
+            var receipt = Expect(await Service(f, scope.ServiceProvider, conversion: fx, budgets: budgets)
+                .PayAsync(id, Request(due: due), default)).Receipt;
+            Assert(receipt.PaidOn == due && receipt.RecordedAtUtc == instant.UtcDateTime
+                && budgets.Periods.Single().PeriodMonth == new DateOnly(2026, 11, 1));
+        });
+
+        await Case("Philippine midnight overdue payment and next-day retry preserve receipt", async f =>
+        {
+            f.Clock.Now = new DateTimeOffset(2026, 11, 3, 16, 30, 0, TimeSpan.Zero);
+            var id = await SeedBill(f);
+            var request = Request();
+            var original = Expect(await Pay(f, id, request)).Receipt;
+            Assert(original.PaidOn == Today.AddDays(1) && original.DueDate == Today);
+            var before = await Snapshot(f);
+            f.Clock.Now = f.Clock.Now.AddDays(1);
+            var replay = Expect(await Pay(f, id, request), 200);
+            Assert(replay.Replayed && replay.Receipt == original && await Snapshot(f) == before);
+        });
+
+        await Case("tomorrow in Philippines remains future with no writes", async f =>
+        {
+            f.Clock.Now = new DateTimeOffset(2026, 11, 2, 16, 30, 0, TimeSpan.Zero);
+            var tomorrow = Today.AddDays(1);
+            var id = await SeedBill(f, b => { b.AnchorDate = tomorrow; b.NextDueDate = tomorrow; b.IntendedDayOfMonth = 4; });
+            await RejectUnchanged(f, id, Request(due: tomorrow), 409);
+        });
+
+        await Case("payment migration model and script agree without opening SQL", f =>
+        {
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=OWLI_MigrationScriptOnly;Integrated Security=True").Options);
+            Assert(!db.Database.HasPendingModelChanges(), "Migration snapshot differs from runtime model");
+            var script = db.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>().GenerateScript(
+                "20261107054048_AddBillPaymentReceiptsAndGuards",
+                "20261123100000_UsePhilippineLocalBillPaymentDates");
+            Assert(script.Contains("DATEADD(hour, 8, i.[CreatedAtUtc])")
+                && script.Contains("DATEADD(hour, 8, [RecordedAtUtc])")
+                && script.Contains("THROW 51801")
+                && !script.Contains("UPDATE [Transactions]") && !script.Contains("UPDATE [BillPaymentReceipts]"));
+            return Task.CompletedTask;
+        });
+
+        await Case("unchanged authenticated ApplicationUser tracking permits payment", async f =>
+        {
+            var id = await SeedBill(f);
+            using var scope = f.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var authenticatedUser = f.Users.Users[1];
+            db.Users.Attach(authenticatedUser);
+            Assert(db.Entry(authenticatedUser).State == EntityState.Unchanged);
+            var result = Expect(await Service(f, scope.ServiceProvider).PayAsync(id, Request(), default));
+            Assert(result.Receipt.UserId == authenticatedUser.Id && !result.Replayed);
+            Assert(db.Entry(authenticatedUser).State == EntityState.Unchanged);
+            await f.DbAsync(async verify =>
+                Assert(await verify.BillPaymentReceipts.CountAsync() == 1
+                    && await verify.Transactions.CountAsync() == 1));
+        });
+
+        await Case("unrelated unchanged ApplicationUser is not treated as authentication tracking", async f =>
+        {
+            var id = await SeedBill(f);
+            using var scope = f.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var otherUser = f.Users.Users[2];
+            db.Users.Attach(otherUser);
+            Assert(db.Entry(otherUser).State == EntityState.Unchanged);
+            Reject(await Service(f, scope.ServiceProvider).PayAsync(id, Request(), default), 409,
+                "Payment requires a clean DbContext. Use a fresh scope and retry.");
+            await f.DbAsync(async verify =>
+                Assert(await verify.BillPaymentReceipts.CountAsync() == 0
+                    && await verify.Transactions.CountAsync() == 0));
+        });
+
+        foreach (var state in new[] { EntityState.Added, EntityState.Modified, EntityState.Deleted })
+            await Case($"pending authenticated ApplicationUser {state} remains rejected", async f =>
+            {
+                var id = await SeedBill(f);
+                using var scope = f.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                ApplicationUser tracked;
+                if (state == EntityState.Added)
+                {
+                    tracked = new ApplicationUser { Id = 99, FullName = "Pending", Email = "pending@example.test",
+                        NormalizedEmail = "PENDING@EXAMPLE.TEST", UserName = "pending", BaseCurrency = "PHP" };
+                    db.Users.Add(tracked);
+                }
+                else
+                {
+                    tracked = f.Users.Users[1];
+                    db.Users.Attach(tracked);
+                    if (state == EntityState.Modified) tracked.FullName = "Changed";
+                    else db.Users.Remove(tracked);
+                }
+                Assert(db.Entry(tracked).State == state);
+                Reject(await Service(f, scope.ServiceProvider).PayAsync(id, Request(), default), 409,
+                    "Payment requires a clean DbContext. Use a fresh scope and retry.");
+                Assert(db.Entry(tracked).State == state);
+                await f.DbAsync(async verify =>
+                    Assert(await verify.BillPaymentReceipts.CountAsync() == 0
+                        && await verify.Transactions.CountAsync() == 0));
+            });
 
         foreach (var state in new[] { EntityState.Unchanged, EntityState.Added, EntityState.Modified, EntityState.Deleted })
             foreach (var autoDetect in new[] { false, true })

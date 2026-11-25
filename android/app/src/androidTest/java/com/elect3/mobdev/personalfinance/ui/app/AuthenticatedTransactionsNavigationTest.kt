@@ -90,7 +90,7 @@ class AuthenticatedTransactionsNavigationTest {
         show()
         compose.onNodeWithText(text(R.string.auth_explore_mock_demo)).performScrollTo().performClick()
         transactions()
-        compose.onNodeWithText(text(R.string.transactions_demo_data)).assertIsDisplayed()
+        compose.onAllNodesWithText(text(R.string.transactions_demo_data)).onFirst().assertIsDisplayed()
         compose.onNodeWithText(text(R.string.transactions_account_data)).assertDoesNotExist()
         assertTrue(demoLoads > 0); assertTrue(requests.isEmpty())
     }

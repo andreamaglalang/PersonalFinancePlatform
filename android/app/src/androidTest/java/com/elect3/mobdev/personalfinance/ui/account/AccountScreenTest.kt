@@ -56,14 +56,25 @@ class AccountScreenTest {
         compose.onNodeWithText("AR").assertIsDisplayed()
         compose.onNodeWithText("Andrea Reyes").assertIsDisplayed()
         compose.onNodeWithText("andrea.reyes@example.test").assertIsDisplayed()
-        // Shown on the identity card and as the Session row subtitle.
-        compose.onAllNodesWithText(text(R.string.account_status_signed_in)).assertCountEquals(2)
+        // Session UI is hidden in Live; the identity-card status remains.
+        compose.onAllNodesWithText(text(R.string.account_status_signed_in)).assertCountEquals(1)
+        compose.onNodeWithText(text(R.string.account_session)).assertDoesNotExist()
         scrollTo(text(R.string.account_password))
         compose.onNode(hasText(text(R.string.account_password), substring = true) and hasClickAction()).performClick()
         compose.onNodeWithText(text(R.string.account_password_lead)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.account_close)).performClick()
         scrollTo(text(R.string.account_logout))
         compose.onNodeWithText(text(R.string.account_exit_demo)).assertDoesNotExist()
+    }
+
+    @Test fun liveAboutOmitsBuildDetailsButKeepsVersionAndAuthors() {
+        show(AccountMode.SignedIn(AccountProfile("Test", "test@example.test", "PHP")))
+        scrollTo(text(R.string.account_about))
+        compose.onNode(hasText(text(R.string.account_about)) and hasClickAction()).performClick()
+        compose.onNodeWithText(text(R.string.account_version)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.account_made_by_value)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.account_build)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.account_build_debug)).assertDoesNotExist()
     }
 
     @Test fun missingProfileUsesTheFallbackWithoutInventingData() {

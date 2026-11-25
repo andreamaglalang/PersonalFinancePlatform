@@ -1,0 +1,41 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberSavingsGoalFormModel
+@{
+    ViewData["Title"] = ViewData["GoalId"] is null ? "New savings goal" : "Edit savings goal";
+    Layout = "_MemberLayout";
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head">
+        <span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Plan for something specific</p>
+            <h1 class="owli-screen-title">Savings goal</h1>
+        </div>
+        <a class="member-btn" href="@Url.Action("Index")">Back to goals</a>
+    </header>
+
+    <div class="member-card">
+        <form class="member-form" method="post" asp-action="@(ViewData["GoalId"] is null ? "Create" : "Edit")"
+              asp-route-id="@(ViewData["GoalId"])" data-busy>
+            <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
+            <div class="member-field">
+                <label class="member-label" for="Name">Goal name</label>
+                <input id="Name" name="Name" type="text" maxlength="100" value="@Model.Name" />
+                <span asp-validation-for="Name" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="TargetAmount">Target amount</label>
+                <input id="TargetAmount" name="TargetAmount" inputmode="decimal" maxlength="19" value="@Model.TargetAmount" />
+                <span asp-validation-for="TargetAmount" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="TargetDate">Target date (optional)</label>
+                <input id="TargetDate" name="TargetDate" type="date" value="@(Model.TargetDate?.ToString("yyyy-MM-dd"))" />
+                <span asp-validation-for="TargetDate" class="member-field-error"></span>
+            </div>
+            <div class="member-form-actions">
+                <button class="member-btn" type="submit">Save goal</button>
+                <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>

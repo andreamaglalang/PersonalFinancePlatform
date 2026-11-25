@@ -22,7 +22,7 @@ class FinanceSessionRefreshTest {
     private val expiry = Instant.parse("2030-01-01T00:15:00Z")
 
     private inner class Fixture {
-        val clock = MutableAuthClock(expiry.minusSeconds(60))
+        val clock = MutableAuthClock(expiry.minusSeconds(300))
         val requests = mutableListOf<FinanceHttpRequest>()
         val reply = CompletableDeferred<FinanceHttpResponse>()
         var hold = true
@@ -47,6 +47,7 @@ class FinanceSessionRefreshTest {
         assertEquals(AuthResult.Success, f.auth.login("offline@example.test", "fixture-only"))
         val read = async { f.repos.categories.list() }; runCurrent()
         assertEquals("Bearer access-old", f.requests.single().authorization())
+        f.clock.now = expiry.minusSeconds(60)
         f.auth.refreshIfDue()
         f.reply.complete(FinanceHttpResponse(200, CATEGORIES))
         assertTrue("Rotation must not reject a legitimate in-flight read", read.await() is FinanceResult.Success)
@@ -60,6 +61,7 @@ class FinanceSessionRefreshTest {
         val f = Fixture()
         assertEquals(AuthResult.Success, f.auth.login("offline@example.test", "fixture-only"))
         val read = async { f.repos.categories.list() }; runCurrent()
+        f.clock.now = expiry.minusSeconds(60)
         f.auth.refreshIfDue()
         assertEquals(AuthResult.Success, f.auth.logout())
         f.reply.complete(FinanceHttpResponse(200, CATEGORIES))

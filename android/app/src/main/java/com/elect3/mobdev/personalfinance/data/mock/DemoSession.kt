@@ -27,7 +27,8 @@ class DemoSession {
     val presentation = com.elect3.mobdev.personalfinance.data.local.InMemoryCategoryPresentationStore()
     /** Demo budgets: memory only, spending derived from the demo transactions. */
     val budgets = DemoBudgetStore(ledger, categories)
-    fun reset() { ledger.clear(); categories.reset(); presentation.clear(); budgets.reset() }
+    val plan = DemoPlanStore()
+    fun reset() { ledger.clear(); categories.reset(); presentation.clear(); budgets.reset(); plan.reset() }
 }
 
 /** Demo transactions added during this session, on top of the fixed fixtures. */

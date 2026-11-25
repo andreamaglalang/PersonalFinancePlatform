@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prefs_currency_title">Currency</string>
+    <string name="prefs_currency_base">Account currency: %1$s · Fixed</string>
+    <string name="prefs_currency_default">Default transaction currency · %1$s</string>
+    <string name="prefs_currency_original">Show original foreign amounts</string>
+    <string name="prefs_currency_review">Review rate before saving</string>
+    <string name="prefs_currency_provider">Exchange rates by Frankfurter</string>
+    <string name="prefs_currency_save_error">Could not save preferences. Try again.</string>
+    <string name="prefs_currency_saved">Preferences saved</string>
+    <string name="fx_review_title">Review exchange rate</string>
+    <string name="fx_review_loading">Loading exchange rate…</string>
+    <string name="fx_review_error">Rate unavailable. Check the connection or transaction date, then try again.</string>
+    <string name="fx_review_preview">Preview only. The receipt shows the final rate.</string>
+    <string name="fx_review_rate">1 %1$s = %2$s %3$s</string>
+    <string name="fx_review_date">Rate date: %1$s</string>
+    <string name="fx_review_equivalent">Equivalent: %1$s</string>
+    <string name="fx_review_save">Save transaction</string>
+    <string name="fx_review_secure">Secure connection failed. Check your connection and device time.</string>
+    <string name="fx_review_session">Sign in again to review this rate.</string>
+    <string name="fx_review_invalid">Check the amount, currency and transaction date.</string>
+    <string name="prefs_currency_default_label">Default transaction currency</string>
+    <string name="prefs_currency_transactions">Transaction preferences</string>
+    <string name="prefs_currency_choose_action">Choose default transaction currency</string>
+</resources>

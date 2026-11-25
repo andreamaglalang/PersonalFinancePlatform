@@ -26,7 +26,7 @@ import kotlinx.coroutines.withContext
 
 internal enum class WriteMethod { POST, PUT, DELETE }
 
-internal class FinanceWriteRequest(val method: WriteMethod, val url: URL, private val bearer: String, val body: String?) {
+internal class FinanceWriteRequest(val method: WriteMethod, val url: URL, private val bearer: String, val body: String?, val ifMatch: String? = null) {
     fun authorization() = bearer
     override fun toString() = "FinanceWriteRequest(${method.name}, [redacted])"
 }
@@ -71,6 +71,7 @@ internal class PlatformFinanceWriteEngine(
                 connection.readTimeout = 10000
                 connection.setRequestProperty("Authorization", request.authorization())
                 connection.setRequestProperty("Accept", "application/json, application/problem+json")
+                request.ifMatch?.let { connection.setRequestProperty("If-Match", it) }
                 if (bytes != null) {
                     connection.doOutput = true
                     connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -132,8 +133,13 @@ internal class RemoteCategoryWriteRepository(
  */
 internal class FinanceWriter(private val auth: InMemoryAuthRepository, private val engine: FinanceWriteEngine) {
     suspend fun <T> send(method: WriteMethod, url: URL?, body: String?, ok: Set<Int>, decode: (String) -> T): FinanceResult<T> {
+        return sendVersioned(method, url, body, ok, null, decode)
+    }
+
+    suspend fun <T> sendVersioned(method: WriteMethod, url: URL?, body: String?, ok: Set<Int>, ifMatch: String?, decode: (String) -> T): FinanceResult<T> {
+        require(ifMatch == null || ifMatch.matches(Regex("\"[A-Za-z0-9+/]{11}=\"")))
         if (url == null) return FinanceResult.Failure(FinanceFailure.NotConfigured)
-        val lease = when (val access = auth.financeSession()) {
+        val lease = when (val access = auth.readyFinanceSession()) {
             is FinanceResult.Success -> access.value
             is FinanceResult.Failure -> return access
         }
@@ -141,7 +147,7 @@ internal class FinanceWriter(private val auth: InMemoryAuthRepository, private v
             coroutineScope {
                 val work = async(start = CoroutineStart.LAZY) {
                     if (!lease.isCurrent()) return@async FinanceResult.Failure(FinanceFailure.SessionExpired)
-                    val response = engine.send(FinanceWriteRequest(method, url, lease.authorization(), body))
+                    val response = engine.send(FinanceWriteRequest(method, url, lease.authorization(), body, ifMatch))
                     ensureActive()
                     if (!lease.isCurrent()) return@async FinanceResult.Failure(FinanceFailure.SessionExpired)
                     val result: FinanceResult<T> = if (response.status in ok) {
@@ -149,6 +155,9 @@ internal class FinanceWriter(private val auth: InMemoryAuthRepository, private v
                         try { FinanceResult.Success(decode(response.body)) }
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { throw InvalidFinanceResponse() }
+                    } else if (response.status == 401) {
+                        lease.rejectAuthorization(); auth.refreshIfDue()
+                        auth.financeAccessResult()
                     } else FinanceResult.Failure(statusFailure(response.status))
                     ensureActive()
                     if (lease.isCurrent()) result else FinanceResult.Failure(FinanceFailure.SessionExpired)
@@ -156,6 +165,8 @@ internal class FinanceWriter(private val auth: InMemoryAuthRepository, private v
                 val registration = lease.lifetime.invokeOnCompletion { work.cancel(CategoryWriteSessionChanged()) }
                 try { work.start(); work.await() } finally { registration.dispose() }
             }
+        } catch (_: ExpiredFinanceAccess) {
+            auth.financeAccessResult()
         } catch (_: CategoryWriteSessionChanged) {
             currentCoroutineContext().ensureActive()
             FinanceResult.Failure(FinanceFailure.SessionExpired)

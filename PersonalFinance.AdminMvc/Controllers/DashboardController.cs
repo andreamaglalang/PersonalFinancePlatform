@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.AdminMvc.Authentication;
 using PersonalFinance.AdminMvc.ViewModels;
 
 namespace PersonalFinance.AdminMvc.Controllers;
 
-[Authorize(Policy = "Administrator")]
+[Authorize(Policy = AuthorizationConfiguration.AdministratorPolicy)]
 public sealed class DashboardController : Controller
 {
     [HttpGet]

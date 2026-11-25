@@ -9,10 +9,43 @@ using PersonalFinance.AdminMvc.ViewModels;
 
 namespace PersonalFinance.AdminMvc.Controllers;
 
-public sealed class AccountController(AuthenticationCoordinator coordinator) : Controller
+public sealed class AccountController(AuthenticationCoordinator coordinator, IAuthenticationApiClient api) : Controller
 {
-    [HttpGet, Authorize(Policy = "Administrator")]
+    [HttpGet, Authorize(Policy = AuthorizationConfiguration.AdministratorPolicy)]
     public IActionResult Index() => View();
+
+    [AllowAnonymous, HttpGet]
+    public IActionResult Register() => View(new RegisterViewModel());
+
+    [AllowAnonymous, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register([FromForm] RegisterViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) { Response.StatusCode = StatusCodes.Status400BadRequest; return View(model); }
+        var request = new RegisterRequest
+        {
+            FullName = model.FullName, Email = model.Email,
+            Password = model.Password, ConfirmPassword = model.ConfirmPassword
+        };
+        var result = await api.RegisterAsync(request, ct);
+        if (result.Succeeded)
+        {
+            TempData["RegistrationNotice"] = "Your OWLI account is ready. Sign in with your email and password.";
+            return RedirectToAction(nameof(Login));
+        }
+        // Never re-render a rejected password.
+        model.Password = string.Empty;
+        model.ConfirmPassword = string.Empty;
+        ModelState.Clear();
+        ModelState.AddModelError(string.Empty, result.Failure switch
+        {
+            ApiFailure.Conflict => "That email is already registered. Sign in instead.",
+            ApiFailure.RateLimited => "Too many attempts. Please wait a minute before trying again.",
+            ApiFailure.BadRequest => "Check your name, email and password. Passwords must be at least 12 characters and match.",
+            _ => "Registration is temporarily unavailable. Please try again later."
+        });
+        Response.StatusCode = StatusCodes.Status400BadRequest;
+        return View(model);
+    }
 
     [AllowAnonymous, HttpGet]
     public IActionResult Login(string? returnUrl, bool unavailable = false) =>
@@ -54,7 +87,7 @@ public sealed class AccountController(AuthenticationCoordinator coordinator) : C
             {
                 ApiFailure.RateLimited => "Too many sign-in attempts. Please wait before trying again.",
                 ApiFailure.Unavailable or ApiFailure.InvalidResponse => "Authentication is temporarily unavailable. Please try again later.",
-                _ => "Unable to sign in to the administrator application with these credentials."
+                _ => "We couldn't sign you in. Check your email and password, then try again."
             };
             return View(model);
         }
@@ -73,18 +106,16 @@ public sealed class AccountController(AuthenticationCoordinator coordinator) : C
             model.Message = "Authentication is temporarily unavailable. Please try again later.";
             return View(model);
         }
-        return model.ReturnUrl is not null ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Dashboard");
+        return model.ReturnUrl is not null ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Entry");
     }
 
     private IActionResult? AuthenticatedLoginResult()
     {
-        // Cookie middleware validates the server-side session and backend Administrator role
-        // before either action, including AllowAnonymous actions. POST antiforgery runs first.
-        // Account switching requires the existing POST Logout followed by a fresh login.
-        if (User.Identity?.IsAuthenticated != true) return null;
-        return User.IsInRole("Administrator")
-            ? RedirectToAction("Index", "Dashboard")
-            : Forbid(AdminSessionStore.Scheme);
+        // The cookie middleware validates the server-side session and the backend role before either
+        // action, including AllowAnonymous actions. Send every authenticated visitor through the
+        // role-based landing decision; account switching still requires the POST logout followed by a
+        // fresh login.
+        return User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Entry") : null;
     }
 
     [HttpPost, ValidateAntiForgeryToken, LocalLogout]

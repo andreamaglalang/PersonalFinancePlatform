@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
+using PersonalFinance.AuthenticationTests;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -204,6 +205,51 @@ await Check("Authentication endpoint rate limiting returns 429", async () =>
     await using var f = new ApiFixture(); var last = 0;
     for (var i = 0; i < 21; i++) last = (await f.SendAsync("GET", "/api/auth/me")).Status;
     Require(last == 429);
+});
+
+await Check("Profile update is authenticated, owner-scoped, trimmed and persistent", async () =>
+{
+    await using var f=new ApiFixture();var token=await f.LoginAsync();
+    Require((await f.SendAsync("PUT","/api/auth/me",new{fullName="Updated"})).Status==401);
+    var r=await f.SendAsync("PUT","/api/auth/me",new{fullName="  Updated Fixture  "},token);
+    Require(r.Status==200 && JsonDocument.Parse(r.Body).RootElement.GetProperty("fullName").GetString()=="Updated Fixture");
+    var again=await f.SendAsync("GET","/api/auth/me",bearer:token);Require(again.Status==200&&again.Body.Contains("Updated Fixture"));
+    Require(f.Users.Users[1].Email=="person@example.test");
+});
+await Check("Profile validation rejects whitespace, excess length, email and owner overposting", async () =>
+{
+    await using var f=new ApiFixture();var token=await f.LoginAsync();
+    foreach(var body in new object[]{new{fullName=" "},new{fullName=new string('x',101)},new{fullName="Spoof",userId=2},new{fullName="Spoof",email="changed@example.test"}})
+        Require((await f.SendAsync("PUT","/api/auth/me",body,token)).Status==400);
+    Require(f.Users.Users[1].FullName=="Test Person"&&f.Users.Users[1].Email=="person@example.test");
+});
+await Check("Password validation and incorrect current password never rotate credentials", async () =>
+{
+    await using var f=new ApiFixture();var token=await f.LoginAsync();var stamp=f.Users.Users[1].SecurityStamp;
+    foreach(var body in new object[]{new{currentPassword="Incorrect-123!",newPassword="Next-Fixture-123!"},new{currentPassword=Fixture.Password,newPassword="aaaaaaaaaaaa"},new{currentPassword=Fixture.Password,newPassword=Fixture.Password},new{currentPassword=Fixture.Password,newPassword="Next-Fixture-123!",userId=2}})
+        Require((await f.SendAsync("POST","/api/auth/change-password",body,token)).Status==400);
+    Require(f.Users.Users[1].SecurityStamp==stamp && (await f.SendAsync("GET","/api/auth/me",bearer:token)).Status==200);
+});
+await Check("Password changes revoke every old owner access/refresh session and preserve another owner", async () =>
+{
+    await using var f=new ApiFixture();var old=await f.LoginAsync();
+    var second=await f.SendAsync("POST","/api/auth/login",new{email="person@example.test",password=Fixture.Password});var s=JsonDocument.Parse(second.Body).RootElement;
+    var access=s.GetProperty("accessToken").GetString()!;var refresh=s.GetProperty("refreshToken").GetString()!;
+    Require((await f.SendAsync("POST","/api/auth/register",new{fullName="Other",email="other@example.test",password=Fixture.Password,confirmPassword=Fixture.Password})).Status==201);
+    var other=await f.SendAsync("POST","/api/auth/login",new{email="other@example.test",password=Fixture.Password});var otherToken=JsonDocument.Parse(other.Body).RootElement.GetProperty("accessToken").GetString()!;
+    var changed=await f.SendAsync("POST","/api/auth/change-password",new{currentPassword=Fixture.Password,newPassword="Next-Fixture-123!"},old);Require(changed.Status==204,changed.Body);
+    Require((await f.SendAsync("GET","/api/auth/me",bearer:old)).Status==401 && (await f.SendAsync("GET","/api/auth/me",bearer:access)).Status==401);
+    Require((await f.SendAsync("POST","/api/auth/refresh",new{refreshToken=refresh})).Status==401);
+    Require((await f.SendAsync("GET","/api/auth/me",bearer:otherToken)).Status==200);
+    Require((await f.SendAsync("POST","/api/auth/login",new{email="person@example.test",password=Fixture.Password})).Status==401);
+    Require((await f.SendAsync("POST","/api/auth/login",new{email="person@example.test",password="Next-Fixture-123!"})).Status==200);
+});
+await Check("Profile/password endpoints require HTTPS and forbid credential query strings", async () =>
+{
+    await using var f=new ApiFixture();var token=await f.LoginAsync();
+    Require((await f.SendAsync("PUT","/api/auth/me",new{fullName="Unsafe"},token,scheme:"http")).Status==400);
+    Require((await f.SendAsync("POST","/api/auth/change-password?password=invalid",new{},token)).Status==400);
+    Require((await f.SendAsync("POST","/api/auth/change-password",new{currentPassword=Fixture.Password,newPassword="Next-Fixture-123!"})).Status==401);
 });
 Console.WriteLine($"API security checks: {passed} passed, {failed} failed. Real JWT/MVC middleware; in-memory persistence; no SQL connections.");
 return failed == 0 ? 0 : 1;

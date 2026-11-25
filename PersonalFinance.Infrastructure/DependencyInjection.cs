@@ -51,6 +51,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthSessionStore, SqlAuthSessionStore>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         services.AddSingleton<IFrankfurterClient>(provider =>

@@ -63,12 +63,13 @@ class CategoryWriteTransportTest {
     }
 
     @Test fun statusesMapToBoundedFailures() = runTest {
-        val f = Fixture(); f.login()
         mapOf(409 to FinanceFailure.Conflict, 403 to FinanceFailure.AccessDenied, 404 to FinanceFailure.NotFound,
             400 to FinanceFailure.InvalidInput, 401 to FinanceFailure.SessionExpired, 503 to FinanceFailure.Unavailable).forEach { (status, failure) ->
+            val f = Fixture(); f.login() // Each status is an independent session.
             f.respond = { FinanceHttpResponse(status, "private details") }
             assertEquals(FinanceResult.Failure(failure), f.repos.categoryWrites.delete(5))
         }
+        val f = Fixture(); f.login()
         f.respond = { throw SocketTimeoutException() }
         assertEquals(FinanceResult.Failure(FinanceFailure.Timeout), f.repos.categoryWrites.create(draft))
         // A success body that does not echo the request is not trusted.

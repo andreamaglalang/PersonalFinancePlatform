@@ -10,9 +10,11 @@
     const save = (key, value) => {
         try { localStorage.setItem(key, value); } catch { /* Preferences are optional. */ }
     };
-    const preferredTheme = read(themeKey);
-    root.dataset.theme = preferredTheme === "dark" || preferredTheme === "light"
-        ? preferredTheme : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const colorScheme = matchMedia("(prefers-color-scheme: dark)");
+    let themeMode = read(themeKey);
+    if (!["dark", "light", "system"].includes(themeMode)) themeMode = "system";
+    const effectiveTheme = mode => mode === "system" ? (colorScheme.matches ? "dark" : "light") : mode;
+    root.dataset.theme = effectiveTheme(themeMode);
 
     document.addEventListener("DOMContentLoaded", () => {
         document.addEventListener("change", event => {
@@ -22,25 +24,43 @@
         });
 
         const themeButtons = document.querySelectorAll("[data-theme-toggle], [data-theme-choice]");
-        function setTheme(theme) {
-            root.dataset.theme = theme;
+        function setTheme(mode) {
+            themeMode = mode;
+            document.querySelectorAll("[data-theme-preference]").forEach(label => { label.textContent = mode[0].toUpperCase() + mode.slice(1); });
+            root.dataset.theme = effectiveTheme(mode);
             for (const button of themeButtons) {
                 button.hidden = false;
                 const choice = button.dataset.themeChoice ?? "dark";
-                button.setAttribute("aria-pressed", String(theme === choice));
+                button.setAttribute("aria-pressed", String(mode === choice));
                 if (button.hasAttribute("data-theme-toggle")) {
-                    button.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+                    button.setAttribute("aria-label", root.dataset.theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
                 }
             }
         }
-        setTheme(root.dataset.theme);
+        setTheme(themeMode);
         for (const button of themeButtons) {
             button.addEventListener("click", () => {
-                const theme = button.dataset.themeChoice ?? (root.dataset.theme === "dark" ? "light" : "dark");
-                setTheme(theme);
-                save(themeKey, theme);
+                const mode = button.dataset.themeChoice ?? (root.dataset.theme === "dark" ? "light" : "dark");
+                setTheme(mode);
+                save(themeKey, mode);
             });
         }
+        colorScheme.addEventListener?.("change", () => {
+            if (themeMode === "system") setTheme("system");
+        });
+
+        document.querySelectorAll("[data-currency-swap]").forEach(button => {
+            button.addEventListener("click", () => {
+                const from = document.querySelector("#From");
+                const to = document.querySelector("#To");
+                if (!from || !to) return;
+                const previous = from.value;
+                from.value = to.value;
+                to.value = previous;
+                from.dispatchEvent(new Event("change", { bubbles: true }));
+                to.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+        });
 
         const sidebarToggle = document.querySelector("[data-sidebar-toggle]");
         const drawerToggle = document.querySelector("[data-drawer-open]");
@@ -244,5 +264,82 @@
             }
             busyForms.clear();
         });
+
+        // Highlight the current Member destination (Tier 1).
+        document.querySelectorAll("[data-nav]").forEach(item => {
+            if (item.dataset.nav === "home" && location.pathname.replace(/\/$/, "").endsWith("/Member/Home"))
+                item.classList.add("active");
+        });
     });
 })();
+
+// Reports stay server-rendered: these handlers supply loading feedback and accessible exact chart values.
+document.addEventListener("DOMContentLoaded", () => {
+    const page = document.querySelector("[data-reports-page]");
+    if (!page) return;
+    const loading = page.querySelector(".insights-loading");
+    const busy = () => { page.setAttribute("aria-busy", "true"); if (loading) loading.hidden = false; };
+    page.querySelectorAll("[data-report-navigation], [data-report-refresh]").forEach(link => link.addEventListener("click", event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey) busy(); }));
+    const form = page.querySelector("[data-report-month-form]");
+    if (form) {
+        form.addEventListener("submit", busy);
+        const month = form.querySelector("input[type=month]");
+        month.addEventListener("change", () => { if (month.checkValidity()) form.requestSubmit(); });
+    }
+    const value = page.querySelector(".insights-chart-value");
+    page.querySelectorAll(".insights-chart-month").forEach(group => {
+        const show = () => { if (value) value.textContent = group.getAttribute("aria-label"); };
+        group.addEventListener("mouseenter", show); group.addEventListener("focus", show); group.addEventListener("click", show);
+    });
+});
+
+// Activity controls keep the authoritative server query and provide progressive enhancement.
+document.addEventListener("DOMContentLoaded", () => {
+    const page = document.querySelector("[data-activity-page]");
+    if (page) {
+        const loading = page.querySelector(".activity-loading");
+        const busy = () => { page.setAttribute("aria-busy", "true"); if (loading) loading.hidden = false; };
+        page.querySelectorAll("a[href]").forEach(link => link.addEventListener("click", event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && link.getAttribute("href")?.includes("Activity")) busy(); }));
+        page.querySelectorAll("form[method=get]").forEach(form => form.addEventListener("submit", busy));
+        const month = page.querySelector("[data-activity-month-form] input[type=month]");
+        month?.addEventListener("change", () => { if (month.checkValidity()) month.form.requestSubmit(); });
+        const segments = Array.from(page.querySelectorAll(".activity-type-segment"));
+        segments.forEach((segment, index) => segment.addEventListener("keydown", event => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault(); segments[(index + (event.key === "ArrowRight" ? 1 : -1) + segments.length) % segments.length].focus();
+        }));
+    }
+    const entry = document.querySelector("[data-transaction-entry]");
+    if (entry) {
+        const category = entry.querySelector("[name=CategoryId]");
+        const update = () => {
+            const type = entry.querySelector("[name=Type]:checked")?.value;
+            Array.from(category.options).forEach(option => { const excluded = !!option.value && option.dataset.type !== type; option.hidden = excluded; option.disabled = excluded; });
+            if (category.selectedOptions[0]?.disabled) category.value = "";
+            const icon = entry.querySelector(`[data-category-icon="${category.value}"]`);
+            const preview = entry.querySelector("[data-entry-category-icon]");
+            if (preview && icon) preview.replaceChildren(icon.content.cloneNode(true));
+            else if (preview) preview.replaceChildren();
+        };
+        entry.querySelectorAll("[name=Type]").forEach(input => input.addEventListener("change", update));
+        category.addEventListener("change", update); update();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+ document.querySelectorAll("[data-account-password-toggle]").forEach(button => {
+  const input = document.getElementById(button.dataset.accountPasswordToggle); if (!input) return;
+  button.hidden=false; button.addEventListener("click", () => { const visible=input.type==="password"; input.type=visible?"text":"password"; button.textContent=visible?"Hide":"Show"; button.setAttribute("aria-pressed",String(visible)); button.setAttribute("aria-label",(visible?"Hide ":"Show ")+document.querySelector('label[for="'+input.id+'"]').textContent.toLowerCase()); });
+ });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+ const catalog=document.querySelector("[data-category-catalog]"), toggle=document.querySelector("[data-category-reorder-toggle]"); if(!catalog||!toggle) return;
+ const status=document.querySelector("[data-category-order-status]"); let reordering=false;
+ const lists=[...catalog.querySelectorAll("[data-category-order-list]")];
+ const key=list=>"owli-category-order:"+catalog.dataset.categoryScope+":"+list.dataset.categoryOrderList;
+ function update(){lists.forEach(list=>{const cards=[...list.children];cards.forEach((card,index)=>{card.querySelector(".category-reorder-actions").hidden=!reordering;card.querySelector('[data-category-move="-1"]').disabled=index===0;card.querySelector('[data-category-move="1"]').disabled=index===cards.length-1;});});}
+ lists.forEach(list=>{try{const order=JSON.parse(localStorage.getItem(key(list))||"[]");if(!Array.isArray(order))return;const rank=new Map(order.map((id,i)=>[String(id),i]));[...list.children].sort((a,b)=>(rank.get(a.dataset.categoryId)??Number.MAX_SAFE_INTEGER)-(rank.get(b.dataset.categoryId)??Number.MAX_SAFE_INTEGER)).forEach(card=>list.append(card));}catch{ /* Optional browser preference. */ }});
+ toggle.hidden=false;toggle.addEventListener("click",()=>{reordering=!reordering;toggle.textContent=reordering?"Done reordering":"Reorder";toggle.setAttribute("aria-pressed",String(reordering));update();});
+ catalog.addEventListener("click",event=>{const button=event.target.closest("[data-category-move]");if(!button||!reordering)return;const card=button.closest("[data-category-id]"),list=card.parentElement,delta=Number(button.dataset.categoryMove),other=delta<0?card.previousElementSibling:card.nextElementSibling;if(!other)return;if(delta<0)list.insertBefore(card,other);else list.insertBefore(other,card);update();try{localStorage.setItem(key(list),JSON.stringify([...list.children].map(c=>c.dataset.categoryId)));status.textContent="Category order saved in this browser.";}catch{status.textContent="Order changed for this page. Browser storage is unavailable.";}const available=[...card.querySelectorAll("[data-category-move]")].find(b=>!b.disabled);(available||toggle).focus();});update();
+});

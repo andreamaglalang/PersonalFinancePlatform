@@ -9,17 +9,12 @@
         <h2>Administrator profile</h2>
         <dl class="profile-facts">
             <div><dt>Name</dt><dd>@(string.IsNullOrWhiteSpace(User.Identity?.Name) ? "Unavailable" : User.Identity.Name)</dd></div>
-            <div><dt>Email</dt><dd>@(string.IsNullOrWhiteSpace(email) ? "Unavailable in this session" : email)</dd></div>
+            <div><dt>Email</dt><dd>@(string.IsNullOrWhiteSpace(email) ? "Unavailable" : email)</dd></div>
             <div><dt>Role</dt><dd>Administrator</dd></div>
         </dl>
         <form class="account-actions" asp-controller="Account" asp-action="Logout" method="post" data-busy="Signing out…" data-confirm-logout>
             <button type="submit" class="secondary"><partial name="_NavIcon" model='"logout"' />Log out</button>
         </form>
-    </section>
-    <section class="card compact-card session-card">
-        <h2>Session</h2>
-        <dl class="profile-facts"><div><dt>Status</dt><dd>Signed in</dd></div></dl>
-        <p class="session-note"><partial name="_NavIcon" model='"info"' />Session timing is unavailable.</p>
     </section>
     <section class="card compact-card appearance-card">
         <h2>Appearance <small>Theme preference</small></h2>

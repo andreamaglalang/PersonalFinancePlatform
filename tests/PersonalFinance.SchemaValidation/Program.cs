@@ -357,6 +357,7 @@ const string initialMigrationId = "20261031023901_InitialFinanceSchema";
 const string categoryMigrationId = "20261031115500_AddCategoryNameUniqueness";
 const string savingsMigrationId = "20261103141326_AddSavingsGoalContributionLedgerAndRowVersions";
 const string billMigrationId = "20261107054048_AddBillPaymentReceiptsAndGuards";
+const string localPaymentDatesMigrationId = "20261123100000_UsePhilippineLocalBillPaymentDates";
 
 Migration CompiledMigration(string id)
 {
@@ -365,10 +366,10 @@ Migration CompiledMigration(string id)
 }
 string NormalizeSql(string sql) => sql.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
 
-Check("Exactly four approved compiled migrations exist; applied database state is not inspected", () =>
+Check("Exactly five approved compiled migrations exist; applied database state is not inspected", () =>
 {
     Require(db.Database.GetMigrations().SequenceEqual(new[] {
-        initialMigrationId, categoryMigrationId, savingsMigrationId, billMigrationId }), "Compiled migration IDs/order.");
+        initialMigrationId, categoryMigrationId, savingsMigrationId, billMigrationId, localPaymentDatesMigrationId }), "Compiled migration IDs/order.");
 });
 Check("Current model and snapshot align with zero relational differences", () =>
 {
@@ -1118,7 +1119,7 @@ internal static class BillModelValidation
                 ["CK_BillPaymentReceipts_BaseCurrency"] = Currency("BaseCurrency"),
                 ["CK_BillPaymentReceipts_FxRateDate"] = "[FxRateDate] <= [PaidOn]",
                 ["CK_BillPaymentReceipts_DueDate"] = "[DueDate] <= [PaidOn]",
-                ["CK_BillPaymentReceipts_PaidOn"] = "[PaidOn] = CONVERT(date, [RecordedAtUtc])",
+                ["CK_BillPaymentReceipts_PaidOn"] = "[PaidOn] = CONVERT(date, DATEADD(hour, 8, [RecordedAtUtc]))",
                 ["CK_BillPaymentReceipts_CanonicalVersion"] = "[CanonicalVersion] = 1"
             }));
             Check("Receipt after-save restrictions in both models", () =>

@@ -50,6 +50,11 @@ public static class AuthenticationConfiguration
                             context.Fail("Account unavailable.");
                             return;
                         }
+                        if (!AccessTokenSecurityStamp.Matches(user, context.Principal!.FindFirst("sst")?.Value))
+                        {
+                            context.Fail("Account security state changed.");
+                            return;
+                        }
                         var currentRoles = new HashSet<string>(await users.GetRolesAsync(user), StringComparer.Ordinal);
                         if (!currentRoles.SetEquals(context.Principal!.FindAll("role").Select(c => c.Value)))
                             context.Fail("Role membership changed.");

@@ -104,7 +104,7 @@ import kotlinx.coroutines.launch
 fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier = Modifier, isAuthenticated: Boolean = false,
     onAddTransaction: (() -> Unit)? = null, filterCategories: CategoryRepository? = null, offlineQueue: OfflineQueueUi? = null,
     localHistory: (suspend () -> List<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction>)? = null,
-    onEditTransaction: ((Transaction) -> Unit)? = null) {
+    onEditTransaction: ((Transaction) -> Unit)? = null, showOriginalAmounts: Boolean = true, baseCurrency: String = "PHP") {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
     var localRows by remember(localHistory) { mutableStateOf(emptyList<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction>()) }
@@ -156,6 +156,7 @@ fun TransactionListRoute(viewModel: TransactionListViewModel, modifier: Modifier
         offlineQueue = offlineQueue,
         localHistory = if (unavailable) localRows else emptyList(),
         onEditTransaction = onEditTransaction,
+        showOriginalAmounts = showOriginalAmounts, baseCurrency = baseCurrency,
     )
 }
 
@@ -190,6 +191,7 @@ fun TransactionListScreen(
     localHistory: List<com.elect3.mobdev.personalfinance.data.local.LocalHistoryTransaction> = emptyList(),
     /** Signed-in only: opens the online edit for a server transaction (never shown in Mock Demo). */
     onEditTransaction: ((Transaction) -> Unit)? = null,
+    showOriginalAmounts: Boolean = true, baseCurrency: String = "PHP",
 ) {
     val showingLocalHistory = isAuthenticated && localHistory.isNotEmpty()
     val content = if (showingLocalHistory) null else state as? TransactionListUiState.Content
@@ -320,7 +322,7 @@ fun TransactionListScreen(
                                     is ActivityLine.MonthHeader -> MonthHeader(line.month)
                                     is ActivityLine.DayHeader -> DayHeader(line)
                                     is ActivityLine.OrderHeader -> OrderHeader(line)
-                                    is ActivityLine.Row -> ActivityRow(line, searchQuery) { detail = line.transaction }
+                                    is ActivityLine.Row -> ActivityRow(line, searchQuery, showOriginalAmounts, baseCurrency) { detail = line.transaction }
                                 }
                             }
                         }
@@ -610,7 +612,7 @@ private fun OrderHeader(line: ActivityLine.OrderHeader) {
 
 /** Rows of one group form a single rounded card (top/bottom corners on the first/last row). */
 @Composable
-private fun ActivityRow(line: ActivityLine.Row, query: String, onClick: () -> Unit) {
+private fun ActivityRow(line: ActivityLine.Row, query: String, showOriginalAmounts: Boolean, baseCurrency: String, onClick: () -> Unit) {
     val t = line.transaction
     val owli = LocalOwliColors.current
     val r = 18.dp
@@ -620,7 +622,9 @@ private fun ActivityRow(line: ActivityLine.Row, query: String, onClick: () -> Un
     val base = categoryColor(hex)
     val dark = isDarkSurface()
     val meta = listOfNotNull(t.description, if (line.showDate) formatTransactionDate(t.transactionDate) else null).joinToString(" · ")
-    val amount = rowAmount(t)
+    val display = com.elect3.mobdev.personalfinance.domain.currency.historicalAmountDisplay(t, showOriginalAmounts, baseCurrency)
+    val sign = if (t.type == TransactionType.Income) "+" else "−"
+    val amount = sign + formatTransactionAmount(display.primary, display.primaryCurrency)
     Column(Modifier.padding(horizontal = 20.dp)) {
         Row(Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface).border(BorderStroke(1.dp, owli.hairline), shape)
             .clickable(role = Role.Button, onClick = onClick).heightIn(min = 62.dp).padding(horizontal = 14.dp, vertical = 10.dp)
@@ -643,7 +647,7 @@ private fun ActivityRow(line: ActivityLine.Row, query: String, onClick: () -> Un
                 // Amounts are never truncated; they wrap if needed.
                 Text(amount, style = LocalOwliTypography.current.amountRow, textAlign = TextAlign.End,
                     color = if (t.type == TransactionType.Income) owli.income else MaterialTheme.colorScheme.onSurface)
-                if (!isPlainPhp(t)) Text(signedPhp(t), style = LocalOwliTypography.current.micro, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (display.secondary != null) Text(sign + formatTransactionAmount(display.secondary, checkNotNull(display.secondaryCurrency)), style = LocalOwliTypography.current.micro, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

@@ -11,7 +11,7 @@
 {
     <p class="success-notice" role="status">@notice</p>
 }
-<section class="card category-list default-category-list" aria-labelledby="categories-title">
+<section class="card category-list default-category-list admin-category-workspace" aria-labelledby="categories-title">
     <form asp-action="Index" method="get" class="category-filters" data-busy="Loading categories…">
         <label class="category-search"><partial name="_NavIcon" model='"search"' /><span class="visually-hidden">Search categories on this API page</span><input asp-for="Search" type="search" maxlength="50" placeholder="Search categories" /></label>
         <div class="filter-group">
@@ -44,6 +44,16 @@
         </details>
         <button type="submit" class="filter-submit">Apply filters</button>
     </form>
+    <div class="category-results-head">
+        <div><p class="eyebrow">Shared category library</p><p class="category-result-count">@Model.Categories.Count results on this API page</p></div>
+        <nav class="category-sort" aria-label="Sort categories">
+            <span>Sort</span>
+            @foreach (var column in new[] { (Label: "Name", Sort: Model.Sort is null or "name" ? "name-desc" : "name"), (Label: "Type", Sort: "type"), (Label: "Status", Sort: "state") })
+            {
+                <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@column.Sort" asp-route-Page="@Model.Page" asp-route-PageSize="@Model.PageSize" aria-current="@(Model.Sort == column.Sort ? "true" : null)">@column.Label</a>
+            }
+        </nav>
+    </div>
     @if (Model.Error is not null)
     {
         <div class="category-empty" role="alert"><partial name="_NavIcon" model='"alert"' /><h2>We couldn’t load categories</h2><p>@Model.Error</p><a class="button-link" asp-action="Index">Reset filters</a></div>
@@ -56,35 +66,19 @@
         }
         else
         {
-            <div class="table-scroll" tabindex="0" role="region" aria-label="Shared defaults on this API page">
-                <table><caption class="visually-hidden">Shared defaults from the current mixed API page</caption>
-                    <thead><tr>
-                        @foreach (var column in new[] { (Label: "Category", Sort: Model.Sort is null or "name" ? "name-desc" : "name", Direction: Model.Sort switch { "name-desc" => "descending", null or "name" => "ascending", _ => null }), (Label: "Type", Sort: "type", Direction: Model.Sort == "type" ? "ascending" : null), (Label: "Status", Sort: "state", Direction: Model.Sort == "state" ? "other" : null) })
-                        {
-                            <th scope="col" aria-sort="@column.Direction">
-                                <a asp-action="Index" asp-route-Type="@Model.Type" asp-route-Search="@Model.Search" asp-route-State="@Model.State" asp-route-Sort="@column.Sort" asp-route-Page="@Model.Page" asp-route-PageSize="@Model.PageSize">@column.Label <partial name="_NavIcon" model='@(column.Direction == "ascending" ? "sortu" : column.Direction == "descending" ? "sortd" : "sortn")' /></a>
-                            </th>
-                        }
-                        <th scope="col"><span class="visually-hidden">Actions</span></th>
-                    </tr></thead>
-                    <tbody>
-                    @foreach (var category in Model.Categories)
-                    {
-                        <tr>
-                            <th scope="row" class="category-name">@category.Name @if (category.ColorHEX is not null) { <small>@category.ColorHEX</small> }</th>
-                            <td class="category-type"><span class="type-pill @(category.Type == "Income" ? "income" : "expense")"><partial name="_NavIcon" model='@(category.Type == "Income" ? "up" : "down")' />@category.Type</span></td>
-                            <td class="category-status"><span class="category-state @(category.IsActive ? "category-state-active" : "category-state-inactive")">@(category.IsActive ? "Active" : "Inactive")</span></td>
-                            <td class="category-actions">
-                                <div class="table-actions">
-                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" aria-label="Edit @category.Name" data-form-dialog="Edit category"><partial name="_NavIcon" model='"edit"' /><span>Edit</span></a>
-                                    <a asp-action="Edit" asp-route-id="@category.CategoryId" asp-fragment="IsActive" aria-label="@(category.IsActive ? "Deactivate" : "Activate") @category.Name"
-                                       data-form-dialog="@(category.IsActive ? "Deactivate category" : "Activate category")" data-dialog-status><partial name="_NavIcon" model='"power"' /><span>@(category.IsActive ? "Deactivate" : "Activate")</span></a>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
+            <div class="category-card-grid" role="list" aria-label="Shared default categories">
+                @foreach (var category in Model.Categories)
+                {
+                    <article class="category-management-card" role="listitem">
+                        <div class="category-card-top"><span class="category-card-icon" aria-hidden="true"><partial name="_NavIcon" model='@(category.Type == "Income" ? "up" : "down")' /></span><span class="category-state @(category.IsActive ? "category-state-active" : "category-state-inactive")">@(category.IsActive ? "Active" : "Inactive")</span></div>
+                        <div class="category-card-copy"><h2>@category.Name</h2><p>@category.Type category</p>@if (category.ColorHEX is not null) { <span class="category-color-label">@category.ColorHEX</span> }</div>
+                        <div class="category-card-actions">
+                            <a asp-action="Edit" asp-route-id="@category.CategoryId" aria-label="Edit @category.Name" data-form-dialog="Edit category"><partial name="_NavIcon" model='"edit"' /><span>Edit</span></a>
+                            <a asp-action="Edit" asp-route-id="@category.CategoryId" asp-fragment="IsActive" aria-label="@(category.IsActive ? "Deactivate" : "Activate") @category.Name"
+                               data-form-dialog="@(category.IsActive ? "Deactivate category" : "Activate category")" data-dialog-status><partial name="_NavIcon" model='"power"' /><span>@(category.IsActive ? "Deactivate" : "Activate")</span></a>
+                        </div>
+                    </article>
+                }
             </div>
         }
         <nav class="category-pagination" aria-label="Mixed API pagination">

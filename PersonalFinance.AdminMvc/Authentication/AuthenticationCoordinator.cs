@@ -14,7 +14,7 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
         var tokens = login.Value!;
         var me = await api.GetCurrentUserAsync(tokens.AccessToken, ct);
         if (!me.Succeeded || me.Value!.Id != tokens.User.Id
-            || !ContractValidation.Administrator(tokens.User) || !ContractValidation.Administrator(me.Value))
+            || !ContractValidation.Authenticated(tokens.User) || !ContractValidation.Authenticated(me.Value))
         {
             await RevokeAsync(tokens.RefreshToken);
             return ApiResult<AdminSession>.Fail(me.Succeeded ? ApiFailure.Forbidden : me.Failure);
@@ -55,7 +55,7 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
             if (me.Failure is ApiFailure.RateLimited or ApiFailure.Unavailable) return me.Failure;
             if (!me.Succeeded) return Fail(session, me.Failure);
             if (!store.IsCurrent(session) || me.Value!.Id != session.User.Id
-                || !ContractValidation.Administrator(me.Value))
+                || !ContractValidation.Authenticated(me.Value))
             {
                 await RevokeAsync(session.Tokens.RefreshToken);
                 return Fail(session, ApiFailure.Forbidden);
@@ -86,10 +86,18 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
         finally { store.Invalidate(session); session.Gate.Release(); }
     }
 
-    public static ClaimsPrincipal Principal(AdminSession session) => new(new ClaimsIdentity(
-        new[] { new Claim(ClaimTypes.NameIdentifier, session.User.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-            new Claim(ClaimTypes.Name, session.User.FullName), new Claim(ClaimTypes.Role, "Administrator"),
-            new Claim(AdminSessionStore.SessionClaim, session.Id) }, AdminSessionStore.Scheme));
+    public static ClaimsPrincipal Principal(AdminSession session)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier,
+                session.User.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            new(ClaimTypes.Name, session.User.FullName),
+            new(AdminSessionStore.SessionClaim, session.Id)
+        };
+        claims.AddRange(session.User.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, AdminSessionStore.Scheme));
+    }
 
     public static AuthenticationProperties Properties(AdminSession session) => new()
     {

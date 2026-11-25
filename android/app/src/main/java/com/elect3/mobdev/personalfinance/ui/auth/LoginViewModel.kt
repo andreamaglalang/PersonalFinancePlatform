@@ -36,6 +36,7 @@ data class LoginUiState(
     val isSignedIn: Boolean = false,
     val error: AuthFailure? = null,
     val revocationUnconfirmed: Boolean = false,
+    val accountNotice: String? = null,
     val isExploringDemo: Boolean = false,
     val isLoggingOut: Boolean = false,
     // UI restoration identity only; never an authentication token or persisted session.
@@ -71,6 +72,7 @@ class LoginViewModel(
     val authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
     /** Authenticated read-only exchange-rate quotes; exposed only to authenticated content, never to Mock Demo. */
     val authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
+    val authenticatedLive: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
 ) : ViewModel() {
     val diagnosticId = AuthDiagnosticIds.next()
     private fun record(event: AuthDiagnosticEvent) = diagnostics.record(event, diagnosticId, null)
@@ -83,6 +85,23 @@ class LoginViewModel(
     private var request: Job? = null
     private var expiryWatcher: Job? = null
     private var generation = 0L
+
+    init {
+        if (repository.supportsRestoration) {
+            mutableState.value = LoginUiState(isLoading = true)
+            request = viewModelScope.launch {
+                when(val restored = repository.restoreSession()) {
+                    com.elect3.mobdev.personalfinance.data.auth.SessionRestoration.None -> mutableState.value = LoginUiState()
+                    is com.elect3.mobdev.personalfinance.data.auth.SessionRestoration.Failed -> mutableState.value = LoginUiState(error = restored.reason)
+                    com.elect3.mobdev.personalfinance.data.auth.SessionRestoration.Restored -> {
+                        mutableState.value = LoginUiState(isSignedIn = true, authenticatedContentKey = UUID.randomUUID().toString())
+                        watchExpiry()
+                    }
+                }
+                request = null
+            }
+        }
+    }
 
     fun login(email: String, password: String) {
         if (request?.isActive == true || mutableState.value.isSignedIn || mutableState.value.isExploringDemo) return
@@ -188,6 +207,13 @@ class LoginViewModel(
     }
 
     /** Future protected API integration calls this on 401; no automatic credential retry. */
+    fun passwordChangeCompleted(confirmed: Boolean) {
+        ++generation
+        request?.cancel(); request = null; expiryWatcher?.cancel()
+        repository.clearSession()
+        mutableState.value = LoginUiState(accountNotice = if (confirmed) "Password changed. Sign in with your new password." else "Password change could not be confirmed. Sign in to check before trying again.")
+    }
+
     fun sessionExpired() {
         if (!mutableState.value.isSignedIn) return
         record(AuthDiagnosticEvent.SESSION_RESET)
@@ -196,7 +222,7 @@ class LoginViewModel(
         request = null
         expiryWatcher?.cancel()
         repository.clearSession()
-        mutableState.value = LoginUiState(error = AuthFailure.SessionExpired)
+        mutableState.value = LoginUiState(error = repository.sessionFailure())
     }
 
     /** Called when the isolated login route leaves composition; does not revoke a successful session. */
@@ -208,6 +234,18 @@ class LoginViewModel(
         request = null
         repository.clearSession()
         mutableState.value = LoginUiState()
+    }
+
+    /** Resume renewal in ViewModel scope: backgrounding does not cancel a dispatched rotation. */
+    fun onForeground() {
+        if (!mutableState.value.isSignedIn) return
+        val version = generation
+        viewModelScope.launch {
+            try { repository.refreshIfDue() }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { /* Expiry below still denies access. */ }
+            if (version == generation && !repository.hasRecoverableSession()) sessionExpired()
+        }
     }
 
     private fun watchExpiry() {
@@ -222,7 +260,8 @@ class LoginViewModel(
                 } catch (_: Exception) {
                     // Refresh problems must not crash the app; expiry below still applies.
                 }
-                if (!repository.hasActiveSession()) break
+                repository.hasActiveSession() // Records access expiry; eligibility is checked separately.
+                if (!repository.hasRecoverableSession()) break
                 delay(1000)
             }
             sessionExpired()
@@ -231,7 +270,7 @@ class LoginViewModel(
 
     override fun onCleared() {
         record(AuthDiagnosticEvent.VIEW_MODEL_CLEARED)
-        repository.clearSession()
+        repository.onUiDetached()
         super.onCleared()
     }
 
@@ -254,6 +293,7 @@ class LoginViewModel(
         private val authenticatedBudgets: com.elect3.mobdev.personalfinance.domain.repository.BudgetRepository? = null,
         private val authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
         private val authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
+        private val authenticatedLive: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == LoginViewModel::class.java)
@@ -263,7 +303,7 @@ class LoginViewModel(
                 authenticatedCurrency = authenticatedCurrency, authenticatedCreation = authenticatedCreation,
                 authenticatedCategoryWrites = authenticatedCategoryWrites, authenticatedAccountId = authenticatedAccountId,
                 authenticatedBudgets = authenticatedBudgets, authenticatedUpdates = authenticatedUpdates,
-                authenticatedQuotes = authenticatedQuotes) as T
+                authenticatedQuotes = authenticatedQuotes, authenticatedLive = authenticatedLive) as T
         }
     }
 }

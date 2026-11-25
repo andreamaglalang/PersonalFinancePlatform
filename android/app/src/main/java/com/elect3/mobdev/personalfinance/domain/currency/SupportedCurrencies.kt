@@ -41,6 +41,14 @@ object SupportedCurrencies {
         return listOf(head) + all.filter { it.code != base }
     }
 
+    /** Search only the offered currencies; retain their original order and selection. */
+    fun search(options: List<SupportedCurrency>, query: String): List<SupportedCurrency> {
+        val term = query.trim()
+        return if (term.isEmpty()) options else options.filter {
+            it.code.contains(term, ignoreCase = true) || it.name.contains(term, ignoreCase = true) || it.symbol.contains(term)
+        }
+    }
+
     fun symbol(code: String): String = byCode[code]?.symbol ?: code
 }
 

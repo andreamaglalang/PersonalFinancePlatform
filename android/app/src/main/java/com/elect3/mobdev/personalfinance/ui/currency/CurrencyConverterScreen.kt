@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -91,15 +92,8 @@ fun CurrencyConverterScreen(model: CurrencyConverterViewModel, state: CurrencyCo
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Hero: what OWLI supports.
-            Surface(shape = shapes.hero, color = MaterialTheme.colorScheme.primaryContainer) {
-                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.cur_hero_title, state.options.size), style = typography.sectionTitle, modifier = Modifier.semantics { heading() })
-                    Text(stringResource(R.string.cur_hero_body, state.baseCurrency), style = typography.body)
-                    SymbolStrip(state.options.map { it.symbol })
-                    if (state.demo) Text(stringResource(R.string.cur_demo_note), style = typography.caption, color = colors.accent)
-                }
-            }
+            Text(stringResource(if (state.demo) R.string.cur_demo_note else R.string.cur_live_mode),
+                style = typography.caption, color = colors.accent)
             // Converter inputs.
             Surface(shape = shapes.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -113,9 +107,18 @@ fun CurrencyConverterScreen(model: CurrencyConverterViewModel, state: CurrencyCo
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }), modifier = Modifier.fillMaxWidth())
+                    if (!state.demo) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(100, 500, 1000).forEach { value ->
+                            OutlinedButton(onClick = { focus.clearFocus(); model.quickAmount(value) },
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("currency-quick-$value")) {
+                                Text(SupportedCurrencies.symbol(state.from) + java.text.NumberFormat.getIntegerInstance().format(value), style = typography.label)
+                            }
+                        }
+                    }
                     OutlinedButton(onClick = { focus.clearFocus(); model.swap() }, shape = shapes.chip, border = BorderStroke(1.dp, colors.hairline),
                         modifier = Modifier.align(Alignment.CenterHorizontally).heightIn(min = 48.dp)) {
-                        Text("⇅  " + stringResource(R.string.cur_swap), style = typography.label)
+                        Text(stringResource(R.string.cur_swap), style = typography.label)
                     }
                     CurrencyLine(stringResource(R.string.cur_to), state.to) { focus.clearFocus(); picking = "to" }
                 }
@@ -123,27 +126,11 @@ fun CurrencyConverterScreen(model: CurrencyConverterViewModel, state: CurrencyCo
             ResultCard(state, model)
             if (onRecordTransaction != null) Button(onClick = onRecordTransaction, shape = shapes.button,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.cur_record_action), textAlign = TextAlign.Center) }
-            HowItWorks(state.baseCurrency)
-            ConfirmedRates(state)
-            SupportedList(state)
         }
     }
     picking?.let { which ->
         CurrencyPickerDialog(state.options, if (which == "from") state.from else state.to, state.baseCurrency,
-            onPick = { if (which == "from") model.from(it) else model.to(it); picking = null }, onDismiss = { picking = null })
-    }
-}
-
-@Composable
-private fun SymbolStrip(symbols: List<String>) {
-    val colors = LocalOwliColors.current
-    @OptIn(ExperimentalLayoutApi::class)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.clearAndSetSemantics { }) {
-        symbols.forEach { s ->
-            Box(Modifier.heightIn(min = 32.dp).widthIn(min = 32.dp).clip(CircleShape).background(colors.accentSoft).padding(horizontal = 8.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center) { Text(s, style = LocalOwliTypography.current.label, color = colors.accent) }
-        }
+            onPick = { if (which == "from") model.from(it) else model.to(it); picking = null }, onDismiss = { picking = null }, searchable = !state.demo, readOnlyConversion = !state.demo)
     }
 }
 
@@ -208,15 +195,13 @@ private fun LiveQuoteSection(state: CurrencyConverterUiState, model: CurrencyCon
         is LiveQuote.Ready -> {
             val q = live.quote
             Text(formatTransactionAmount(q.convertedAmount, q.to), style = typography.heroAmount.copy(fontSize = typography.heroAmount.fontSize * 0.8f))
-            Text(stringResource(R.string.fx_equals, formatTransactionAmount(q.amount, q.from), formatTransactionAmount(q.convertedAmount, q.to)), style = typography.bodyStrong)
             Text(stringResource(R.string.cur_confirmed_row, q.from, formatRate(q.rate), q.to), style = typography.body)
             Text(stringResource(R.string.cur_live_rate_date, formatTransactionDate(q.rateDate)), style = typography.caption, color = muted)
             if (q.rateDate < q.requestedDate) Text(stringResource(R.string.cur_live_rate_earlier), style = typography.caption, color = muted)
-            Text(stringResource(R.string.cur_live_source, q.source, formatRetrieved(q.retrievedAt)), style = typography.caption, color = muted)
             Text(stringResource(R.string.cur_live_quote_only), style = typography.caption, color = colors.accent)
             OutlinedButton(onClick = model::refresh, enabled = state.canRequestQuote, shape = LocalOwliShapes.current.button,
                 border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 4.dp)) { Text("↻  " + stringResource(R.string.cur_live_refresh)) }
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 4.dp)) { Text(stringResource(R.string.cur_live_refresh)) }
         }
         LiveQuote.Offline -> Problem(R.string.cur_live_offline)
         LiveQuote.ProviderUnavailable -> Problem(R.string.cur_live_provider)
@@ -228,79 +213,5 @@ private fun LiveQuoteSection(state: CurrencyConverterUiState, model: CurrencyCon
     if (state.liveQuote !is LiveQuote.Ready) reference?.let { ref ->
         Text(stringResource(R.string.cur_result_reference, ref.currencyCode, formatRate(ref.rate), ref.baseCurrency,
             formatTransactionDate(ref.rateDate)), style = typography.caption, color = muted)
-    }
-}
-
-/** Local time and date the quote was retrieved (device time zone). */
-private fun formatRetrieved(at: java.time.Instant): String =
-    java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.SHORT).withZone(java.time.ZoneId.systemDefault()).format(at)
-
-@Composable
-private fun HowItWorks(base: String) {
-    val colors = LocalOwliColors.current
-    val typography = LocalOwliTypography.current
-    val steps = listOf(stringResource(R.string.cur_how_1), stringResource(R.string.cur_how_2, base), stringResource(R.string.cur_how_3),
-        stringResource(R.string.cur_how_4, base), stringResource(R.string.cur_how_5), stringResource(R.string.cur_how_6))
-    Surface(shape = LocalOwliShapes.current.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(stringResource(R.string.cur_how_title), style = typography.sectionTitle, modifier = Modifier.semantics { heading() })
-            steps.forEachIndexed { i, step ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.semantics(mergeDescendants = true) { }) {
-                    Box(Modifier.size(28.dp).clip(CircleShape).background(colors.accentSoft), contentAlignment = Alignment.Center) {
-                        Text("${i + 1}", style = typography.label, color = colors.accent)
-                    }
-                    Text(step, style = typography.body, modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ConfirmedRates(state: CurrencyConverterUiState) {
-    val colors = LocalOwliColors.current
-    val typography = LocalOwliTypography.current
-    Surface(shape = LocalOwliShapes.current.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.cur_confirmed_title), style = typography.sectionTitle, modifier = Modifier.semantics { heading() })
-            when {
-                state.demo -> Text(stringResource(R.string.cur_confirmed_demo), style = typography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                state.confirmed.isEmpty() -> Text(stringResource(R.string.cur_confirmed_empty), style = typography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else -> {
-                    Text(stringResource(R.string.cur_confirmed_lead), style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    state.confirmed.forEachIndexed { i, rate ->
-                        if (i > 0) HorizontalDivider(color = colors.hairline)
-                        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) { }) {
-                            Text(stringResource(R.string.cur_confirmed_row, rate.currencyCode, formatRate(rate.rate), rate.baseCurrency), style = typography.bodyStrong)
-                            Text(stringResource(R.string.cur_confirmed_date, formatTransactionDate(rate.rateDate), formatTransactionDate(rate.transactionDate)),
-                                style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SupportedList(state: CurrencyConverterUiState) {
-    val colors = LocalOwliColors.current
-    val typography = LocalOwliTypography.current
-    Surface(shape = LocalOwliShapes.current.group, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, colors.hairline)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.cur_supported_title), style = typography.sectionTitle, modifier = Modifier.semantics { heading() })
-            state.options.forEach { c ->
-                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics(mergeDescendants = true) { }, verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(36.dp).clip(CircleShape).background(colors.accentSoft), contentAlignment = Alignment.Center) {
-                        Text(c.symbol, style = typography.label, color = colors.accent)
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text(c.code + " · " + c.name, style = typography.bodyStrong)
-                        if (c.code == state.baseCurrency) Text(stringResource(R.string.cur_supported_account), style = typography.caption, color = colors.accent)
-                    }
-                }
-            }
-        }
     }
 }

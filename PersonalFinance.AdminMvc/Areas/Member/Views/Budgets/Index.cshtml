@@ -1,0 +1,67 @@
+﻿@model PersonalFinance.AdminMvc.ViewModels.MemberBudgetIndexViewModel
+@using PersonalFinance.AdminMvc.Services
+@{
+    ViewData["Title"] = "Plan";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+    var month = DateOnly.TryParseExact(Model.Month + "-01", "yyyy-MM-dd", invariant, System.Globalization.DateTimeStyles.None, out var selected) ? selected : BudgetPlanSummary.PhilippineToday;
+    var summary = Model.Summary;
+    string Money(decimal amount, string currency) => (currency == "PHP" ? "₱" : currency + " ") + amount.ToString("N2", invariant);
+}
+<section class="member-dashboard member-plan">
+    <header class="member-dashboard-head plan-heading">
+        <div class="member-dashboard-title"><p class="owli-greeting">@month.ToString("MMMM yyyy", invariant)</p><h1 class="owli-screen-title">Plan</h1></div>
+    </header>
+    <partial name="_PlanNavigation" />
+    @if (Model.Error is not null) { <p class="notice login-notice" role="alert">@Model.Error</p> }
+    @if (Model.Notice is not null) { <p class="notice login-notice" role="status">@Model.Notice</p> }
+    <nav class="plan-month" aria-label="Budget month">
+        @if (month.Year > 1 || month.Month > 1) { <a class="member-btn member-btn-secondary" aria-label="Previous month" href="@Url.Action("Index", new { Month = month.AddMonths(-1).ToString("yyyy-MM", invariant) })">‹</a> }
+        <details class="plan-month-picker"><summary>@month.ToString("MMMM yyyy", invariant)</summary>
+            <form method="get"><label for="budget-month">Budget month</label><input id="budget-month" type="month" name="Month" value="@month.ToString("yyyy-MM", invariant)" required /><button class="member-btn member-btn-small" type="submit">Go to month</button></form>
+        </details>
+        @if (month.Year < 9999 || month.Month < 12) { <a class="member-btn member-btn-secondary" aria-label="Next month" href="@Url.Action("Index", new { Month = month.AddMonths(1).ToString("yyyy-MM", invariant) })">›</a> }
+        @if (month.Year != BudgetPlanSummary.PhilippineToday.Year || month.Month != BudgetPlanSummary.PhilippineToday.Month) { <a class="plan-current-month" href="@Url.Action("Index")">This month</a> }
+    </nav>
+    @if (summary is not null)
+    {
+        <section class="plan-summary" aria-labelledby="budget-summary-title">
+            <div><h2 id="budget-summary-title">Left to spend in budgets</h2><strong class="plan-summary-amount">@Money(summary.Remaining, summary.Currency)</strong><p>Budget remaining · not your account balance</p></div>
+            <div class="plan-summary-usage"><p>Used <strong>@Money(summary.Spent, summary.Currency)</strong><br />of @Money(summary.Allocated, summary.Currency) allocated</p>
+                <div class="member-goal-progress" role="progressbar" aria-label="Overall budget utilization" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@summary.Fill.ToString("0.##", invariant)"><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect class="member-progress-fill" width="@(summary.Fill.ToString("0.##", invariant))" height="10" rx="5" /></svg></div><p>@summary.Utilization.ToString("0.#", invariant)% used</p>
+            </div>
+            <div class="plan-summary-daily">
+                @if (summary.DaysLeft is { } days) { <strong>@days days remaining</strong><p>Including today</p><strong>≈ @Money(summary.DailyAllowance!.Value, summary.Currency) / day</strong><p>Remaining budget ÷ days left</p> }
+                else { <strong>@(month < BudgetPlanSummary.PhilippineToday ? "Past month" : "Future month")</strong><p>Daily allowance applies to the current month.</p> }
+            </div>
+        </section>
+    }
+    <div class="member-section-heading plan-section-heading"><h2 class="member-card-title">Budgets for @month.ToString("MMMM", invariant)</h2><a class="member-btn member-btn-small" href="@Url.Action("Create", new { Month = month.ToString("yyyy-MM", invariant) })"><span aria-hidden="true">+</span> New budget</a></div>
+    @if (Model.Results is null) { <p class="member-empty">Budgets are unavailable. Refresh to try again.</p> }
+    else if (Model.Results.Items.Count == 0) { <p class="member-empty">No budgets for this month. Create a budget to start planning.</p> }
+    else
+    {
+        var results = Model.Results;
+        <div class="member-budget-grid">
+        @foreach (var budget in results.Items)
+        {
+            var percentage = BudgetPlanSummary.Percentage(budget.SpentAmount, budget.LimitAmount);
+            var fill = Math.Clamp(percentage, 0m, 100m);
+            var status = budget.Status == "Exceeded" ? "Exceeded" : budget.SpentAmount == budget.LimitAmount ? "Limit reached" : budget.Status == "Warning" ? "Near limit" : "On track";
+            var stateClass = budget.Status switch { "Warning" => "is-warning", "Exceeded" => "is-exceeded", _ => "is-normal" };
+            <article class="member-budget-card @stateClass">
+                <header><span class="plan-category-icon"><partial name="_ActivityCategoryIcon" model='@ActivityProjection.IconKey(budget.CategoryName, "Expense")' /></span><div><h3 class="member-budget-label">@budget.CategoryName</h3><p>@Money(budget.SpentAmount, budget.BaseCurrency) of @Money(budget.LimitAmount, budget.BaseCurrency)</p></div><strong class="plan-budget-percent">@percentage.ToString("0.#", invariant)%</strong></header>
+                <div class="member-goal-progress" role="progressbar" aria-label="@budget.CategoryName budget spent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@fill.ToString("0.##", invariant)"><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect class="member-progress-fill" width="@(fill.ToString("0.##", invariant))" height="10" rx="5" /></svg></div>
+                <p class="plan-budget-status">@status · @Money(Math.Abs(budget.RemainingAmount), budget.BaseCurrency) @(budget.RemainingAmount < 0 ? "over budget" : "left")</p>
+                @if (!budget.IsCategoryActive) { <p class="owli-caption">Inactive category</p> }
+                <footer><span>Alert at @budget.AlertThresholdPct%</span><nav aria-label="@budget.CategoryName budget actions"><a class="member-btn member-btn-secondary member-btn-small" href="@Url.Action("Edit", new { id = budget.BudgetId })">Edit</a><a class="member-btn member-btn-secondary member-btn-small member-row-danger" href="@Url.Action("Delete", new { id = budget.BudgetId })">Delete</a></nav></footer>
+            </article>
+        }
+        </div>
+        <nav class="member-pager" aria-label="Budget pages">
+            @if (results.Page > 1) { <a class="member-btn member-btn-secondary" href="@Url.Action("Index", new { Model.Month, Page = results.Page - 1 })">Previous</a> }
+            <span class="owli-caption">Page @results.Page · @results.TotalCount budgets</span>
+            @if ((long)results.Page * results.PageSize < results.TotalCount) { <a class="member-btn member-btn-secondary" href="@Url.Action("Index", new { Model.Month, Page = results.Page + 1 })">Next</a> }
+        </nav>
+    }
+</section>

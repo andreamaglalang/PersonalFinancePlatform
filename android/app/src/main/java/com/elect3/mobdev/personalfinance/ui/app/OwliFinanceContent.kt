@@ -49,6 +49,9 @@ fun OwliFinanceContent(
     /** Signed-in online edits (PUT api/transactions/{id}); null hides Edit. Never handed to Mock Demo. */
     authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
     /** Signed-in read-only live exchange-rate quotes for the Currency converter; null keeps the "no live quote" state. */
+    onPasswordChanged: (Boolean) -> Unit = {},
+    authenticatedLive: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
+    authenticatedPreferenceNamespace: String = "",
     authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
     /** Signed-in Dashboard renderer for this login's real data. Null keeps [dashboardContent] for every mode. */
     accountDashboard: (@Composable (DashboardViewModel) -> Unit)? = null,
@@ -87,6 +90,15 @@ fun OwliFinanceContent(
         } ?: InMemoryCategoryPresentationStore()
     }
     val accountId = if (authenticatedContentKey != null) remember(authenticatedContentKey) { authenticatedAccountId() } else null
+    val preferenceStore = remember(authenticatedContentKey, accountId, authenticatedPreferenceNamespace) {
+        if (authenticatedContentKey == null || accountId == null || authenticatedPreferenceNamespace.isBlank()) null
+        else com.elect3.mobdev.personalfinance.domain.currency.AccountCurrencyPreferences(
+            com.elect3.mobdev.personalfinance.data.local.DeviceCurrencyPreferenceStorage(
+                context.getSharedPreferences(com.elect3.mobdev.personalfinance.data.local.DeviceCurrencyPreferenceStorage.FILE, android.content.Context.MODE_PRIVATE)),
+            authenticatedPreferenceNamespace, accountId)
+    }
+    val preferenceFlow = remember(preferenceStore) { preferenceStore?.preferences ?: kotlinx.coroutines.flow.MutableStateFlow(com.elect3.mobdev.personalfinance.domain.currency.CurrencyPreferences()) }
+    val currencyPreferences by preferenceFlow.collectAsStateWithLifecycle()
     val categorySelection = remember(authenticatedContentKey, authenticatedCategories, offlineCategoryCache, accountId) {
         val key = authenticatedContentKey
         if (key == null || authenticatedCategories == null || offlineCategoryCache == null || accountId == null) null
@@ -201,6 +213,8 @@ fun OwliFinanceContent(
     val planContent: @Composable () -> Unit = remember(authenticatedContentKey, budgetsVm) {
         {
             val budgetState = budgetsVm?.state?.collectAsStateWithLifecycle()?.value
+            val demoGoals = if (authenticatedContentKey == null) demo.plan.goals.collectAsStateWithLifecycle().value else emptyList()
+            val demoBills = if (authenticatedContentKey == null) demo.plan.bills.collectAsStateWithLifecycle().value else emptyList()
             val pending = pendingLocal.value
             LaunchedEffect(budgetsVm) { budgetsVm?.consumeNotice() }
             // Re-read each time Plan opens (and when the unsynced queue changes, e.g. after a sync), so budgets
@@ -212,7 +226,11 @@ fun OwliFinanceContent(
                         com.elect3.mobdev.personalfinance.ui.plan.BudgetsSection(budgetState, budgetsVm, demo = authenticatedContentKey == null,
                             pendingLocalCount = pending)
                     }) else null,
-                    budgetCount = budgetState?.budgets?.size ?: 0))
+                    budgetCount = budgetState?.budgets?.size ?: 0,
+                    goals = { if (authenticatedContentKey != null && authenticatedLive != null) com.elect3.mobdev.personalfinance.ui.plan.LivePlanSection(authenticatedLive, false, authenticatedCategories) else com.elect3.mobdev.personalfinance.ui.plan.GoalsSection(authenticatedContentKey == null, demoGoals, demo.plan::contribute) },
+                    goalCount = demoGoals.size,
+                    bills = { if (authenticatedContentKey != null && authenticatedLive != null) com.elect3.mobdev.personalfinance.ui.plan.LivePlanSection(authenticatedLive, true, authenticatedCategories, onPaid = { budgetsVm?.refresh(); account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard() }) else com.elect3.mobdev.personalfinance.ui.plan.BillsSection(authenticatedContentKey == null, demoBills, demo.plan::markPaid) },
+                    billCount = demoBills.size))
         }
     }
     // Insights (Financial Reports) for this session only: demo -> in-memory sample ledger (PHP); signed in -> this
@@ -246,6 +264,8 @@ fun OwliFinanceContent(
             TransactionListRoute(account?.model() ?: demoTransactions(), isAuthenticated = account != null,
                 filterCategories = if (account == null) demo.categories else authenticatedCategories,
                 localHistory = localHistory,
+                showOriginalAmounts = currencyPreferences.showOriginalAmounts,
+                baseCurrency = authenticatedCurrency() ?: "PHP",
                 offlineQueue = if (account != null && offlineLedger != null && accountId != null)
                     com.elect3.mobdev.personalfinance.ui.transactions.OfflineQueueUi(unsynced, syncing, runSync) { id ->
                         syncScope.launch { offlineLedger.discardRejected(accountId, id) }
@@ -288,6 +308,11 @@ fun OwliFinanceContent(
             onClose = { accountOpen = false },
             // Read-only Currency converter, opened over Account; Back returns here.
             onOpenCurrencyConverter = { converterOpen = true },
+            live = if (authenticatedContentKey == null) null else authenticatedLive,
+            onSessionEnded = { authenticatedContentKey?.let(onSessionExpired) },
+            onPasswordChanged = onPasswordChanged,
+            currencyPreferences = preferenceStore,
+            isCurrent = { authenticatedContentKey != null && isSessionCurrent(authenticatedContentKey) },
         )
     }
     if (converterOpen) {
@@ -333,6 +358,9 @@ fun OwliFinanceContent(
             // Signed in: offline-first wrapper when a local ledger exists (queues on connectivity loss).
             accountCreation = if (key == null) null else (offlineCreation ?: authenticatedCreation),
             demoLedger = if (key == null) demo.ledger else null,
+            defaultCurrency = if (key == null) null else currencyPreferences.defaultCurrency,
+            reviewRateBeforeSave = key != null && currencyPreferences.reviewRateBeforeSave,
+            historicalQuotes = if (key == null) null else authenticatedQuotes as? com.elect3.mobdev.personalfinance.domain.currency.HistoricalExchangeRateQuoteRepository,
         )
     }
 }

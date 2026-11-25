@@ -13,6 +13,12 @@
             <path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z" />
             <path d="M8 8h.01" />
             break;
+        case "globe":
+            <circle cx="12" cy="12" r="8.5" /><ellipse cx="12" cy="12" rx="3.5" ry="8.5" /><path d="M3.5 12h17" />
+            break;
+        case "exchange":
+            <path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4" />
+            break;
         case "account":
             <circle cx="12" cy="8.5" r="3.5" />
             <path d="M5 20c.6-3.6 3.5-5.5 7-5.5s6.4 1.9 7 5.5" />
@@ -104,8 +110,34 @@
         case "budget":
             <path d="M4 6h16v13H4zM4 9h16m-5 5h2m-10 0h4" />
             break;
+        case "goal":
+            <circle cx="12" cy="12" r="8.5" />
+            <circle cx="12" cy="12" r="4.5" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" />
+            break;
+        case "calendar":
+            <rect x="4" y="5.5" width="16" height="15" rx="2" />
+            <path d="M8 3.5v4M16 3.5v4M4 10h16" />
+            break;
         case "report":
             <path d="M5 4h14v16H5zM9 15v2m3-5v5m3-8v8" />
+            break;
+        case "eye":
+            <circle cx="7.5" cy="11" r="4" />
+            <circle cx="16.5" cy="11" r="4" />
+            <circle cx="7.5" cy="11" r="1" fill="currentColor" stroke="none" />
+            <circle cx="16.5" cy="11" r="1" fill="currentColor" stroke="none" />
+            <path d="M11 16.5 12 17.8 13 16.5" />
+            break;
+        case "filter":
+            <path d="M4 6h16M7 12h10M10 18h4" />
+            break;
+        case "minus":
+            <path d="M5 12h14" />
+            break;
+        case "list":
+            <path d="M9 6h11M9 12h11M9 18h11" />
+            <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" />
             break;
     }
 </svg>

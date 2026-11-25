@@ -13,7 +13,7 @@ public sealed class AuthenticationService(
     RoleManager<IdentityRole<int>> roles,
     IAuthSessionStore store,
     IRefreshTokenService sessions,
-    DummyPasswordVerifier dummy) : IAuthenticationService
+    DummyPasswordVerifier dummy, TimeProvider clock) : IAuthenticationService
 {
     public async Task<AuthResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
@@ -91,6 +91,48 @@ public sealed class AuthenticationService(
         var user = await users.FindByIdAsync(userId.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (user is null || await users.IsLockedOutAsync(user)) return null;
         return await DescribeAsync(user);
+    }
+
+    public async Task<AuthResult<CurrentUserResponse>> UpdateProfileAsync(int userId, UpdateProfileRequest request, CancellationToken ct)
+    {
+        if (!AuthRules.IsValid(request) || string.IsNullOrWhiteSpace(request.FullName))
+            return AuthResult<CurrentUserResponse>.Failure(400, "Enter a valid name.");
+        return await store.ExecuteAsync(AuthRules.UserLock(userId), async token =>
+        {
+            var user = await users.FindByIdAsync(userId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            if (user is null) return AuthResult<CurrentUserResponse>.Failure(401, "The account is unavailable.");
+            await store.ReloadUserAsync(user, token);
+            if (await users.IsLockedOutAsync(user)) return AuthResult<CurrentUserResponse>.Failure(401, "The account is unavailable.");
+            user.FullName = request.FullName.Trim();
+            var result = await users.UpdateAsync(user);
+            if (!result.Succeeded) return AuthResult<CurrentUserResponse>.Failure(result.Errors.Any(e => e.Code == "ConcurrencyFailure") ? 409 : 400, "The profile could not be updated.");
+            return AuthResult<CurrentUserResponse>.Success(await DescribeAsync(user));
+        }, ct);
+    }
+
+    public async Task<AuthResult<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct)
+    {
+        if (!AuthRules.IsValid(request) || request.CurrentPassword == request.NewPassword)
+            return AuthResult<bool>.Failure(400, "Enter a valid new password.");
+        // Password update, security-stamp rotation and refresh revocation commit together.
+        return await store.ExecuteAsync(AuthRules.UserLock(userId), async token =>
+        {
+            var user = await users.FindByIdAsync(userId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            if (user is null) return AuthResult<bool>.Failure(401, "The account is unavailable.");
+            await store.ReloadUserAsync(user, token);
+            if (await users.IsLockedOutAsync(user)) return AuthResult<bool>.Failure(401, "The account is unavailable.");
+            var changed = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!changed.Succeeded)
+            {
+                if (changed.Errors.Any(e => e.Code == "PasswordMismatch")) await users.AccessFailedAsync(user);
+                return AuthResult<bool>.Failure(changed.Errors.Any(e => e.Code == "ConcurrencyFailure") ? 409 : 400,
+                    "Check your current password and new password requirements.");
+            }
+            var reset = await users.ResetAccessFailedCountAsync(user);
+            if (!reset.Succeeded) throw new InvalidOperationException("Password update could not reset lockout state.");
+            await store.RevokeAllAsync(userId, clock.GetUtcNow().UtcDateTime, token);
+            return AuthResult<bool>.Success(true, 204);
+        }, ct);
     }
 
     private async Task<CurrentUserResponse> DescribeAsync(ApplicationUser user) =>

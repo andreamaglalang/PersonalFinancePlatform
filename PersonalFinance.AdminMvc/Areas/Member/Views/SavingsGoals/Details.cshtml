@@ -1,0 +1,49 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberSavingsGoalDetailViewModel
+@{
+    ViewData["Title"] = "Savings goal";
+    Layout = "_MemberLayout";
+    var goal = Model.Goal;
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head">
+        <span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title"><p class="owli-greeting">Your progress, one step at a time</p><h1 class="owli-screen-title">@goal.Name</h1></div>
+        <a class="member-btn member-btn-secondary" asp-action="Index">Back to goals</a>
+    </header>
+    <partial name="_PlanNavigation" />
+    @if (Model.Error is not null) { <p class="notice login-notice" role="alert">@Model.Error</p> }
+    @if (Model.Notice is not null) { <p class="notice login-notice" role="status">@Model.Notice</p> }
+    <section class="member-goal-detail-grid">
+        <article class="member-card member-goal-detail-card">
+            <p class="owli-overline">@goal.Status</p>
+            <h2>@goal.SavedAmount.ToString("N2", invariant) @goal.BaseCurrency <small>of @goal.TargetAmount.ToString("N2", invariant) @goal.BaseCurrency</small></h2>
+            <div class="member-goal-progress" role="progressbar" aria-label="Goal progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Math.Clamp(goal.ProgressPercentage, 0m, 100m).ToString("0.0", invariant)"><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect class="member-progress-fill" width="@Math.Clamp(goal.ProgressPercentage, 0m, 100m).ToString("0.0", invariant)" height="10" rx="5" /></svg></div>
+            <p class="owli-caption">@goal.ProgressPercentage.ToString("0.0", invariant)% complete · @goal.RemainingAmount.ToString("N2", invariant) @goal.BaseCurrency remaining</p>
+            @if (goal.TargetDate is { } target) { <p class="owli-caption">Target date: <time datetime="@target.ToString("yyyy-MM-dd", invariant)">@target.ToString("MMMM d, yyyy", System.Globalization.CultureInfo.CurrentCulture)</time></p> }
+            <div class="member-form-actions">
+                @if (goal.Status == "Active")
+                {
+                    <a class="member-btn" asp-action="Contribute" asp-route-id="@goal.GoalId">Add contribution</a>
+                    <a class="member-btn member-btn-secondary" asp-action="Edit" asp-route-id="@goal.GoalId">Edit goal</a>
+                }
+            </div>
+        </article>
+        <section class="member-card member-goal-contributions" aria-labelledby="contributions-heading">
+            <div class="member-section-heading"><div><p class="owli-overline">Activity</p><h2 id="contributions-heading">Contribution history</h2></div><span class="member-result-count">@Model.Contributions.TotalCount contributions</span></div>
+            @if (Model.Contributions.Items.Count == 0) { <p class="member-empty">No contributions recorded for this goal yet.</p> }
+            else
+            {
+                <div class="member-table-wrap"><table class="member-table"><thead><tr><th>Date</th><th>Note</th><th class="member-amount">Amount</th>@if (goal.Status == "Active") { <th>Actions</th> }</tr></thead><tbody>
+                @foreach (var item in Model.Contributions.Items)
+                {
+                    <tr><td><time datetime="@item.ContributedOn.ToString("yyyy-MM-dd", invariant)">@item.ContributedOn.ToString("MMM d, yyyy", System.Globalization.CultureInfo.CurrentCulture)</time></td><td>@(string.IsNullOrWhiteSpace(item.Note) ? "—" : item.Note)</td><td class="member-amount">@item.Amount.ToString("N2", invariant) @item.BaseCurrency</td>
+                        @if (goal.Status == "Active") { <td class="member-row-actions"><a class="member-row-link" asp-action="EditContribution" asp-route-id="@goal.GoalId" asp-route-contributionId="@item.ContributionId">Edit</a><a class="member-row-link" asp-action="DeleteContribution" asp-route-id="@goal.GoalId" asp-route-contributionId="@item.ContributionId">Delete</a></td> }</tr>
+                }
+                </tbody></table></div>
+            }
+            @if (Model.Contributions.Page * Model.Contributions.PageSize < Model.Contributions.TotalCount)
+            { <nav class="member-pager" aria-label="Contribution pages"><a class="member-btn member-btn-secondary" asp-action="Details" asp-route-id="@goal.GoalId" asp-route-page="@(Model.Contributions.Page + 1)">Next</a><span class="owli-caption">Page @Model.Contributions.Page</span></nav> }
+        </section>
+    </section>
+</section>

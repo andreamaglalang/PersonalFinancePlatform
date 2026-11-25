@@ -1,0 +1,240 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberDashboardViewModel
+@{
+    ViewData["Title"] = "Home";
+    Layout = "_MemberLayout";
+    var hour = DateTime.Now.Hour;
+    var greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+    var currencyPrefix = string.Equals(Model.BaseCurrency, "PHP", StringComparison.OrdinalIgnoreCase)
+        ? "₱" : string.IsNullOrWhiteSpace(Model.BaseCurrency) ? "" : Model.BaseCurrency + " ";
+}
+<section class="member-dashboard member-dashboard-home">
+    <header class="member-dashboard-head">
+        <span class="member-avatar member-dashboard-owl" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">@greeting</p>
+            <h1 class="owli-screen-title">Dashboard</h1>
+        </div>
+    </header>
+
+    <div class="member-dashboard-context" aria-label="Reporting period and account currency">
+        <span>@Model.ReportingLabel</span><span class="member-context-separator" aria-hidden="true"></span><span>@Model.BaseCurrency</span>
+    </div>
+
+    @if (Model.Error is not null)
+    {
+        <p class="notice login-notice" role="alert">@Model.Error</p>
+    }
+
+    <section class="member-panel member-flow-panel" aria-labelledby="member-flow-title">
+        <div class="member-panel-head">
+            <div class="member-flow-heading">
+                <span class="member-flow-orbit" aria-hidden="true"><partial name="_OwlMark" /></span>
+                <div><span class="owli-overline member-panel-muted">@Model.PeriodOverviewLabel</span><h2 id="member-flow-title">Net transaction flow</h2></div>
+            </div>
+            <div class="member-period-control">
+                <nav class="member-period-tabs" aria-label="Dashboard reporting period">
+                    <a class="member-period @(!Model.IsAllTime ? "member-period-current" : "")" aria-current="@(!Model.IsAllTime ? "page" : null)" href="@Url.Action("Index", new { period = "month", month = Model.Month })">Month</a>
+                    <a class="member-period @(Model.IsAllTime ? "member-period-current" : "")" aria-current="@(Model.IsAllTime ? "page" : null)" href="@Url.Action("Index", new { period = "all-time", month = Model.Month })">All time</a>
+                </nav>
+                @if (!Model.IsAllTime)
+                {
+                    <div class="member-month-nav" aria-label="Choose reporting month">
+                        <a class="member-period" title="Previous month" aria-label="Previous month" href="@Url.Action("Index", new { period = "month", month = Model.PreviousMonth.ToString("yyyy-MM", invariant) })">&#8249;</a>
+                        <span class="member-month-label">@Model.MonthLabel</span>
+                        @if (!Model.IsCurrentMonth)
+                        {
+                            <a class="member-period" title="Next month" aria-label="Next month" href="@Url.Action("Index", new { period = "month", month = Model.NextMonth.ToString("yyyy-MM", invariant) })">&#8250;</a>
+                        }
+                        else
+                        {
+                            <span class="member-period member-period-disabled" aria-hidden="true">&#8250;</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="member-flow-content">
+        <div class="member-flow-total">
+        @if (Model.Error is not null)
+        {
+            <p class="owli-caption member-panel-caption">Your figures could not be loaded. Refresh the page to try again.</p>
+        }
+        else if (Model.HasData)
+        {
+            <p class="owli-hero">@if (Model.NetCashFlow < 0) { <span class="member-sign member-sign-negative">−</span> } else if (Model.NetCashFlow > 0) { <span class="member-sign">+</span> }@currencyPrefix@Math.Abs(Model.NetCashFlow).ToString("N2", invariant)</p>
+            <p class="owli-caption member-panel-caption">@(Model.IsAllTime ? "Net flow across all recorded transactions" : $"Net flow for {Model.MonthLabel}") · This is not an account balance.</p>
+        }
+        else
+        {
+            <p class="owli-hero">—</p>
+            <p class="owli-caption member-panel-caption">@(Model.IsAllTime ? "No transactions have been recorded yet." : $"No transactions recorded in {Model.MonthLabel} yet.") This is not an account balance.</p>
+        }
+        </div>
+        @if (Model.HasData)
+        {
+            <div class="member-eyes" aria-label="@(Model.IsAllTime ? "All-time income and expenses" : "Monthly income and expenses")">
+                <div class="member-eye">
+                    <div class="member-ring">
+                        <svg viewBox="0 0 64 64" aria-hidden="true">
+                            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--owli-panel-track)" stroke-width="6" />
+                            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--owli-panel-income)" stroke-width="6"
+                                    stroke-linecap="round" stroke-dasharray="@Model.IncomeRing.Dash"
+                                    stroke-dashoffset="@Model.IncomeRing.Offset" />
+                        </svg>
+                        <span class="member-ring-label">@Model.IncomeRing.Label</span>
+                    </div>
+                    <span class="member-eye-label">Income</span>
+                    <span class="member-eye-value">@currencyPrefix@Model.TotalIncome.ToString("N2", invariant)</span>
+                </div>
+                <span class="member-flow-divider" aria-hidden="true"></span>
+                <div class="member-eye">
+                    <div class="member-ring">
+                        <svg viewBox="0 0 64 64" aria-hidden="true">
+                            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--owli-panel-track)" stroke-width="6" />
+                            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--owli-panel-expense)" stroke-width="6"
+                                    stroke-linecap="round" stroke-dasharray="@Model.ExpenseRing.Dash"
+                                    stroke-dashoffset="@Model.ExpenseRing.Offset" />
+                        </svg>
+                        <span class="member-ring-label">@Model.ExpenseRing.Label</span>
+                    </div>
+                    <span class="member-eye-label">Expenses</span>
+                    <span class="member-eye-value">@currencyPrefix@Model.TotalExpenses.ToString("N2", invariant)</span>
+                </div>
+            </div>
+        }
+        <div class="member-panel-foot">
+            @if (Model.Error is not null) { <span>Summary unavailable</span> }
+            else { <span>@Model.TransactionCount.ToString("N0", invariant) @Model.EntriesLabel</span> }
+            <a href="@Url.Action("Index", "Activity")">View activity <span aria-hidden="true">→</span></a>
+        </div>
+    </section>
+
+    <nav class="member-quick" aria-label="Quick actions">
+        <a class="member-quick-action member-quick-expense" href="@Url.Action("Create", "Activity", new { type = "Expense" })"><span class="member-tile"><partial name="_NavIcon" model='"minus"' /></span><span><b>Expense</b></span></a>
+        <a class="member-quick-action member-quick-income" href="@Url.Action("Create", "Activity", new { type = "Income" })"><span class="member-tile member-tile-income"><partial name="_NavIcon" model='"plus"' /></span><span><b>Income</b></span></a>
+        <a class="member-quick-action member-quick-filter" href="@Url.Action("Index", "Activity")#transaction-filters"><span class="member-tile member-tile-filter"><partial name="_NavIcon" model='"filter"' /></span><span><b>Filter</b></span></a>
+        <a class="member-quick-action member-quick-category" href="@Url.Action("Index", "Categories")"><span class="member-tile member-tile-category"><partial name="_NavIcon" model='"tag"' /></span><span><b>Category</b></span></a>
+    </nav>
+
+    <div class="member-home-grid">
+    <section class="member-home-module member-home-spending">
+    <div class="member-sec-head">
+        <h2 class="owli-section-title">Where your money went</h2>
+        <span class="owli-caption">Expenses · @Model.ReportingLabel</span>
+    </div>
+    <section class="member-card member-spending-card">
+        @if (Model.Error is not null)
+        {
+            <p class="member-empty">Spending breakdown is unavailable. Refresh the page to try again.</p>
+        }
+        else if (Model.Expenses.Count == 0)
+        {
+            <div class="member-spending-empty"><span class="member-spending-empty-mark" aria-hidden="true">○</span><p>No spending recorded for @Model.ReportingLabel.</p></div>
+        }
+        else
+        {
+            var circumference = 276.46m;
+            var dashOffset = 0m;
+            <div class="member-spending-layout">
+            <div class="member-spending-chart" role="img" aria-label="Expense breakdown for @Model.ReportingLabel">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="member-spending-track" cx="60" cy="60" r="44" />
+                    @for (var i = 0; i < Model.Expenses.Count && i < 5; i++)
+                    {
+                        var row = Model.Expenses[i];
+                        var segment = Math.Clamp((decimal)row.Share, 0m, 100m) * circumference / 100m;
+                        if (segment > 0)
+                        {
+                            <circle class="member-spending-segment" cx="60" cy="60" r="44" stroke="@row.Colour"
+                                    stroke-dasharray="@segment.ToString("0.##", invariant) @((circumference - segment).ToString("0.##", invariant))"
+                                    stroke-dashoffset="@((-dashOffset).ToString("0.##", invariant))" />
+                        }
+                        dashOffset += segment;
+                    }
+                    @if (Model.Expenses.Count > 5)
+                    {
+                        var otherShare = Math.Max(0m, 100m - Model.Expenses.Take(5).Sum(row => row.Share));
+                        var otherSegment = otherShare * circumference / 100m;
+                        if (otherSegment > 0)
+                        {
+                            <circle class="member-spending-segment member-spending-other-segment" cx="60" cy="60" r="44"
+                                    stroke-dasharray="@otherSegment.ToString("0.##", invariant) @((circumference - otherSegment).ToString("0.##", invariant))"
+                                    stroke-dashoffset="@((-dashOffset).ToString("0.##", invariant))" />
+                        }
+                    }
+                </svg>
+                <div class="member-spending-center"><span>Total expenses</span><strong>@currencyPrefix@Model.TotalExpenses.ToString("N2", invariant)</strong></div>
+            </div>
+            <div class="member-spending-list" aria-label="Expense categories">
+            @for (var i = 0; i < Model.Expenses.Count && i < 5; i++)
+            {
+                var row = Model.Expenses[i];
+                <div class="member-spending-row">
+                    <svg class="member-dot member-color-dot" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="5" fill="@row.Colour" /></svg>
+                    <span class="member-spending-name">@row.CategoryName</span>
+                    <span class="member-spending-value">@currencyPrefix@row.Total.ToString("N2", invariant)<small>@Math.Round(row.Share, 1, System.MidpointRounding.AwayFromZero).ToString("0.0", invariant)%</small></span>
+                </div>
+            }
+            @if (Model.Expenses.Count > 5)
+            {
+                var otherRows = Model.Expenses.Skip(5).ToList();
+                <div class="member-spending-row">
+                    <span class="member-dot member-dot-other"></span>
+                    <span class="member-spending-name">Other categories</span>
+                    <span class="member-spending-value">@currencyPrefix@otherRows.Sum(row => row.Total).ToString("N2", invariant)<small>@Math.Max(0m, 100m - Model.Expenses.Take(5).Sum(row => row.Share)).ToString("0.0", invariant)%</small></span>
+                </div>
+            }
+            </div>
+            </div>
+        }
+    </section>
+    </section>
+
+    <section class="member-home-module member-home-overview">
+    <div class="member-sec-head">
+        <h2 class="owli-section-title">Overview</h2>
+    </div>
+    <section class="member-card member-overview-card">
+        <div class="member-rank">
+            <span class="member-overview-icon"><partial name="_NavIcon" model='"list"' /></span>
+            <span class="member-rank-name">Transactions @(Model.IsAllTime ? "all time" : "this month")</span>
+            <span class="member-rank-amount">@Model.TransactionCount.ToString("N0", invariant)</span>
+        </div>
+        <div class="member-rank">
+            <span class="member-overview-icon member-overview-icon-accent"><partial name="_NavIcon" model='"eye"' /></span>
+            <span class="member-rank-name">Top spending category</span>
+            <span class="member-rank-amount member-overview-category">@Model.TopExpenseCategory</span>
+        </div>
+    </section>
+    </section>
+
+    <section class="member-home-module member-home-recent">
+    <div class="member-sec-head">
+        <h2 class="owli-section-title">Recent activity</h2>
+        <a class="owli-caption" href="@Url.Action("Index", "Activity")">See all</a>
+    </div>
+    <section class="member-card member-recent-card">
+        @if (Model.Recent.Count == 0)
+        {
+            <p class="member-empty">Your latest transactions appear here.</p>
+        }
+        else
+        {
+            @foreach (var item in Model.Recent)
+            {
+                <div class="member-recent-row">
+                    <time class="member-recent-date" datetime="@item.TransactionDate.ToString("yyyy-MM-dd", invariant)">@item.TransactionDate.ToString("MMM d", invariant)</time>
+                    <span class="member-recent-icon @(item.Type == "Income" ? "member-recent-icon-income" : "member-recent-icon-expense")"><partial name="_NavIcon" model='@(item.Type == "Income" ? "plus" : "minus")' /></span>
+                    <span class="member-recent-description">@(string.IsNullOrWhiteSpace(item.Description) ? item.CategoryName : item.Description)<small>@item.CategoryName</small></span>
+                    <span class="member-recent-amount @(item.Type == "Income" ? "member-amount-income" : "member-amount-expense")">@(item.Type == "Income" ? "+" : "−")@currencyPrefix@item.Amount.ToString("N2", invariant)</span>
+                </div>
+            }
+        }
+    </section>
+    </section>
+
+    <p class="owli-caption member-honest">@(Model.IsAllTime ? "All-time figures" : "Monthly figures") from your OWLI account. This is net transaction flow, not an account balance.</p>
+    </div>
+</section>

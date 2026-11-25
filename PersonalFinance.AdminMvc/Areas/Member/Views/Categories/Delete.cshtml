@@ -1,0 +1,11 @@
+@model PersonalFinance.AdminMvc.Services.Contracts.CategoryResponse
+@{
+    ViewData["Title"] = "Delete category";
+    Layout = "_MemberLayout";
+}
+<section class="member-dashboard account-settings-page"><header class="member-dashboard-head"><div class="member-dashboard-title"><p class="owli-greeting">Review this change</p><h1 class="owli-screen-title">Delete category?</h1></div></header>
+    <section class="member-card account-editor"><dl class="member-detail"><dt>Name</dt><dd>@Model.Name</dd><dt>Type</dt><dd>@Model.Type</dd><dt>Status</dt><dd>@(Model.IsActive ? "Active" : "Inactive")</dd></dl>
+        <p class="notice login-notice" role="note">Categories referenced by financial records cannot be deleted. Deactivate a category instead to keep your history intact.</p>
+        <form class="member-form" method="post" asp-action="Delete" asp-route-id="@Model.CategoryId" data-busy><div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div><div class="member-form-actions"><button class="member-btn member-btn-danger" type="submit">Delete category</button><a class="member-btn member-btn-secondary" asp-action="Index">Cancel</a></div></form>
+    </section>
+</section>

@@ -25,3 +25,8 @@ data class ExchangeRateQuote(
 fun interface ExchangeRateQuoteRepository {
     suspend fun quote(from: String, to: String, amount: BigDecimal): FinanceResult<ExchangeRateQuote>
 }
+
+/** Same backend quote contract, explicitly bound to the transaction date. */
+fun interface HistoricalExchangeRateQuoteRepository {
+    suspend fun quote(from: String,to: String,amount: BigDecimal,date: LocalDate): FinanceResult<ExchangeRateQuote>
+}

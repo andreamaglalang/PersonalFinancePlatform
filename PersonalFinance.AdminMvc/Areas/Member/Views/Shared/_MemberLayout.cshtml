@@ -1,0 +1,77 @@
+@{
+    var authenticated = User.Identity?.IsAuthenticated == true;
+    var memberController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var isPlanController = memberController is "Budgets" or "SavingsGoals" or "Bills" or "Notifications";
+    var isAccountController = memberController is "Account" or "Currency" or "CurrencyConverter" or "Categories";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — OWLI</title>
+    <script src="~/js/owli-ui.js" asp-append-version="true"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/owlight.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/member.css" asp-append-version="true" />
+</head>
+<body class="member-shell">
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="member-topbar">
+        <a class="member-brand" asp-area="Member" asp-controller="Home" asp-action="Index">
+            <span class="brand-mark" aria-hidden="true"><partial name="_OwlMark" /></span>
+            <span class="member-word">OWLI</span>
+        </a>
+        @if (authenticated)
+        {
+            <span class="member-tagline">Your Wise Money Companion</span>
+            <a class="member-topbar-link member-inbox-link" asp-area="Member" asp-controller="Notifications" asp-action="Index">
+                <partial name="_NavIcon" model='"mail"' /><span>Inbox</span>
+            </a>
+            <button class="secondary theme-toggle" type="button" data-theme-toggle
+                    aria-label="Dark theme" aria-pressed="false" hidden>
+                <span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span>
+                <span class="sun-icon"><partial name="_NavIcon" model='"sun"' /></span>
+            </button>
+            <form class="member-logout" asp-area="" asp-controller="Account" asp-action="Logout" method="post"
+                  data-busy="Logging out…" data-confirm-logout>
+                <button class="secondary" type="submit">
+                    <partial name="_NavIcon" model='"logout"' />Log out
+                </button>
+            </form>
+        }
+    </header>
+    <nav class="member-nav" aria-label="Member navigation">
+        <a class="member-nav-item" asp-area="Member" asp-controller="Home" asp-action="Index" data-nav="home"
+           aria-current="@(memberController == "Home" ? "page" : null)">
+            <partial name="_NavIcon" model='"dashboard"' /><span class="member-nav-label">Home</span>
+        </a>
+        <a class="member-nav-item" asp-area="Member" asp-controller="Activity" asp-action="Index" data-nav="activity"
+           aria-current="@(memberController == "Activity" ? "page" : null)">
+            <partial name="_NavIcon" model='"report"' /><span class="member-nav-label">Activity</span>
+        </a>
+        <a class="member-nav-item" asp-area="Member" asp-controller="Budgets" asp-action="Index" data-nav="plan"
+           aria-current="@(isPlanController ? "page" : null)">
+            <partial name="_NavIcon" model='"budget"'/><span class="member-nav-label">Plan</span>
+        </a>
+        <a class="member-nav-item" asp-area="Member" asp-controller="Reports" asp-action="Index" data-nav="insights"
+           aria-current="@(memberController == "Reports" ? "page" : null)">
+            <partial name="_NavIcon" model='"report"'/><span class="member-nav-label">Insights</span>
+        </a>
+        <a class="member-nav-item" asp-area="Member" asp-controller="Account" asp-action="Index" data-nav="account"
+           aria-current="@(isAccountController ? "page" : null)">
+            <partial name="_NavIcon" model='"account"'/><span class="member-nav-label">Account</span>
+        </a>
+
+    </nav>
+    <main id="main" class="member-content">@RenderBody()</main>
+    <dialog id="logout-dialog" aria-labelledby="logout-title">
+        <h2 id="logout-title">Log out of OWLI?</h2>
+        <p>You'll need to sign in again to see your finances. Your data stays in your account.</p>
+        <form method="dialog" class="form-actions">
+            <button class="secondary" value="cancel">Stay signed in</button>
+            <button value="confirm">Log out</button>
+        </form>
+    </dialog>
+</body>
+</html>

@@ -8,7 +8,7 @@
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="false">localhost</domain>
         <trust-anchors>
-            <certificates src="@raw/owli_localhost_dev_certificate" />
+            <certificates src="user" />
         </trust-anchors>
     </domain-config>
 </network-security-config>

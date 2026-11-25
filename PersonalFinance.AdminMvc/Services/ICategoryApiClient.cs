@@ -8,4 +8,7 @@ public interface ICategoryApiClient
     Task<CategoryResult<CategoryResponse>> GetAsync(int id, string bearer, CancellationToken ct);
     Task<CategoryResult<CategoryResponse>> CreateAsync(CategoryWriteRequest request, string bearer, CancellationToken ct);
     Task<CategoryResult<CategoryResponse>> UpdateAsync(int id, CategoryWriteRequest request, string bearer, CancellationToken ct);
+    Task<CategoryResult<CategoryResponse>> CreateMemberAsync(CategoryWriteRequest request, string bearer, CancellationToken ct);
+    Task<CategoryResult<CategoryResponse>> UpdateMemberAsync(int id, CategoryWriteRequest request, string bearer, CancellationToken ct);
+    Task<CategoryResult<bool>> DeleteMemberAsync(int id, string bearer, CancellationToken ct);
 }

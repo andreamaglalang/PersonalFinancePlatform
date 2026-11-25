@@ -3,8 +3,8 @@
     <string name="app_name">OWLI</string>
     <string name="app_tagline">Your Wise Money Companion</string>
     <string name="transactions_title">Activity</string>
-    <string name="transactions_demo_data">Everything in this demo · sample data</string>
-    <string name="transactions_account_data">Everything you\'ve recorded</string>
+    <string name="transactions_demo_data">Mock Demo · Sample data</string>
+    <string name="transactions_account_data">Your transactions</string>
     <string name="transactions_account_empty_message">Your transaction list is empty.</string>
     <string name="transactions_account_unavailable_message">Check your connection and try again.</string>
     <string name="transactions_account_session_title">Session expired</string>
@@ -102,7 +102,7 @@
     <string name="dashboard_title">Dashboard</string>
     <string name="dashboard_demo_data">Sample financial data</string>
     <string name="dashboard_net_flow">Net Transaction Flow</string>
-    <string name="dashboard_net_explanation">Income minus expenses across all demo transactions. This is not an account balance.</string>
+    <string name="dashboard_net_explanation">Demo income minus expenses. Not an account balance.</string>
     <string name="dashboard_income">Income</string>
     <string name="dashboard_expenses">Expenses</string>
     <string name="dashboard_monthly_overview">Monthly Overview</string>
@@ -125,7 +125,7 @@
     <string name="navigation_dashboard">Home</string>
     <string name="navigation_transactions">Activity</string>
     <string name="auth_welcome">Welcome back</string>
-    <string name="auth_intro">Sign in to take the next step toward wiser money habits.</string>
+    <string name="auth_intro">Sign in to OWLI.</string>
     <string name="auth_email">Email address</string>
     <string name="auth_password">Password</string>
     <string name="auth_show_password">Show password</string>
@@ -135,20 +135,20 @@
     <string name="auth_sign_in">Sign in</string>
     <string name="auth_signing_in">Signing in…</string>
     <string name="auth_signed_in">Signed in</string>
-    <string name="auth_session_note">For your privacy, this session is kept in memory. Sign in again when the app restarts.</string>
+    <string name="auth_session_note">Your session is stored securely on this device.</string>
     <string name="auth_not_configured">Sign-in is not available yet. The secure server connection has not been configured.</string>
     <string name="auth_invalid_input">Enter a valid email address and a password of up to 128 characters.</string>
     <string name="auth_invalid_credentials">Email or password is incorrect, or the account is unavailable. Check your details and try again.</string>
     <string name="auth_rate_limited">Too many attempts. Please wait a minute before trying again.</string>
     <string name="auth_timeout">The connection timed out. Please try again.</string>
-    <string name="auth_secure_connection">A secure connection could not be verified. Please check the server configuration.</string>
-    <string name="auth_unavailable">Sign-in is temporarily unavailable. Check your connection and try again.</string>
+    <string name="auth_secure_connection">Secure connection failed. Try again later.</string>
+    <string name="auth_unavailable">Sign-in service unavailable. Try again later.</string>
     <string name="auth_invalid_response">The server response could not be verified. Please try again later.</string>
     <string name="auth_access_denied">Access was denied. Please check with the project administrator.</string>
     <string name="auth_session_expired">Your session has expired. Please sign in again.</string>
     <string name="auth_logout_unconfirmed">You are signed out on this device. Server sign-out could not be confirmed.</string>
     <string name="auth_explore_mock_demo">Explore Mock Demo</string>
-    <string name="auth_demo_note">Explore sample transactions without signing in. Demo access does not create an authenticated session.</string>
+    <string name="auth_demo_note">Explore sample data without signing in.</string>
     <string name="auth_demo_title">Mock Demo · Sample data</string>
     <string name="auth_return_to_login">Return to Login</string>
     <string name="auth_authenticated_sample_title">Signed in · Sample financial data</string>
@@ -210,7 +210,7 @@
     <string name="dashboard_top_category_tie">Tied at %1$s each in %2$s</string>
     <string name="dashboard_top_category_none">None</string>
     <string name="dashboard_top_category_none_detail">No expenses recorded in %1$s</string>
-    <string name="form_account_notice">Saves to your account through the secure OWLI server.</string>
+    <string name="form_account_notice">Saves to your account.</string>
     <string name="form_save_expense">Save expense</string>
     <string name="form_save_income">Save income</string>
     <string name="form_account_saving">Saving to your account…</string>
@@ -222,9 +222,9 @@
     <string name="dashboard_account_empty_message">Add income or an expense to see your summary.</string>
     <string name="dashboard_account_unavailable_message">Your complete summary could not be loaded. Check your connection and try again.</string>
     <string name="dashboard_account_invalid_data">Your transactions changed while loading or could not be verified as a complete summary. Please retry.</string>
-    <string name="dashboard_account_net_explanation">Income minus expenses across all your recorded transactions. This is not an account balance.</string>
+    <string name="dashboard_account_net_explanation">Income minus expenses. Not an account balance.</string>
     <string name="dashboard_account_period_all_time_detail">All your recorded transactions</string>
-    <string name="dashboard_account_net_month_explanation">Income minus expenses for %1$s, the latest month with your transactions. This is not an account balance.</string>
+    <string name="dashboard_account_net_month_explanation">Income minus expenses for %1$s. Not an account balance.</string>
     <string name="dashboard_unsupported_currency">This summary supports PHP accounts only. Your account currency is unsupported or unavailable, so totals are not shown.</string>
     <!-- Owlight UI -->
     <string name="auth_or">or</string>
@@ -271,7 +271,7 @@
     <string name="dashboard_where_top_badge">TOP</string>
     <string name="dashboard_where_scope_month">%1$s expenses</string>
     <string name="dashboard_where_scope_all_time">all recorded expenses</string>
-    <string name="dashboard_where_fact_single">%1$s is %2$s of %3$s.</string>
+    <string name="dashboard_where_fact_single">%1$s — %2$s of %3$s.</string>
     <string name="dashboard_where_fact_tie">%1$s are tied at %2$s each of %3$s.</string>
     <string name="dashboard_where_source_demo">Computed from sample data.</string>
     <string name="dashboard_where_source_account">Computed from your recorded transactions.</string>
@@ -426,7 +426,7 @@
     <string name="cs_badge_default">DEFAULT</string>
     <string name="cs_note">Categories in use can be deactivated, not deleted. Past transactions keep their category.</string>
     <string name="cs_note_reorder">Use the arrows to change the order. The order is used in the category picker.</string>
-    <string name="cs_account_note">Name, type and colour are saved to your account. Icons and order are saved on this device only.</string>
+    <string name="cs_account_note">Icons and order stay on this device. Other changes save to your account.</string>
     <string name="cs_demo_note">Demo categories. Changes last only until you leave the demo and are never sent to an account.</string>
     <string name="cs_edit">Edit %1$s</string>
     <string name="cs_remove">Remove %1$s</string>
@@ -498,7 +498,7 @@
     <string name="account_profile_sub_missing">Details unavailable</string>
     <string name="account_profile_sub_demo">Sample profile</string>
     <string name="account_session">Session</string>
-    <string name="account_session_sub_demo">Demo mode · nothing is sent to an account</string>
+    <string name="account_session_sub_demo">Mock Demo · No account changes</string>
     <string name="account_appearance">Appearance</string>
     <string name="account_currency">Currency</string>
     <string name="account_currency_sub">Amounts are shown in Philippine peso</string>
@@ -516,30 +516,30 @@
     <string name="account_theme_light_sub">Bright and clear</string>
     <string name="account_theme_dark_sub">Easier on the eyes at night</string>
     <string name="account_theme_system_sub">Follow the phone setting</string>
-    <string name="account_appearance_lead">Applies across OWLI on this device.</string>
+    <string name="account_appearance_lead">Saved on this device.</string>
     <string name="account_close">Close</string>
     <string name="account_cancel">Cancel</string>
-    <string name="account_profile_lead">Shown as returned when you signed in. Editing is not available yet.</string>
-    <string name="account_profile_lead_demo">The demo has no profile. Nothing here belongs to a real account.</string>
+    <string name="account_profile_lead">Profile details are read-only.</string>
+    <string name="account_profile_lead_demo">Mock Demo · No account profile.</string>
     <string name="account_name">Name</string>
     <string name="account_email">Email</string>
     <string name="account_not_provided">Not provided</string>
     <string name="account_not_applicable">Not applicable</string>
-    <string name="account_session_lead">Your session is kept in memory. Closing OWLI or logging out ends it on this device.</string>
-    <string name="account_session_lead_demo">Demo mode runs on sample data and never signs in.</string>
+    <string name="account_session_lead">Your session is stored securely on this device.</string>
+    <string name="account_session_lead_demo">Mock Demo · Sample data only.</string>
     <string name="account_status">Status</string>
     <string name="account_status_value_signed_in">Signed in</string>
     <string name="account_status_value_demo">Mock Demo</string>
     <string name="account_storage">Stored</string>
     <string name="account_storage_value">In memory on this device only</string>
-    <string name="account_currency_lead">OWLI records amounts in your account currency. Foreign amounts are converted by the server using daily exchange rates.</string>
+    <string name="account_currency_lead">Foreign amounts use daily exchange rates.</string>
     <string name="account_currency_lead_demo">The demo shows sample amounts in Philippine peso.</string>
     <string name="account_currency_account">Account currency</string>
     <string name="account_currency_display">Dashboard summaries</string>
     <string name="account_currency_display_value">PHP (₱) only</string>
     <string name="account_rates">Rates</string>
     <string name="account_rates_value">Frankfurter</string>
-    <string name="account_password_lead">Changing your password isn\'t available in OWLI yet: the server has no change-password endpoint. Nothing was changed.</string>
+    <string name="account_password_lead">Password changes aren\'t available yet.</string>
     <string name="account_about_lead">Your wise money companion for personal finance and budget monitoring.</string>
     <string name="account_version">Version</string>
     <string name="account_build">Build</string>
@@ -548,14 +548,14 @@
     <string name="account_made_by">Made by</string>
     <string name="account_made_by_value">Andrea Maglalang &amp; Xerxes Manlapaz</string>
     <string name="account_logout_title">Log out of OWLI?</string>
-    <string name="account_logout_lead">You\'ll need to sign in again to see your finances on this device. Your data stays in your account.</string>
+    <string name="account_logout_lead">You\'ll need to sign in again. Your account data is kept.</string>
     <string name="account_exit_title">Exit demo mode?</string>
-    <string name="account_exit_lead">You\'ll return to the sign-in screen. Anything added during the demo is discarded.</string>
+    <string name="account_exit_lead">Demo changes will be discarded.</string>
     <string name="account_exit_confirm">Exit demo</string>
     <string name="account_logging_out">Logging out…</string>
     <!-- Plan -->
     <string name="plan_title">Plan</string>
-    <string name="plan_demo_ribbon">SAMPLE DATA · demo figures, not saved to any account</string>
+    <string name="plan_demo_ribbon">Mock Demo · Sample data</string>
     <string name="plan_tab_budgets">Budgets</string>
     <string name="plan_tab_goals">Goals</string>
     <string name="plan_tab_bills">Bills</string>
@@ -574,8 +574,8 @@
     <string name="budget_new">New budget</string>
     <string name="budget_new_title">New budget</string>
     <string name="budget_list_title">Budgets for %1$s</string>
-    <string name="budget_note">Spent is the month\'s expenses in each category, calculated by the OWLI server in your account currency.</string>
-    <string name="budget_note_demo">Spent is the month\'s demo expenses in each category, including any you add. Sample data only.</string>
+    <string name="budget_note">Monthly category spending in your account currency.</string>
+    <string name="budget_note_demo">Monthly demo spending · Sample data</string>
     <string name="budget_left_title">Left to spend in budgets</string>
     <string name="budget_used_of">%1$s of %2$s used</string>
     <string name="budget_days_left">%1$d days left in %2$s, including today</string>
@@ -592,7 +592,7 @@
     <string name="budget_row_over">Over by</string>
     <string name="budget_row_alert">Alert at</string>
     <string name="budget_alert_value">%1$d%% used</string>
-    <string name="budget_alert_note">The alert level is stored with the budget and checked by the server.</string>
+    <string name="budget_alert_note">Alert when spending reaches this level.</string>
     <string name="budget_change_limit">Change monthly limit</string>
     <string name="budget_limit">Monthly limit</string>
     <string name="budget_alert_label">Alert me at</string>
@@ -626,10 +626,10 @@
     <string name="budget_notice_created">Budget created</string>
     <string name="budget_notice_updated">Budget updated</string>
     <string name="budget_notice_deleted">Budget deleted</string>
-    <string name="budget_notice_delete_blocked">This budget can\'t be deleted because the server keeps its alert history. You can still change its limit.</string>
+    <string name="budget_notice_delete_blocked">This budget has alert history. You can edit its limit instead.</string>
     <string name="budget_demo_suffix">(demo only)</string>
     <string name="tx_queued_title">Saved on this device</string>
-    <string name="tx_queued_lead">OWLI couldn\'t reach the server, so this transaction is stored on this phone. It will be sent automatically when you\'re back online, and it won\'t be counted twice.</string>
+    <string name="tx_queued_lead">Saved on this phone. Syncs automatically when online.</string>
     <string name="offline_pending_title">%1$d waiting to sync</string>
     <string name="offline_pending_message">Saved on this device. They will be sent when you\'re online.</string>
     <string name="offline_rejected_message">%1$d not accepted by the server. Review and discard them.</string>
@@ -638,30 +638,30 @@
     <string name="offline_syncing">Syncing…</string>
     <string name="offline_rejected_label">Not accepted</string>
     <string name="local_history_title">Offline ? On-device history</string>
-    <string name="local_history_notice">Only locally retained transactions (up to 200), filtered by your selection. This is not a complete server history; totals are unavailable. Synced rows reflect their last successful server confirmation.</string>
-    <string name="local_history_pending">Pending ? saved on this device, awaiting server confirmation</string>
-    <string name="local_history_synced">Synced ? previously confirmed by the server</string>
-    <string name="local_history_rejected">Rejected ? not accepted by the server</string>
+    <string name="local_history_notice">Up to 200 saved entries. Incomplete history; totals unavailable. Synced entries may be out of date.</string>
+    <string name="local_history_pending">Pending · Awaiting sync</string>
+    <string name="local_history_synced">Synced · Last confirmed copy</string>
+    <string name="local_history_rejected">Rejected · Review before discarding</string>
 
     <!-- Transaction currency selection and server-side conversion -->
     <string name="fx_currency_label">Currency</string>
     <string name="fx_currency_change">Currency %1$s. Double-tap to change.</string>
     <string name="fx_currency_picker_title">Transaction currency</string>
-    <string name="fx_currency_picker_hint">Other currencies are converted to %1$s by the server when the transaction is saved.</string>
+    <string name="fx_currency_picker_hint">Totals use %1$s.</string>
     <string name="fx_currency_demo_locked">%1$s · Sample data uses PHP only</string>
     <string name="fx_currency_account">%1$s · Your account currency</string>
     <string name="fx_amount_in">Amount in %1$s</string>
     <string name="fx_selected">Selected</string>
     <string name="fx_conversion_title">Converted to %1$s when saved</string>
-    <string name="fx_conversion_body">The server applies its validated exchange rate for %1$s. The rate and the %2$s amount are shown once it confirms the save. This phone never estimates a rate.</string>
+    <string name="fx_conversion_body">Rate for %1$s. Your receipt shows the final %2$s amount.</string>
     <string name="fx_conversion_offline">Offline? It is kept on this phone unconverted and is converted when it syncs.</string>
     <string name="fx_conversion_server_failure">The server could not confirm this save. For another currency it may not have had an exchange rate for this date yet. Retrying sends the same transaction, so it cannot be duplicated.</string>
     <string name="fx_conversion_rejected">The server rejected this currency or date (no validated exchange rate) or another value. Nothing was saved.</string>
     <string name="fx_equals">%1$s = %2$s</string>
     <string name="fx_rate">Rate: 1 %1$s = %2$s %3$s</string>
     <string name="fx_rate_date">Rate date: %1$s</string>
-    <string name="fx_same_currency">Same currency as your account: no conversion (rate 1).</string>
-    <string name="fx_receipt_title">Converted by the server</string>
+    <string name="fx_same_currency">Account currency · No conversion</string>
+    <string name="fx_receipt_title">Conversion</string>
     <string name="fx_receipt_queued">Not converted yet: the server converts it to %1$s at the validated rate for its date when it syncs.</string>
 
     <!-- Edit transaction -->
@@ -683,4 +683,7 @@
     <string name="fx_edit_failed_unknown">The server couldn\'t confirm the change. Check Activity before retrying; a retry sends the same values.</string>
     <string name="fx_edit_bill_locked">Bill payments can\'t be edited.</string>
     <string name="fx_edit_categories_error">Categories couldn\'t be loaded. The current category is kept.</string>
+    <string name="auth_connection_failed">Cannot reach OWLI. Check your connection.</string>
+    <string name="auth_renewal_unconfirmed">Session renewal was interrupted. Sign in again to reconnect safely.</string>
+    <string name="auth_secure_storage">Secure session storage is unavailable. Unlock your device and try again.</string>
 </resources>

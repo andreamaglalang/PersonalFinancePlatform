@@ -57,6 +57,24 @@ public sealed class AuthController(
         return user is null ? Unauthorized() : Ok(user);
     }
 
+    [HttpPut("me"), Authorize]
+    [ProducesResponseType<CurrentUserResponse>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest request, CancellationToken ct)
+    {
+        if (currentUser.UserId is not int userId) return Unauthorized();
+        var result = await authentication.UpdateProfileAsync(userId, request, ct);
+        return result.Succeeded ? Ok(result.Value) : Problem(statusCode: result.StatusCode, title: result.Error);
+    }
+
+    [HttpPost("change-password"), Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct)
+    {
+        if (currentUser.UserId is not int userId) return Unauthorized();
+        var result = await authentication.ChangePasswordAsync(userId, request, ct);
+        return result.Succeeded ? NoContent() : Problem(statusCode: result.StatusCode, title: result.Error);
+    }
+
     private IActionResult Respond<T>(AuthResult<T> result) =>
         result.Succeeded
             ? StatusCode(result.StatusCode, result.Value)

@@ -1,0 +1,9 @@
+@{
+    var current = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+<nav class="member-plan-nav" aria-label="Plan sections">
+    <a asp-area="Member" asp-controller="Budgets" asp-action="Index" aria-current="@(current == "Budgets" ? "page" : null)">Budgets</a>
+    <a asp-area="Member" asp-controller="SavingsGoals" asp-action="Index" aria-current="@(current == "SavingsGoals" ? "page" : null)">Goals</a>
+    <a asp-area="Member" asp-controller="Bills" asp-action="Index" aria-current="@(current == "Bills" ? "page" : null)">Bills</a>
+    <a asp-area="Member" asp-controller="Notifications" asp-action="Index" aria-current="@(current == "Notifications" ? "page" : null)">Inbox</a>
+</nav>

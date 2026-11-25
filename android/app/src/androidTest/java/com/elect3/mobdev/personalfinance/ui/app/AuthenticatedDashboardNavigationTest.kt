@@ -72,11 +72,12 @@ class AuthenticatedDashboardNavigationTest {
         }
     }
 
-    @Test fun signedInDashboardShowsThisAccountsFiguresLabelledAsAccountData() {
+    @Test fun signedInDashboardShowsAccountFiguresWithoutTheRedundantRibbon() {
         show()
         compose.runOnIdle { login.login("offline@example.test", "fixture-only") }
-        compose.waitUntil(5_000) { compose.onAllNodesWithText(text(R.string.dashboard_account_data)).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText(text(R.string.dashboard_account_data)).assertIsDisplayed()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("+₱2,100.00").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(text(R.string.dashboard_account_data)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.dashboard_ribbon_account_detail)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.dashboard_demo_data)).assertDoesNotExist()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("+₱2,100.00").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(text(R.string.dashboard_account_net_explanation)).performScrollTo().assertIsDisplayed()

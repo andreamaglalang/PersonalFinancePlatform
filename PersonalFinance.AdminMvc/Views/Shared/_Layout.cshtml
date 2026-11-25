@@ -19,7 +19,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] — OWLI Administrator</title>
+    <title>@ViewData["Title"] — @(User.IsInRole("Administrator") ? "OWLI Administrator" : "OWLI")</title>
     <script src="~/js/owli-ui.js" asp-append-version="true"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/owlight.css" asp-append-version="true" />

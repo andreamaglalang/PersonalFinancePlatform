@@ -1,6 +1,7 @@
 package com.elect3.mobdev.personalfinance.ui.currency
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollTo
 import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.data.auth.AccountProfile
 import com.elect3.mobdev.personalfinance.data.local.AppearancePreference
@@ -35,7 +37,8 @@ class CurrencyConverterNavigationTest {
                 AppearancePreference.System, {}, onManageCategories = {}, onLogout = {}, onBack = {}, onOpenCurrencyConverter = { open = true })
             else {
                 val model = remember { CurrencyConverterViewModel("PHP", demo, emptyList(), canRecordTransaction = !demo) }
-                CurrencyConverterScreen(model, model.state.value, onRecordTransaction = if (demo) null else ({}), onBack = { open = false })
+                val state by model.state.collectAsState()
+                CurrencyConverterScreen(model, state, onRecordTransaction = if (demo) null else ({}), onBack = { open = false })
             }
         }
     }
@@ -47,6 +50,30 @@ class CurrencyConverterNavigationTest {
         compose.onNodeWithText(text(R.string.cur_title)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.cur_result_enter)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.cur_record_action)).assertIsDisplayed()
+    }
+
+    @Test fun liveConverterShowsRateAndDateAndSwapClearsResult() {
+        var calls = 0
+        val model = CurrencyConverterViewModel("PHP", false, emptyList(), false,
+            quotes = com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository { from, to, amount ->
+                calls++
+                com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Success(
+                    com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuote(from, to, amount,
+                        java.math.BigDecimal("58.00000000"), java.time.LocalDate.of(2026, 11, 20), java.time.LocalDate.of(2026, 11, 20),
+                        java.math.BigDecimal("580.00"), "Frankfurter", java.time.Instant.parse("2026-11-20T00:00:00Z")))
+            })
+        model.amount("10")
+        compose.setContent { PersonalFinanceTheme {
+            val state by model.state.collectAsState()
+            CurrencyConverterScreen(model, state, null, {})
+        } }
+        compose.onNodeWithText(text(R.string.cur_live_get)).performScrollTo().performClick()
+        compose.onNodeWithText("580.00", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Rate date", substring = true).assertIsDisplayed()
+        compose.runOnIdle { org.junit.Assert.assertEquals(1, calls) }
+        compose.onNodeWithText(text(R.string.cur_swap)).performScrollTo().performClick()
+        compose.onNodeWithText("580.00", substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.cur_how_title)).assertDoesNotExist()
     }
 
     @Test fun mockDemoShowsThePhpOnlyNoteAndNoRecordAction() {

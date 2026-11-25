@@ -1,10 +1,11 @@
-﻿
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Domain.Enums;
 using PersonalFinance.Domain.Policies;
 using PersonalFinance.Infrastructure.Authentication;
+using PersonalFinance.Infrastructure.Identity;
 using PersonalFinance.Infrastructure.Finance.Contracts;
 using PersonalFinance.Infrastructure.Persistence;
 using FinanceTransaction = PersonalFinance.Domain.Entities.Transaction;
@@ -40,7 +41,7 @@ public sealed class BillPaymentService(
                     "A bill, nonempty ClientId and DueDate are required.");
             }
 
-            RequireCleanContext();
+            RequireCleanContext(userId);
 
             var clientId = request.ClientId.Value;
             var due = request.DueDate.Value;
@@ -100,10 +101,12 @@ public sealed class BillPaymentService(
                             "Only the oldest outstanding occurrence may be paid.");
                     }
 
-                    var quoteDate = DateOnly.FromDateTime(
-                        clock.GetUtcNow().UtcDateTime);
+                    // One instant defines this payment, even when FX/locking crosses midnight.
+                    // The Philippine calendar is UTC+8; audit timestamps remain UTC.
+                    var now = clock.GetUtcNow().UtcDateTime;
+                    var paidOn = DateOnly.FromDateTime(now.AddHours(8));
 
-                    if (due > quoteDate)
+                    if (due > paidOn)
                     {
                         throw new FinanceException(
                             409,
@@ -178,18 +181,8 @@ public sealed class BillPaymentService(
                         bill.Amount,
                         bill.CurrencyCode,
                         baseCurrency,
-                        quoteDate,
+                        paidOn,
                         token);
-
-                    var now = clock.GetUtcNow().UtcDateTime;
-                    var paidOn = DateOnly.FromDateTime(now);
-
-                    if (paidOn != quoteDate)
-                    {
-                        throw new FinanceException(
-                            409,
-                            "UTC business date changed. Retry the payment.");
-                    }
 
                     var transaction = new FinanceTransaction
                     {
@@ -291,7 +284,7 @@ public sealed class BillPaymentService(
             }
         });
 
-    private void RequireCleanContext()
+    private void RequireCleanContext(int authenticatedUserId)
     {
         var previous = Db.ChangeTracker.AutoDetectChangesEnabled;
 
@@ -299,7 +292,10 @@ public sealed class BillPaymentService(
         {
             Db.ChangeTracker.AutoDetectChangesEnabled = false;
 
-            if (Db.ChangeTracker.Entries().Any())
+            if (Db.ChangeTracker.Entries().Any(entry =>
+                    entry.State != EntityState.Unchanged
+                    || entry.Entity is not ApplicationUser user
+                    || user.Id != authenticatedUserId))
             {
                 throw new FinanceException(
                     409,
@@ -454,7 +450,7 @@ public sealed class BillPaymentService(
             || row.CreatedAtUtc != receipt.RecordedAtUtc
             || row.Description != PaymentDescription
             || receipt.DueDate > receipt.PaidOn
-            || receipt.PaidOn != DateOnly.FromDateTime(receipt.RecordedAtUtc)
+            || receipt.PaidOn != DateOnly.FromDateTime(receipt.RecordedAtUtc.AddHours(8))
             || !FinanceValidation.CurrencyCode(receipt.BaseCurrency))
         {
             throw new FinanceException(

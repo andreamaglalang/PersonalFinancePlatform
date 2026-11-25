@@ -20,6 +20,7 @@ public sealed class JwtTokenIssuer(IOptions<JwtSettings> settings, TimeProvider 
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString(CultureInfo.InvariantCulture)),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new("sst", AccessTokenSecurityStamp.Digest(user)),
             new(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
         };
         claims.AddRange(roles.Select(role => new Claim("role", role)));

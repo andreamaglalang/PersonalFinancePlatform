@@ -1,0 +1,30 @@
+@model PersonalFinance.AdminMvc.Services.RecurringBillResponse
+@{
+    ViewData["Title"] = "Delete bill";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head">
+        <span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Stop tracking a payment</p>
+            <h1 class="owli-screen-title">Delete bill</h1>
+        </div>
+    </header>
+
+    <div class="member-card">
+        <dl class="member-detail">
+            <dt>Name</dt><dd>@Model.Name</dd>
+            <dt>Category</dt><dd>@Model.CategoryName</dd>
+            <dt>Amount</dt><dd class="member-amount">@Model.Amount.ToString("0.00", invariant) @Model.CurrencyCode</dd>
+            <dt>Frequency</dt><dd>@Model.Frequency</dd>
+            <dt>Next due</dt><dd>@Model.NextDueDate.ToString("yyyy-MM-dd", invariant)</dd>
+        </dl>
+        <p class="owli-caption">This cannot be undone.</p>
+        <form class="member-form-actions" method="post" asp-action="Delete" asp-route-id="@Model.BillId">
+            <button class="member-btn member-btn-danger" type="submit">Delete bill</button>
+            <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
+        </form>
+    </div>
+</section>

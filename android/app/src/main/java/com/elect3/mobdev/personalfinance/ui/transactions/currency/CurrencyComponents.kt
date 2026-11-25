@@ -10,10 +10,16 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,37 +52,62 @@ fun CurrencySelectorButton(code: String, enabled: Boolean, onClick: () -> Unit, 
 
 /** Accessible single-choice list of the offered currencies (base currency first). */
 @Composable
-fun CurrencyPickerDialog(options: List<SupportedCurrency>, selected: String?, baseCurrency: String?, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+fun CurrencyPickerDialog(options: List<SupportedCurrency>, selected: String?, baseCurrency: String?, onPick: (String) -> Unit, onDismiss: () -> Unit, searchable: Boolean = false, readOnlyConversion: Boolean = false) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val offered = if (searchable) SupportedCurrencies.search(options, query) else options
     val owli = LocalOwliColors.current
     val typography = LocalOwliTypography.current
-    AlertDialog(onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.fx_currency_picker_title), modifier = Modifier.semantics { heading() }) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.form_cancel)) } },
-        text = {
-            Column(Modifier.fillMaxWidth().heightIn(max = 440.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (baseCurrency != null) Text(stringResource(R.string.fx_currency_picker_hint, baseCurrency), style = typography.caption)
-                LazyColumn(Modifier.weight(1f, fill = false).selectableGroup()) {
-                    items(options, key = { it.code }) { option ->
-                        val isSelected = option.code == selected
-                        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(LocalOwliShapes.current.field)
-                            .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onPick(option.code) })
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(if (isSelected) owli.accent else owli.accentSoft),
-                                contentAlignment = Alignment.Center) {
-                                Text(option.symbol, style = typography.label, textAlign = TextAlign.Center,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else owli.accent)
+    val scheme = MaterialTheme.colorScheme
+    Dialog(onDismissRequest=onDismiss, properties=DialogProperties(usePlatformDefaultWidth=false)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().safeDrawingPadding().imePadding().padding(16.dp),contentAlignment=Alignment.Center) {
+            val availableHeight=maxHeight
+            Surface(shape=LocalOwliShapes.current.group,color=scheme.surface,contentColor=scheme.onSurface,
+                modifier=Modifier.widthIn(max=560.dp).fillMaxWidth().heightIn(max=availableHeight)) {
+                Column {
+                    Text(stringResource(if(readOnlyConversion) R.string.cur_picker_title else R.string.fx_currency_picker_title),
+                        style=typography.screenTitle,color=scheme.onSurface,
+                        modifier=Modifier.padding(start=20.dp,end=20.dp,top=20.dp,bottom=12.dp).semantics { heading() })
+                    if(baseCurrency!=null && !readOnlyConversion) Text(stringResource(R.string.fx_currency_picker_hint,baseCurrency),
+                        style=typography.caption,color=scheme.onSurface,modifier=Modifier.padding(horizontal=20.dp).padding(bottom=8.dp))
+                    if(searchable) {
+                        OutlinedTextField(query,{query=it.take(80)},singleLine=true,
+                            label={Text(stringResource(R.string.cur_search))},
+                            modifier=Modifier.fillMaxWidth().padding(horizontal=20.dp),
+                            trailingIcon={if(query.isNotEmpty()) TextButton(onClick={query=""}) {Text(stringResource(R.string.cur_search_clear))}})
+                    }
+                    if(offered.isEmpty()) Text(stringResource(R.string.cur_search_empty),style=typography.body,
+                        modifier=Modifier.padding(20.dp),color=scheme.onSurface)
+                    LazyColumn(Modifier.weight(1f,fill=false).fillMaxWidth().selectableGroup(),
+                        contentPadding=PaddingValues(start=12.dp,end=12.dp,top=12.dp,bottom=16.dp),
+                        verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                        items(offered,key={it.code}) { option ->
+                            val isSelected=option.code==selected
+                            val foreground=if(isSelected) scheme.onPrimaryContainer else scheme.onSurface
+                            Row(Modifier.fillMaxWidth().heightIn(min=64.dp).clip(LocalOwliShapes.current.field)
+                                .background(if(isSelected) scheme.primaryContainer else scheme.surface)
+                                .selectable(selected=isSelected,role=Role.RadioButton,onClick={onPick(option.code)})
+                                .padding(horizontal=12.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,
+                                horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                                Box(Modifier.size(40.dp).clip(CircleShape).background(if(isSelected) scheme.primary else owli.accentSoft),contentAlignment=Alignment.Center) {
+                                    Text(option.symbol,style=typography.label,textAlign=TextAlign.Center,
+                                        color=if(isSelected) scheme.onPrimary else scheme.onSurface)
+                                }
+                                Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                                    Text(option.code,style=typography.bodyStrong,color=foreground)
+                                    Text(option.name,style=typography.body,color=foreground)
+                                }
+                                RadioButton(selected=isSelected,onClick=null)
                             }
-                            Column(Modifier.weight(1f)) {
-                                Text(option.code, style = typography.bodyStrong)
-                                Text(option.name, style = typography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            RadioButton(selected = isSelected, onClick = null)
                         }
+                    }
+                    HorizontalDivider()
+                    Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),horizontalArrangement=Arrangement.End) {
+                        TextButton(onClick=onDismiss,modifier=Modifier.heightIn(min=48.dp)) {Text(stringResource(R.string.form_cancel))}
                     }
                 }
             }
-        })
+        }
+    }
 }
 
 /** Shown before saving when a foreign currency is selected: the conversion is the server's, after saving. */

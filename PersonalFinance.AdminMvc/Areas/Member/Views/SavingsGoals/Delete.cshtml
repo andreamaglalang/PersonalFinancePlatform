@@ -1,0 +1,12 @@
+@model PersonalFinance.AdminMvc.Services.SavingsGoalResponse
+@{
+    ViewData["Title"] = "Delete savings goal";
+    Layout = "_MemberLayout";
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head"><span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span><div class="member-dashboard-title"><p class="owli-greeting">Review this action</p><h1 class="owli-screen-title">Delete savings goal?</h1></div></header>
+    <section class="member-card"><dl class="member-detail"><dt>Goal</dt><dd>@Model.Name</dd><dt>Target</dt><dd>@Model.TargetAmount.ToString("N2") @Model.BaseCurrency</dd><dt>Saved</dt><dd>@Model.SavedAmount.ToString("N2") @Model.BaseCurrency</dd><dt>Status</dt><dd>@Model.Status</dd></dl>
+        <p class="notice login-notice" role="note">OWLI only deletes a goal when it has no contributions, contribution receipts, or linked notifications. The API enforces this safeguard.</p>
+        <form class="member-form" method="post" asp-action="Delete" asp-route-id="@Model.GoalId" data-busy><div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div><div class="member-form-actions"><button class="member-btn member-btn-danger" type="submit">Delete goal</button><a class="member-btn member-btn-secondary" asp-action="Details" asp-route-id="@Model.GoalId">Cancel</a></div></form>
+    </section>
+</section>

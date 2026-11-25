@@ -1,0 +1,10 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberAccountViewModel
+@{ ViewData["Title"] = "Profile"; Layout = "_MemberLayout"; }
+<section class="member-dashboard account-settings-page"><header class="member-dashboard-head account-heading"><div class="member-dashboard-title"><p class="owli-greeting">Your personal details</p><h1 class="owli-screen-title">Profile</h1></div></header><a class="account-back" asp-area="Member" asp-controller="Account" asp-action="Index"><partial name="_NavIcon" model='"chevl"' />Back to Account</a>
+<section class="member-card account-editor">@if (Model.Error is not null) { <p class="notice login-notice" role="alert">@Model.Error</p> }
+<form asp-area="Member" asp-controller="Account" asp-action="SaveProfile" method="post" class="account-form">
+<div asp-validation-summary="ModelOnly" role="alert"></div>
+<div class="account-field"><label asp-for="Profile.FullName">Name</label><input asp-for="Profile.FullName" maxlength="100" autocomplete="name" required /><span asp-validation-for="Profile.FullName"></span></div>
+<div class="account-field"><label for="profile-email">Email address</label><input id="profile-email" type="email" value="@Model.Email" readonly aria-describedby="email-note" /><small id="email-note">Your verified sign-in email cannot be changed here.</small></div>
+<div class="member-form-actions"><button class="member-btn" type="submit">Save changes</button><a class="member-btn member-btn-secondary" asp-action="Index">Cancel</a></div>
+</form></section></section>

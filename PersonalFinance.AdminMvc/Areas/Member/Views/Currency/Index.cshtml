@@ -1,0 +1,82 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberCurrencyPreferencesViewModel
+@{
+    ViewData["Title"] = "Currency";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard account-settings-page account-currency-page">
+    <header class="member-dashboard-head">
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">How amounts are shown and recorded</p>
+            <h1 class="owli-screen-title">Currency</h1>
+        </div>
+    </header>
+
+    <a class="account-back" asp-area="Member" asp-controller="Account" asp-action="Index"><partial name="_NavIcon" model='"chevl"' />Back to Account</a>
+    <p class="member-honest">These preferences are saved in this browser and scoped to your OWLI account.</p>
+
+    @if (Model.Error is not null)
+    {
+        <p class="notice login-notice" role="alert">@Model.Error</p>
+    }
+    @if (Model.Notice is not null)
+    {
+        <p class="notice login-notice" role="status">@Model.Notice</p>
+    }
+
+    <div class="member-card account-editor">
+        <form class="member-form" method="post" asp-action="Index" data-busy>
+            <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
+
+            <div class="member-field">
+                <span class="member-label" id="account-currency-label">Account currency</span>
+                <input type="text" value="@Model.AccountCurrency" aria-labelledby="account-currency-label"
+                       readonly tabindex="-1" />
+                <span class="owli-caption">Fixed for your OWLI account. Every amount is converted to it by the server.</span>
+                <span asp-validation-for="AccountCurrency" class="member-field-error"></span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-label" for="DefaultCurrency">Default transaction currency</label>
+                <select id="DefaultCurrency" name="DefaultCurrency">
+                    @foreach (var currency in Model.Currencies)
+                    {
+                        <option selected="@(Model.DefaultCurrency == currency)" value="@currency">@currency</option>
+                    }
+                </select>
+                <span asp-validation-for="DefaultCurrency" class="member-field-error"></span>
+                <span class="owli-caption">Preselected on the Add Transaction form.</span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-check" for="ShowOriginalAmounts">
+                    <input id="ShowOriginalAmounts" type="checkbox" name="ShowOriginalAmounts" value="true"
+                           checked="@(Model.ShowOriginalAmounts ? "checked" : null)" />
+                    <span>Show original foreign amounts</span>
+                </label>
+                <span class="owli-caption">History shows both the original amount and the @Model.AccountCurrency value.</span>
+                <span asp-validation-for="ShowOriginalAmounts" class="member-field-error"></span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-check" for="ReviewRateBeforeSaving">
+                    <input id="ReviewRateBeforeSaving" type="checkbox" name="ReviewRateBeforeSaving" value="true"
+                           checked="@(Model.ReviewRateBeforeSaving ? "checked" : null)" />
+                    <span>Review exchange rate before saving</span>
+                </label>
+                <span class="owli-caption">A foreign-currency transaction must be confirmed against a live quote first.</span>
+                <span asp-validation-for="ReviewRateBeforeSaving" class="member-field-error"></span>
+            </div>
+
+            <div class="member-form-actions">
+                <button class="member-btn" type="submit">Save preferences</button>
+                <a class="member-btn member-btn-secondary" href="@Url.Action("Index", "Account")">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <p class="owli-caption">
+        Exchange rates are published by the European Central Bank and retrieved through Frankfurter.
+        Rates are reference rates, not a live market price.
+    </p>
+</section>

@@ -46,9 +46,14 @@ data class AddTransactionUiState(
     val hasUnresolvedOutcome: Boolean = false,
     /** The signed-in account's base currency (the form's default); amounts in other currencies are converted to it by the API. */
     val baseCurrency: String? = null,
+    val initialCurrency: String? = baseCurrency,
     /** True only for signed-in forms; Mock Demo data is PHP only. */
     val currencySelectable: Boolean = false,
     /** The server-confirmed row after a successful save, carrying the API's authoritative rate, rate date and base amount. */
+    val rateReview: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuote? = null,
+    val rateLoading: Boolean = false,
+    val rateError: Boolean = false,
+    val rateFailure: FinanceFailure? = null,
     val savedTransaction: com.elect3.mobdev.personalfinance.domain.model.Transaction? = null,
 ) {
     val amountValid get() = validAmount(amount)
@@ -60,7 +65,7 @@ data class AddTransactionUiState(
     val foreignCurrency get() = currency != null && baseCurrency != null && currency != baseCurrency
     val valid get() = amountValid && dateValid && categoryValid && description.length <= 200 && currencyValid && !invalidated
     val dirty get() = amount.isNotEmpty() || description.isNotEmpty() || selectedCategoryId != null || date != initialDate ||
-        type != TransactionType.Expense || currency != baseCurrency
+        type != TransactionType.Expense || currency != initialCurrency
     val canLoadMore get() = page > 0 && categories.size.toLong() < total && !loading
     val visibleCategories get() = categories.filter { it.name.contains(search, ignoreCase = true) }
     val inputLocked get() = submitting || completed || invalidated || saveState is FormSaveState.Succeeded || saveState == FormSaveState.QueuedOffline ||
@@ -75,7 +80,7 @@ fun validAmount(raw: String): Boolean {
 }
 
 /** True when the user typed something beyond the chosen category (amount, note or a different date). */
-val AddTransactionUiState.hasUserInput get() = amount.isNotEmpty() || description.isNotEmpty() || date != initialDate || currency != baseCurrency
+val AddTransactionUiState.hasUserInput get() = amount.isNotEmpty() || description.isNotEmpty() || date != initialDate || currency != initialCurrency
 
 class AddTransactionViewModel(
     private val repository: CategoryRepository,
@@ -86,12 +91,20 @@ class AddTransactionViewModel(
     clock: Clock = Clock.systemDefaultZone(),
     /** Authenticated API creator. Null keeps saving unavailable; Mock Demo may never receive one. */
     accountCreation: TransactionCreationRepository? = null,
+    defaultCurrency: String? = null,
+    private val reviewRateBeforeSave: Boolean = false,
+    private val historicalQuotes: com.elect3.mobdev.personalfinance.domain.currency.HistoricalExchangeRateQuoteRepository? = null,
 ) : ViewModel() {
     private val today = LocalDate.now(clock)
     private val base = currency?.takeIf { it.matches(Regex("[A-Z]{3}")) }
-    private val mutable = MutableStateFlow(AddTransactionUiState(currency = base, baseCurrency = base,
+    private val initialCurrency = defaultCurrency?.takeIf { workflow == FormWorkflow.Authenticated && com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies.isSupported(it) } ?: base
+    private val mutable = MutableStateFlow(AddTransactionUiState(currency = initialCurrency, initialCurrency = initialCurrency, baseCurrency = base,
         currencySelectable = workflow == FormWorkflow.Authenticated && base != null, date = today, initialDate = today))
     val state = mutable.asStateFlow()
+    private var quoteJob: Job? = null
+    private var reviewedDraft: TransactionDraft? = null
+    private var reviewedAt = 0L
+    private var quoteGeneration = 0L
     private var generation = 0L
     private var request: Job? = null
     private var preview: Job? = null
@@ -269,7 +282,9 @@ class AddTransactionViewModel(
         if (!editable()) return
         mutable.value = mutable.value.copy(touched = FormField.entries.toSet())
         if (workflow == FormWorkflow.Authenticated) {
-            mappedDraft()?.let { submitWithCreator(it) }
+            mappedDraft()?.let { draft ->
+                if (reviewRateBeforeSave && mutable.value.foreignCurrency) requestRate(draft) else submitWithCreator(draft)
+            }
             return
         }
         if (!mutable.value.valid) return
@@ -280,6 +295,38 @@ class AddTransactionViewModel(
             mutable.value = mutable.value.copy(submitting = false, completed = true)
         }
     }
+    private fun requestRate(draft: TransactionDraft) {
+        if (mutable.value.rateLoading || (reviewedDraft == draft && mutable.value.rateReview != null)) return
+        val version = ++quoteGeneration
+        mutable.value = mutable.value.copy(rateLoading = true, rateError = false, rateFailure = null, rateReview = null)
+        quoteJob = viewModelScope.launch {
+            val result = try { historicalQuotes?.quote(draft.currencyCode, checkNotNull(base), draft.amount, draft.transactionDate) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
+            ensureActive()
+            if (version != quoteGeneration || !isSessionCurrent() || mutable.value.invalidated) return@launch
+            val quote = (result as? FinanceResult.Success)?.value
+            val valid = quote != null && quote.from == draft.currencyCode && quote.to == base &&
+                quote.amount.compareTo(draft.amount) == 0 && quote.requestedDate == draft.transactionDate &&
+                quote.rateDate <= draft.transactionDate && quote.rate.signum() > 0 &&
+                quote.convertedAmount.compareTo(draft.amount.multiply(quote.rate).setScale(2, java.math.RoundingMode.HALF_UP)) == 0
+            if (valid && mappedDraft() == draft) {
+                reviewedDraft = draft; reviewedAt = System.nanoTime()
+                mutable.value = mutable.value.copy(rateLoading = false, rateReview = quote)
+            } else mutable.value = mutable.value.copy(rateLoading = false, rateError = true, rateFailure = (result as? FinanceResult.Failure)?.reason ?: FinanceFailure.InvalidResponse)
+        }
+    }
+    fun cancelRateReview() {
+        quoteGeneration++; quoteJob?.cancel(); reviewedDraft = null
+        mutable.value = mutable.value.copy(rateLoading = false, rateReview = null, rateError = false, rateFailure = null)
+    }
+    fun confirmRateReview() {
+        val draft = reviewedDraft ?: return
+        if (!editable() || mappedDraft() != draft || mutable.value.rateReview == null) { cancelRateReview(); return }
+        if (System.nanoTime() - reviewedAt > 120_000_000_000L) { cancelRateReview(); requestRate(draft); return }
+        cancelRateReview()
+        submitWithCreator(draft)
+    }
     fun back() {
         if (mutable.value.submitting) return
         val succeeded = mutable.value.completed || mutable.value.saveState is FormSaveState.Succeeded || mutable.value.saveState == FormSaveState.QueuedOffline
@@ -289,6 +336,7 @@ class AddTransactionViewModel(
     fun keepEditing() { mutable.value = mutable.value.copy(discardConfirmation = false) }
     fun discard() { invalidate() }
     fun invalidate() {
+        cancelRateReview()
         creation?.invalidate(); creation = null; lastSubmitted = null
         generation++; request?.cancel(); preview?.cancel()
         mutable.value = AddTransactionUiState(date = today, initialDate = today, invalidated = true, closeRequested = true)

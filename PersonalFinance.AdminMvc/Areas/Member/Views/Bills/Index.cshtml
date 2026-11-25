@@ -1,0 +1,61 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberBillIndexViewModel
+@{
+    ViewData["Title"] = "Recurring bills";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head plan-heading"><div class="member-dashboard-title"><p class="owli-greeting">@PersonalFinance.AdminMvc.Services.BudgetPlanSummary.PhilippineToday.ToString("MMMM yyyy", invariant)</p><h1 class="owli-screen-title">Plan</h1></div></header>
+    <partial name="_PlanNavigation" />
+
+    @if (Model.Error is not null)
+    {
+        <p class="notice login-notice" role="alert">@Model.Error</p>
+    }
+    @if (Model.Notice is not null)
+    {
+        <p class="notice login-notice" role="status">@Model.Notice</p>
+    }
+
+    <section class="member-card member-plan-card member-table-wrap" aria-label="Recurring bill schedule">
+        <div class="member-section-heading"><a class="member-btn member-btn-small" href="@Url.Action("Create")">+ New bill</a>
+            <div><h2 class="member-card-title">Upcoming and active bills</h2><p class="owli-caption">Manage scheduled expenses and review the next due date.</p></div>
+        </div>
+        @if (Model.Results is null || Model.Results.Items.Count == 0)
+        {
+            <p class="member-empty">No recurring bills yet. Add one to track a regular payment.</p>
+        }
+        else
+        {
+            var results = Model.Results;
+            <div class="member-bill-grid">
+                @foreach (var bill in results.Items)
+                {
+                    var overdue = bill.IsActive && bill.NextDueDate < PersonalFinance.AdminMvc.Services.BudgetPlanSummary.PhilippineToday;
+                    <article class="member-bill-card">
+                        <header><span class="member-bill-mark" aria-hidden="true"><partial name="_NavIcon" model='"calendar"' /></span><span class="member-pill @(bill.IsActive ? overdue ? "member-pill-expense" : "member-pill-income" : "member-pill-neutral")">@(bill.IsActive ? overdue ? "Overdue" : bill.NextDueDate == PersonalFinance.AdminMvc.Services.BudgetPlanSummary.PhilippineToday ? "Due today" : "Upcoming" : "Paused")</span></header>
+                        <h3>@bill.Name</h3>
+                        <p class="owli-caption">@bill.CategoryName · @bill.Frequency</p>
+                        <strong class="member-bill-amount">@bill.Amount.ToString("N2", invariant) <small>@bill.CurrencyCode</small></strong>
+                        <p class="member-bill-due">Next due <time datetime="@bill.NextDueDate.ToString("yyyy-MM-dd", invariant)">@bill.NextDueDate.ToString("MMMM d, yyyy", invariant)</time></p>
+                        <footer class="member-bill-actions">
+                            @if (bill.IsActive)
+                            {
+                                <a class="member-btn member-btn-small" href="@Url.Action("Pay", new { id = bill.BillId })">Record payment</a>
+                            }
+                            <a class="member-row-link" href="@Url.Action("Edit", new { id = bill.BillId })">Edit</a>
+                            <a class="member-row-link member-row-danger" href="@Url.Action("Delete", new { id = bill.BillId })">Delete</a>
+                        </footer>
+                    </article>
+                }
+            </div>
+            @if (results.Page * results.PageSize < results.TotalCount)
+            {
+                <nav class="member-pager" aria-label="Bill pages">
+                    <a class="member-btn" href="@Url.Action("Index", new { Page = results.Page + 1 })">Next</a>
+                    <span class="owli-caption">Page @results.Page · @results.TotalCount bills</span>
+                </nav>
+            }
+        }
+    </section>
+</section>

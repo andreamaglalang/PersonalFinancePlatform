@@ -1,0 +1,94 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberNotificationIndexViewModel
+@{
+    ViewData["Title"] = "Notifications";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+    var manilaZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head plan-heading"><div class="member-dashboard-title"><p class="owli-greeting">@PersonalFinance.AdminMvc.Services.BudgetPlanSummary.PhilippineToday.ToString("MMMM yyyy", invariant)</p><h1 class="owli-screen-title">Plan</h1></div></header>
+
+    <partial name="_PlanNavigation" />
+    <div class="member-section-heading"><h2 class="member-card-title">Inbox</h2></div>
+    @if (Model.Error is not null)
+    {
+        <p class="notice login-notice" role="alert">@Model.Error</p>
+    }
+
+    <form class="member-filter member-filter-notify" method="get" asp-action="Index" asp-route-Page="1">
+        <label class="member-check" for="UnreadOnly">
+            <input id="UnreadOnly" type="checkbox" name="UnreadOnly" value="true"
+                   checked="@(Model.UnreadOnly ? "checked" : null)" aria-describedby="unread-help" />
+            <span>Unread only</span>
+        </label>
+        <span id="unread-help" class="owli-caption member-filter-help">Show notifications that are not marked read.</span>
+        <button class="member-btn member-filter-apply" type="submit">Apply</button>
+        <a class="member-btn member-btn-secondary member-notification-refresh" href="@Url.Action("Index", new { UnreadOnly = Model.UnreadOnly, Page = Model.Page })">Refresh</a>
+    </form>
+
+    <section class="member-card member-card-notify">
+        @if (Model.Results is null && Model.Error is null)
+        {
+            <p class="member-empty" role="status">Loading your notifications…</p>
+        }
+        else if (Model.Results is null)
+        {
+            <p class="member-empty" role="status">Notification list is unavailable. Try refreshing the page.</p>
+        }
+        else if (Model.Results.Items.Count == 0)
+        {
+            <p class="member-empty" role="status">
+                @(Model.UnreadOnly ? "You have no unread notifications." : "You have no notifications yet.")
+            </p>
+        }
+        else
+        {
+            <p class="owli-caption member-list-summary" role="status">@Model.Summary</p>
+            <ul class="member-list">
+                @foreach (var notification in Model.Results.Items)
+                {
+                    var unread = notification.IsRead is false;
+                    var label = notification.Type switch
+                    {
+                        "BillReminder" => "Bill reminder",
+                        "BudgetAlert" => "Budget alert",
+                        "MonthlySummary" => "Monthly summary",
+                        _ => "Account update"
+                    };
+                    var manilaTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(notification.CreatedAtUtc, DateTimeKind.Utc), manilaZone);
+                    <li class="member-list-item@(unread ? " member-list-item-unread" : "")">
+                        <div class="member-list-main">
+                            <span class="member-notification-icon" aria-hidden="true"><partial name="_NavIcon" model='@(notification.Type == "BillReminder" ? "calendar" : notification.Type == "BudgetAlert" ? "budget" : "report")' /></span>
+                            <p class="member-list-title">
+                                <span class="member-list-message">@notification.Message</span>
+                                @if (unread)
+                                {
+                                    <span class="member-chip member-chip-unread">Unread</span>
+                                }
+                            </p>
+                            <p class="member-list-meta">
+                                <span class="member-badge member-list-type">@label</span>
+                                <time datetime="@notification.CreatedAtUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", invariant)">
+                                    @manilaTime.ToString("dd MMM yyyy, h:mm tt", invariant) PHT
+                                </time>
+                            </p>
+                        </div>
+                    </li>
+                }
+            </ul>
+            <nav class="member-pager member-pager-notify" aria-label="Notification pages">
+                @if (Model.Page > 1)
+                {
+                    <a class="member-btn" asp-action="Index" asp-route-UnreadOnly="@Model.UnreadOnly"
+                       asp-route-Page="@(Model.Page - 1)">Previous</a>
+                }
+                @if ((long)Model.Page * Model.Results.PageSize < Model.Results.TotalCount)
+                {
+                    <a class="member-btn" asp-action="Index" asp-route-UnreadOnly="@Model.UnreadOnly"
+                       asp-route-Page="@(Model.Page + 1)">Next</a>
+                }
+                <span class="owli-caption">Page @Model.Page</span>
+            </nav>
+        }
+    </section>
+</section>

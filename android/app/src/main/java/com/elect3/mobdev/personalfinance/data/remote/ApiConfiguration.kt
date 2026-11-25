@@ -5,6 +5,8 @@ import java.net.URL
 
 /** No endpoint is selected by default. Supplying one requires separate environment approval. */
 class ApiConfiguration private constructor(private val base: URI?) {
+    internal fun sessionNamespace(): String = base?.toASCIIString() ?: "unconfigured"
+
     internal fun authUrl(operation: String): URL? {
         require(operation == "login" || operation == "logout" || operation == "refresh")
         return base?.resolve("api/auth/$operation")?.toURL()
@@ -12,6 +14,11 @@ class ApiConfiguration private constructor(private val base: URI?) {
 
     internal fun financeUrl(resource: FinanceResource, query: String): URL? =
         base?.resolve("api/${resource.path}?$query")?.toURL()
+
+    internal fun memberUrl(path: String): URL? {
+        require(path.matches(Regex("account/(profile|change-password)|savings-goals(/[1-9][0-9]*(/cancel|/contributions(/[1-9][0-9]*)?)?)?|recurring-bills(/[1-9][0-9]*(/payments)?)?")))
+        return base?.resolve("api/$path")?.toURL()
+    }
 
     internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 

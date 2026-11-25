@@ -87,7 +87,7 @@ internal sealed class BillPaymentReceiptConfiguration
 
             t.HasCheckConstraint(
                 "CK_BillPaymentReceipts_PaidOn",
-                "[PaidOn] = CONVERT(date, [RecordedAtUtc])");
+                "[PaidOn] = CONVERT(date, DATEADD(hour, 8, [RecordedAtUtc]))");
 
             t.HasCheckConstraint(
                 "CK_BillPaymentReceipts_CanonicalVersion",

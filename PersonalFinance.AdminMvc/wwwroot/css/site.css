@@ -9,22 +9,24 @@
 :root {
     color-scheme: light;
     font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", sans-serif;
-    --page: #f7f4fc;
-    --surface: #fff;
-    --field: #f6f2fc;
+    --page: #f4efff;
+    --surface: #ffffff;
+    --field: #f4efff;
     --border: #e6dff1;
     --control-border: #82779b;
     --text: #1b1530;
     --muted: #6b6285;
     --ink: #2a1659;
-    --accent: #6747c7;
-    --accent-soft: #eee7fb;
+    --accent: #ae81f8;
+    --accent-soft: #f4efff;
+    --gold: #ebd9ae;
+    --expense-accent: #ffb4ab;
     --on-ink: #fff;
     --active-bg: #e3f5eb;
     --active-text: #156b3e;
-    --warning-bg: #fff7e6;
+    --warning-bg: #ebd9ae;
     --warning-text: #5a4310;
-    --warning-border: #b78325;
+    --warning-border: #ebd9ae;
     --error-bg: #ffe4e7;
     --error-text: #5c1018;
     --error-border: #b3261e;
@@ -48,8 +50,10 @@
     --muted: #a79fc6;
     --ink: #ae81f8;
     --on-ink: #1a0b3b;
-    --accent: #c6adf1;
+    --accent: #ae81f8;
     --accent-soft: #241d3e;
+    --gold: #ebd9ae;
+    --expense-accent: #ffb4ab;
     --panel: linear-gradient(170deg, #2e1d66, #17113a);
     --active-bg: #15291f;
     --active-text: #6fd6a3;
@@ -163,8 +167,10 @@ h2 { font-size: 1.2rem; }
 .eyebrow { color: var(--muted); text-transform: uppercase; font-size: .75rem; letter-spacing: .12em; font-weight: 700; }
 .muted { color: var(--muted); }
 label { display: block; font-weight: 600; margin-top: 1rem; }
-input, select { width: 100%; padding: .8rem; margin: .3rem 0 1rem; border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--field); color: var(--text); font: inherit; }
-input { display: block; }
+input:not([type="checkbox"], [type="radio"], [type="hidden"]), select { width: 100%; padding: .8rem; margin: .3rem 0 1rem; border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--field); color: var(--text); font: inherit; }
+input:not([type="checkbox"], [type="radio"], [type="hidden"]) { display: block; }
+input[type="checkbox"], input[type="radio"] { display: inline-block; width: 1rem; height: 1rem; min-height: 1rem; margin: 0; padding: 0;
+    accent-color: var(--accent); vertical-align: middle; flex: none; }
 button { border: 0; border-radius: var(--radius); background: var(--ink); color: var(--on-ink); padding: .8rem 1.3rem; font: inherit; font-weight: 600; cursor: pointer; }
 button[aria-disabled="true"] { cursor: wait; opacity: .75; }
 button.secondary { background: var(--accent-soft); color: var(--ink); }
@@ -399,3 +405,11 @@ main:has(> .login) { flex: 1; }
 
 /* The legacy Razor layout can remain in a running Debug process. */
 .login-moon, .lg-art > .moon { display: none; }
+
+/* Shared OWLI sign-in: registration link (Tier 1). */
+.lg-register { margin-top: 14px; text-align: center; font-size: 13px; color: var(--muted); }
+.lg-register a { color: var(--ink); font-weight: 700; }
+
+/* Registration: model-level (API) messages rendered by the validation summary. */
+.login-notice ul { margin: 6px 0 0; padding-left: 18px; }
+.login-notice li { margin-top: 2px; }

@@ -1,5 +1,5 @@
 @model LoginViewModel
-@{ ViewData["Title"] = "Administrator sign in"; }
+@{ ViewData["Title"] = "Sign in"; }
 <section class="login" aria-labelledby="login-title">
     <button class="public-theme" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false" hidden>
         <span class="moon-icon"><partial name="_NavIcon" model='"moonI"' /></span>
@@ -10,21 +10,28 @@
         <span class="crest" aria-hidden="true"><partial name="_OwlMark" /></span>
         <p class="lg-word">OWLI</p>
         <p class="lg-tag">Your Wise Money Companion</p>
-        <p class="lg-portal"><partial name="_NavIcon" model='"lock"' />Administrator portal</p>
-        <p class="lg-blurb">Manage OWLI’s default categories for the whole platform.</p>
+
     </div>
     <div class="lg-form"><div class="lg-card">
-        <h1 id="login-title">Administrator sign-in</h1>
-        <p class="sub">Sign in to manage default categories.</p>
+        <h1 id="login-title">Sign in to OWLI</h1>
+        <p class="sub">Access your finances securely.</p>
         @if (!string.IsNullOrEmpty(Model.Message))
         {
             <p class="notice login-notice" role="alert"><partial name="_NavIcon" model='"alert"' />@Model.Message</p>
+        }
+        @if (TempData["RegistrationNotice"] is string registrationNotice)
+        {
+            <p class="success-notice" role="status">@registrationNotice</p>
+        }
+        @if (TempData["PasswordChangedNotice"] is string passwordChangedNotice)
+        {
+            <p class="success-notice" role="status">@passwordChangedNotice</p>
         }
         <form asp-controller="Account" asp-action="Login" method="post" data-busy="Signing in…">
             <input type="hidden" asp-for="ReturnUrl" />
             <label asp-for="Email">Email address</label>
             <div class="box"><partial name="_NavIcon" model='"mail"' />
-            <input asp-for="Email" type="email" autocomplete="username" placeholder="admin@example.com" required maxlength="256" /></div>
+            <input asp-for="Email" type="email" autocomplete="username" placeholder="you@example.com" required maxlength="256" /></div>
             <span asp-validation-for="Email"></span>
             <label asp-for="Password"></label>
             <div class="box"><partial name="_NavIcon" model='"lock"' />
@@ -34,6 +41,6 @@
             <span asp-validation-for="Password"></span>
             <button class="btn block" type="submit">Sign in</button>
         </form>
-        <div class="lg-foot"><p><partial name="_NavIcon" model='"lock"' />Access is limited to authorized administrators. Administrator accounts are not created on this page.</p></div>
+        <p class="lg-register">New to OWLI? <a asp-controller="Account" asp-action="Register">Create an account</a></p>
     </div></div>
 </section>

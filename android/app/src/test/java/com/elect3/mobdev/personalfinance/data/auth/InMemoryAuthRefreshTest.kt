@@ -96,9 +96,9 @@ class InMemoryAuthRefreshTest {
         val second = startRefresh(f)
         val third = startRefresh(f)
         assertEquals(listOf("a".repeat(86)), f.api.refreshTokens)
-        second.await(); third.await() // Non-owners return immediately without a request.
+        assertFalse(second.isCompleted); assertFalse(third.isCompleted) // Waiters share the owner's result.
         f.api.refreshes.single().complete(ApiResult.Success(payload("access-new", 'b', refreshedExpiry)))
-        first.await()
+        first.await(); second.await(); third.await()
         assertEquals(1, f.api.refreshTokens.size)
         assertEquals(1, f.count(AuthDiagnosticEvent.REFRESH_SUCCEEDED))
     }
@@ -125,14 +125,13 @@ class InMemoryAuthRefreshTest {
         f.repository.clearSession(); runCurrent()
     }
 
-    @Test fun definitiveRejectionBlocksFurtherAttemptsAndKeepsOriginalExpiry() = runTest {
+    @Test fun definitiveRejectionEndsTheSessionImmediatelyWithoutRetry() = runTest {
         for (reason in listOf(AuthFailure.SessionExpired, AuthFailure.InvalidInput)) {
             val f = fixture(); f.signIn()
             val refresh = startRefresh(f)
             f.api.refreshes.single().complete(ApiResult.Failure(reason)); refresh.await()
             assertEquals(1, f.count(AuthDiagnosticEvent.REFRESH_REJECTED))
-            assertTrue("Session continues until its own expiry", f.repository.hasActiveSession())
-            assertEquals("Bearer access-old", f.bearer())
+            assertFalse("A confirmed rejection must fail closed immediately", f.repository.hasActiveSession())
             f.clock.now = expiry.minusSeconds(10)
             f.repository.refreshIfDue()
             assertEquals(1, f.api.refreshTokens.size)
@@ -206,15 +205,15 @@ class InMemoryAuthRefreshTest {
         f.repository.clearSession(); runCurrent()
     }
 
-    @Test fun lateSuccessAfterLocalExpiryIsDiscardedAndOrphanRevoked() = runTest {
+    @Test fun refreshCrossingAccessExpirySurvivesSessionChecks() = runTest {
         val f = fixture(); f.signIn()
         val refresh = startRefresh(f)
         f.clock.now = expiry
         assertFalse(f.repository.hasActiveSession())
         f.api.refreshes.single().complete(ApiResult.Success(payload("access-orphan", 'o', refreshedExpiry)))
         refresh.await()
-        assertFalse(f.repository.hasActiveSession())
-        assertEquals(listOf("o".repeat(86)), f.api.logoutTokens)
+        assertTrue(f.repository.hasActiveSession())
+        assertTrue(f.api.logoutTokens.isEmpty())
     }
 
     @Test fun lateFailureFromAnAbandonedSessionDoesNotBlockTheNewSession() = runTest {
@@ -263,6 +262,60 @@ class InMemoryAuthRefreshTest {
         f.repository.refreshIfDue()
         assertTrue(f.api.refreshTokens.isEmpty())
         assertEquals(1, f.count(AuthDiagnosticEvent.REFRESH_REJECTED))
+    }
+
+    @Test fun accessExpiryRetainsEligibleRefreshButNeverAuthorizesTheExpiredToken() = runTest {
+        val f = fixture(secondsLeft = 300); f.signIn()
+        val old = (f.repository.financeSession() as FinanceResult.Success).value
+        f.clock.now = expiry
+        assertFalse(f.repository.hasActiveSession())
+        assertThrows(IllegalStateException::class.java) { old.authorization() }
+        assertEquals(1, f.repository.accountId())
+        assertEquals("PHP", f.repository.accountBaseCurrency())
+        val first = async { f.repository.readyFinanceSession() }; runCurrent()
+        val second = async { f.repository.readyFinanceSession() }; runCurrent()
+        assertFalse(first.isCompleted); assertFalse(second.isCompleted)
+        assertEquals(1, f.api.refreshTokens.size)
+        f.api.refreshes.single().complete(ApiResult.Success(payload("access-new", 'b', refreshedExpiry)))
+        assertEquals("Bearer access-new", (first.await() as FinanceResult.Success).value.authorization())
+        assertEquals("Bearer access-new", (second.await() as FinanceResult.Success).value.authorization())
+        assertTrue(f.repository.hasActiveSession())
+    }
+
+    @Test fun pendingProtectedRequestNeverAcquiresAnotherLoginsCredentials() = runTest {
+        val f = fixture(); f.signIn()
+        val pending = async { f.repository.readyFinanceSession() }; runCurrent()
+        f.api.nextLogin = payload("access-second", 'c', expiry, user = 2)
+        f.signIn()
+        f.api.refreshes.single().complete(ApiResult.Success(payload("access-orphan", 'o', refreshedExpiry)))
+        assertEquals(FinanceResult.Failure(com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure.SessionExpired), pending.await())
+        assertEquals("Bearer access-second", f.bearer())
+        assertEquals(listOf("o".repeat(86)), f.api.logoutTokens)
+    }
+
+    @Test fun cancelledWaiterDoesNotCancelRotationOrBlockTheRotatedToken() = runTest {
+        val f = fixture(); f.signIn()
+        val owner = startRefresh(f)
+        val waiter = startRefresh(f)
+        waiter.cancelAndJoin()
+        f.api.refreshes.single().complete(ApiResult.Success(payload("access-new", 'b', refreshedExpiry)))
+        owner.await()
+        f.repository.refreshIfDue()
+        assertEquals(1, f.api.refreshTokens.size)
+        assertEquals("Bearer access-new", f.bearer())
+    }
+
+    @Test fun failedPostExpiryRefreshNeverReusesTheToken() = runTest {
+        val f = fixture(secondsLeft = 300); f.signIn()
+        f.clock.now = expiry.plusSeconds(1)
+        val refresh = startRefresh(f)
+        f.api.refreshes.single().complete(ApiResult.Failure(AuthFailure.ConnectionFailed))
+        refresh.await()
+        f.repository.refreshIfDue()
+        assertEquals(1, f.api.refreshTokens.size)
+        assertFalse(f.repository.hasActiveSession())
+        assertTrue(f.repository.readyFinanceSession() is FinanceResult.Failure)
+        assertEquals(1, f.api.refreshTokens.size)
     }
 
     @Test fun refreshedTokensNeverAppearInDiagnosticsOrRepresentations() = runTest {

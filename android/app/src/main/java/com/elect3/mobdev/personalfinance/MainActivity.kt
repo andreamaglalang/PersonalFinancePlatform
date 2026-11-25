@@ -68,7 +68,9 @@ class MainActivity : ComponentActivity() {
             fun demoLedger() = ViewModelProvider(this@MainActivity, this)[DemoSessionHolder::class.java].session.ledger
             override fun <T : ViewModel> create(modelClass: Class<T>): T = when (modelClass) {
                 LoginViewModel::class.java -> {
-                    val repository = InMemoryAuthRepository(authConfiguration, AuthDiagnostics)
+                    val repository = InMemoryAuthRepository(
+                        com.elect3.mobdev.personalfinance.data.remote.AuthApiClient(authConfiguration, AuthDiagnostics), diagnostics = AuthDiagnostics,
+                        store = com.elect3.mobdev.personalfinance.data.auth.ProtectedSessionStore(applicationContext, authConfiguration.sessionNamespace()))
                     val finance = FinanceRepositories(authConfiguration, repository)
                     LoginViewModel.Factory(
                         repository = repository,
@@ -82,6 +84,7 @@ class MainActivity : ComponentActivity() {
                         authenticatedBudgets = finance.budgets,
                         authenticatedUpdates = finance.transactionUpdates,
                         authenticatedQuotes = finance.exchangeRateQuotes,
+                        authenticatedLive = com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository(authConfiguration, repository),
                     ).create(modelClass)
                 }
                 DashboardViewModel::class.java -> DashboardViewModel.Factory(
@@ -158,8 +161,11 @@ class MainActivity : ComponentActivity() {
                         authenticatedCreation = loginViewModel.authenticatedCreation,
                         authenticatedUpdates = loginViewModel.authenticatedUpdates,
                         authenticatedQuotes = loginViewModel.authenticatedQuotes,
+                        authenticatedPreferenceNamespace = authConfiguration.sessionNamespace(),
+                        authenticatedLive = loginViewModel.authenticatedLive,
                         sessionKeys = sessionKeys,
                         isSessionCurrent = { loginViewModel.state.value.authenticatedContentKey == it },
+                        onPasswordChanged = { confirmed -> if (loginViewModel.state.value.authenticatedContentKey == contentKey) loginViewModel.passwordChangeCompleted(confirmed) },
                         onSessionExpired = {
                             if (loginViewModel.state.value.authenticatedContentKey == it) loginViewModel.sessionExpired()
                         },
@@ -200,6 +206,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         recordLifecycle(ActivityLifecyclePhase.RESUMED)
+        ViewModelProvider(this)[LoginViewModel::class.java].onForeground()
     }
 
     override fun onPause() {

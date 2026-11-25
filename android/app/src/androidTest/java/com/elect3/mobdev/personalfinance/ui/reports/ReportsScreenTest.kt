@@ -12,6 +12,8 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -61,13 +63,16 @@ class ReportsScreenTest {
 
     @Test fun readyShowsOverviewBreakdownTrendAndForeignCurrencyNote() {
         show(ReportsUiState.Ready(nov, report))
+        compose.onNodeWithText(text(R.string.reports_ribbon_account)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.reports_ribbon_account_detail, "PHP")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.reports_title)).assertIsDisplayed()
-        compose.onNodeWithText(month(nov)).assertIsDisplayed()
+        compose.onAllNodesWithText(month(nov)).onFirst().assertIsDisplayed()
         // The panel is announced as one description holding every overview figure.
         compose.onNodeWithContentDescription("+₱48,218.77", substring = true).assertIsDisplayed()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Rent"))
-        compose.onNodeWithText("Rent").assertIsDisplayed()
-        compose.onNodeWithText("USD", substring = true).assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("USD", substring = true))
+        compose.onNodeWithText("USD", substring = true).assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(androidx.compose.ui.test.hasContentDescription("Rank 1, Rent", substring = true))
+        compose.onNodeWithContentDescription("Rank 1, Rent", substring = true).assertIsDisplayed()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.reports_trend_title)))
         compose.onNodeWithText(text(R.string.reports_trend_title)).assertIsDisplayed()
     }

@@ -90,11 +90,16 @@ class CurrencyConverterViewModel(
     fun swap() = update { it.copy(from = it.to, to = it.from) }
     fun amount(raw: String) { if (raw.length <= 24 && raw != mutable.value.amount) update { it.copy(amount = raw) } }
 
+    /** Live-only convenience: uses the same validated input path and clears any previous quote. */
+    fun quickAmount(value: Int) {
+        if (!mutable.value.demo && value in listOf(100, 500, 1000)) amount(value.toString())
+    }
+
     /** Requests a live quote for the current input. Also used by Refresh. */
     fun requestQuote() {
         val s = mutable.value
         val repository = quotes ?: return
-        if (!s.liveQuotesAvailable || s.result !is ConverterResult.QuoteUnavailable) return
+        if (!s.canRequestQuote) return
         if (!isSessionCurrent()) { onSessionExpired(); return }
         val amount = CurrencyConverter.parseAmount(s.amount) ?: return
         val version = ++generation

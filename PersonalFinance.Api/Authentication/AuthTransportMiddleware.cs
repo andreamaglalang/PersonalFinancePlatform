@@ -1,10 +1,10 @@
-﻿namespace PersonalFinance.Api.Authentication;
+namespace PersonalFinance.Api.Authentication;
 
 public sealed class AuthTransportMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.StartsWithSegments("/api/auth"))
+        if (context.Request.Path.StartsWithSegments("/api/auth") || context.Request.Path.StartsWithSegments("/api/account"))
         {
             context.Response.Headers.CacheControl = "no-store";
             context.Response.Headers.Pragma = "no-cache";

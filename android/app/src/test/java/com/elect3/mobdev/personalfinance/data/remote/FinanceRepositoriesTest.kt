@@ -57,6 +57,8 @@ class FinanceRepositoriesTest {
         f.login()
         assertEquals("PHP", f.repos.baseCurrency())
         f.clock.now = expiry
+        assertEquals("PHP", f.repos.baseCurrency()) // Display metadata survives eligible renewal.
+        f.auth.clearSession()
         assertNull(f.repos.baseCurrency())
         assertTrue(f.http.requests.isEmpty())
     }

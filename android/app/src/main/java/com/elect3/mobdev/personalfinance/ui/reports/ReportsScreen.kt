@@ -97,16 +97,12 @@ fun ReportsScreen(
                 Column(width, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.reports_subtitle), style = typography.greeting, color = scheme.onSurfaceVariant)
                             Text(stringResource(R.string.reports_title), style = typography.screenTitle, color = scheme.onBackground,
                                 modifier = Modifier.semantics { heading() })
                         }
                         if (state is ReportsUiState.Ready) ReportsPill(stringResource(R.string.reports_refresh), onRefresh, enabled = !state.isRefreshing)
                     }
-                    val currency = (state as? ReportsUiState.Ready)?.report?.currency
                     if (demo) OwliRibbon(stringResource(R.string.reports_ribbon_demo), stringResource(R.string.reports_ribbon_demo_detail))
-                    else OwliRibbon(stringResource(R.string.reports_ribbon_account),
-                        currency?.let { stringResource(R.string.reports_ribbon_account_detail, it) })
                     if (state !is ReportsUiState.SessionExpired) {
                         ReportsPeriodSelector(state.month, currentMonth, locale, onPrevious, onNext,
                             onThisMonth = { onSelectMonth(currentMonth) },

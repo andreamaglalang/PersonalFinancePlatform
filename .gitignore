@@ -112,3 +112,15 @@ appsettings.*.Local.json
 /docs/DevelopmentDatabaseVerification_TransactionBoundaries.md
 /docs/Initial_Project_Report_Personal_Finance_Platform_v3.1_Implementation_Ready.docx
 /docs/MonthlyBudgets_DevelopmentDatabaseVerification_Preparation.md
+
+# Private local configuration and generated handoff SQL
+**/appsettings.Development.json
+**/appsettings.*.Local.json
+**/secrets.json
+*.cer
+*.crt
+/fresh-development.sql
+/artifacts/
+**/test-output/
+**/login-fix-output/
+**/login-badge-test-output/

@@ -270,7 +270,7 @@ namespace PersonalFinance.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_BillPaymentReceipts_FxRateDate", "[FxRateDate] <= [PaidOn]");
 
-                            t.HasCheckConstraint("CK_BillPaymentReceipts_PaidOn", "[PaidOn] = CONVERT(date, [RecordedAtUtc])");
+                            t.HasCheckConstraint("CK_BillPaymentReceipts_PaidOn", "[PaidOn] = CONVERT(date, DATEADD(hour, 8, [RecordedAtUtc]))");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);

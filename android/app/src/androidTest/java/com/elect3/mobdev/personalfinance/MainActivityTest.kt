@@ -73,6 +73,37 @@ class MainActivityTest {
         destination(R.string.navigation_transactions).assertIsNotSelected().assertIsDisplayed()
     }
 
+    @Test fun reopeningWithDifferentLauncherIntentsRetainsActivityAndSessionOwner() {
+        enterMockDemo()
+        lateinit var original: MainActivity
+        lateinit var owner: LoginViewModel
+        compose.activityRule.scenario.onActivity {
+            original = it
+            owner = ViewModelProvider(it).get(LoginViewModel::class.java)
+        }
+        // Reproduce the development-launch / launcher-icon mismatch without injecting SINGLE_TOP flags.
+        // The manifest must route both intents to the current instance and its existing session owner.
+        for (launcher in listOf(false, true)) {
+            compose.activityRule.scenario.onActivity { activity ->
+                val intent = android.content.Intent(activity, MainActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (launcher) intent.setAction(android.content.Intent.ACTION_MAIN)
+                    .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                activity.startActivity(intent)
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            compose.runOnIdle {
+                val resumed = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+                    .getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED)
+                    .filterIsInstance<MainActivity>()
+                assertEquals(1, resumed.size)
+                assertSame(original, resumed.single())
+                assertSame(owner, ViewModelProvider(resumed.single()).get(LoginViewModel::class.java))
+                assertEquals(EntryMode.MockDemo, owner.state.value.entryMode)
+            }
+        }
+    }
+
     @Test fun normalLaunchShowsLoginAndNoAuthenticatedNavigation() {
         compose.onNodeWithText(text(R.string.auth_welcome)).assertIsDisplayed()
         compose.onNode(heading(R.string.dashboard_title)).assertDoesNotExist()

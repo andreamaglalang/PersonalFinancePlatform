@@ -1,0 +1,95 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberBillFormModel
+@{
+    var editing = ViewData["BillId"] is not null;
+    ViewData["Title"] = editing ? "Edit bill" : "New bill";
+    Layout = "_MemberLayout";
+    var expenseCategories = ViewData["BillCategories"] as IReadOnlyList<PersonalFinance.AdminMvc.Services.Contracts.CategoryResponse> ?? [];
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head">
+        <span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Track a regular payment</p>
+            <h1 class="owli-screen-title">Recurring bill</h1>
+        </div>
+        <a class="member-btn" href="@Url.Action("Index")">Back to bills</a>
+    </header>
+
+    @if (ViewData["CategoryError"] is string categoryError)
+    {
+        <p class="notice login-notice" role="alert">@categoryError</p>
+    }
+
+    <div class="member-card">
+        <form class="member-form" method="post" asp-action="@(editing ? "Edit" : "Create")"
+              asp-route-id="@(ViewData["BillId"])" data-busy>
+            <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
+            <div class="member-field">
+                <label class="member-label" for="Name">Bill name</label>
+                <input id="Name" name="Name" type="text" maxlength="100" value="@Model.Name" />
+                <span asp-validation-for="Name" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="CategoryId">Expense category</label>
+                <select id="CategoryId" name="CategoryId" required>
+                    <option value="">Choose a category</option>
+                    @foreach (var category in expenseCategories)
+                    {
+                        <option value="@category.CategoryId" selected="@(Model.CategoryId == category.CategoryId)">@category.Name@(category.IsActive ? "" : " · Inactive")</option>
+                    }
+                </select>
+                <span asp-validation-for="CategoryId" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="Amount">Amount</label>
+                <input id="Amount" name="Amount" inputmode="decimal" maxlength="19" value="@Model.Amount" />
+                <span asp-validation-for="Amount" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="CurrencyCode">Currency</label>
+                <select id="CurrencyCode" name="CurrencyCode">
+                    @foreach (var currency in PersonalFinance.AdminMvc.Services.MemberCurrencyPreferences.Supported)
+                    {
+                        <option value="@currency" selected="@(Model.CurrencyCode == currency)">@currency</option>
+                    }
+                </select>
+                <span asp-validation-for="CurrencyCode" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="ReminderDaysBefore">Reminder days before</label>
+                <input id="ReminderDaysBefore" name="ReminderDaysBefore" type="number" min="0" max="30" value="@Model.ReminderDaysBefore" />
+                <span asp-validation-for="ReminderDaysBefore" class="member-field-error"></span>
+            </div>
+            <div class="member-field">
+                <label class="member-label" for="IsActive">Active</label>
+                <select id="IsActive" name="IsActive">
+                    <option selected="@(Model.IsActive)" value="true">Active</option>
+                    <option selected="@(!Model.IsActive)" value="false">Paused</option>
+                </select>
+                <span asp-validation-for="IsActive" class="member-field-error"></span>
+            </div>
+            @if (!editing)
+            {
+                <div class="member-field">
+                    <label class="member-label" for="Frequency">Frequency</label>
+                    <select id="Frequency" name="Frequency">
+                        @foreach (var value in new[] { "Weekly", "Monthly", "Quarterly", "Yearly" })
+                        {
+                            <option selected="@(Model.Frequency == value)" value="@value">@value</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Frequency" class="member-field-error"></span>
+                </div>
+                <div class="member-field">
+                    <label class="member-label" for="FirstDueDate">First due date</label>
+                    <input id="FirstDueDate" name="FirstDueDate" type="date" value="@(Model.FirstDueDate?.ToString("yyyy-MM-dd"))" />
+                    <span asp-validation-for="FirstDueDate" class="member-field-error"></span>
+                </div>
+            }
+            <div class="member-form-actions">
+                <button class="member-btn" type="submit">Save bill</button>
+                <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>

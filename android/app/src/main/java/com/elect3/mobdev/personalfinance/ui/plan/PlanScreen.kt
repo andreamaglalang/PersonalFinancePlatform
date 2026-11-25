@@ -47,17 +47,18 @@ import java.util.Locale
 
 enum class PlanTab { Budgets, Goals, Bills }
 
-/** Content supplied per tab by the owner (Budgets and Goals arrive in later phases). */
+/** Content supplied per tab by the session owner. */
 class PlanSections(
     val budgets: (@Composable () -> Unit)? = null,
     val budgetCount: Int = 0,
     val goals: (@Composable () -> Unit)? = null,
     val goalCount: Int = 0,
+    val bills: (@Composable () -> Unit)? = null,
+    val billCount: Int = 0,
 )
 
 /**
- * Plan (approved mockup): Budgets, savings Goals and Bills. Bills is honestly unavailable: the API has no
- * recurring-bill endpoint. [demo] keeps the sample-data label visible, as everywhere else in Mock Demo.
+ * Plan tabs. [demo] keeps the sample-data label visible, as everywhere else in Mock Demo.
  */
 @Composable
 fun PlanScreen(demo: Boolean, month: YearMonth, sections: PlanSections, modifier: Modifier = Modifier) {
@@ -73,28 +74,28 @@ fun PlanScreen(demo: Boolean, month: YearMonth, sections: PlanSections, modifier
             }
             if (demo) Text(stringResource(R.string.plan_demo_ribbon), style = typography.caption, color = scheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp))
-            PlanTabs(tab, sections) { tab = it }
+            PlanTabs(tab, sections, showCounts = demo) { tab = it }
             when (tab) {
                 PlanTab.Budgets -> sections.budgets?.invoke() ?: PlanEmpty(R.drawable.ic_cat_wallet, R.string.plan_budgets_pending_title, R.string.plan_pending_message)
                 PlanTab.Goals -> sections.goals?.invoke() ?: PlanEmpty(R.drawable.ic_cat_star, R.string.plan_goals_pending_title, R.string.plan_pending_message)
-                PlanTab.Bills -> PlanEmpty(R.drawable.ic_cat_card, R.string.plan_bills_title, R.string.plan_bills_message)
+                PlanTab.Bills -> sections.bills?.invoke() ?: PlanEmpty(R.drawable.ic_cat_card, R.string.plan_bills_title, R.string.plan_bills_message)
             }
         }
     }
 }
 
 @Composable
-private fun PlanTabs(selected: PlanTab, sections: PlanSections, onSelect: (PlanTab) -> Unit) {
+private fun PlanTabs(selected: PlanTab, sections: PlanSections, showCounts: Boolean, onSelect: (PlanTab) -> Unit) {
     val owli = LocalOwliColors.current
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp).clip(CircleShape).background(owli.field)
         .border(1.dp, owli.hairline, CircleShape).padding(3.dp)) {
         listOf(PlanTab.Budgets to (R.string.plan_tab_budgets to sections.budgetCount), PlanTab.Goals to (R.string.plan_tab_goals to sections.goalCount),
-            PlanTab.Bills to (R.string.plan_tab_bills to 0)).forEach { (t, info) ->
+            PlanTab.Bills to (R.string.plan_tab_bills to sections.billCount)).forEach { (t, info) ->
             val on = selected == t
             Box(Modifier.weight(1f).heightIn(min = 44.dp).clip(CircleShape)
                 .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
                 .clickable(role = Role.Tab) { onSelect(t) }.semantics { this.selected = on }, contentAlignment = Alignment.Center) {
-                Text(stringResource(info.first) + if (info.second > 0) "  ${info.second}" else "", style = LocalOwliTypography.current.label,
+                Text(stringResource(info.first) + if (showCounts && info.second > 0) "  ${info.second}" else "", style = LocalOwliTypography.current.label,
                     color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

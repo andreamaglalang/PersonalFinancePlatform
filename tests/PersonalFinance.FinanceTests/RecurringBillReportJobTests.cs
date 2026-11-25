@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Hangfire;
+using Hangfire.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PersonalFinance.Domain.Entities;
@@ -11,6 +13,21 @@ namespace PersonalFinance.FinanceTests;
 /// <summary>Recurring-bill endpoints, monthly report endpoint and finance jobs (in-memory EF, real JWT/MVC pipeline).</summary>
 internal static class RecurringBillReportJobTests
 {
+    private sealed record RecurringJobCall(string Id, Job Job, string Cron, RecurringJobOptions Options);
+    private sealed class RecordingRecurringJobManager : IRecurringJobManager
+    {
+        public List<RecurringJobCall> Calls { get; } = [];
+        public void AddOrUpdate(string recurringJobId, Job job, string cronExpression, RecurringJobOptions options) =>
+            Calls.Add(new(recurringJobId, job, cronExpression, options));
+        public void Trigger(string recurringJobId) { }
+        public void RemoveIfExists(string recurringJobId) { }
+    }
+    private static void RejectStorage(string storage, string finance)
+    {
+        try { HangfireSetup.EnsureDedicatedStorage(storage, finance); }
+        catch (InvalidOperationException) { return; }
+        throw new Exception("Unsafe Hangfire storage was accepted.");
+    }
     private static void Assert(bool condition, string detail = "Assertion failed") { if (!condition) throw new Exception(detail); }
     private static JsonElement Json(ApiReply r) => JsonDocument.Parse(r.Body).RootElement;
     private static object Bill(int category = 2, string frequency = "Monthly", decimal amount = 999m, string currency = "PHP",
@@ -206,6 +223,46 @@ internal static class RecurringBillReportJobTests
                 Assert(s.UserId == 1 && s.SummaryMonth == new DateOnly(2026, 10, 1) && s.TotalIncome == 100m && s.TotalExpense == 40m && s.NetCashFlow == 60m);
                 Assert(await db.Notifications.CountAsync(n => n.Type == FinanceJobs.MonthlySummaryType) == 1);
             });
+        });
+        await check("Hangfire storage requires the dedicated OWLI_Hangfire catalog", f =>
+        {
+            const string finance = @"Server=(localdb)\MSSQLLocalDB;Database=PersonalFinanceDb;Integrated Security=True";
+            const string hangfire = @"Server=(localdb)\MSSQLLocalDB;Database=OWLI_Hangfire;Integrated Security=True";
+            HangfireSetup.EnsureDedicatedStorage(hangfire, finance);
+            RejectStorage(@"Server=(localdb)\MSSQLLocalDB;Database=PersonalFinanceDb;Integrated Security=True", finance);
+            RejectStorage(@"Server=(localdb)\MSSQLLocalDB;Database=master;Integrated Security=True", finance);
+            RejectStorage(@"Server=other;Database=OWLI_Hangfire;Integrated Security=True", finance);
+            return Task.CompletedTask;
+        });
+        await check("Hangfire recurring registrations use Manila schedules and stable IDs", f =>
+        {
+            var manager = new RecordingRecurringJobManager();
+            HangfireSetup.RegisterRecurringJobs(manager);
+            Assert(manager.Calls.Count == 3);
+            var bill = manager.Calls.Single(x => x.Id == HangfireSetup.BillRemindersJobId);
+            var budget = manager.Calls.Single(x => x.Id == HangfireSetup.BudgetAlertsJobId);
+            var monthly = manager.Calls.Single(x => x.Id == HangfireSetup.MonthlySummariesJobId);
+            Assert(bill.Cron == Cron.Daily(7) && bill.Options.TimeZone.Id == "Asia/Manila" && bill.Job.Method.Name == nameof(FinanceJobs.SendBillRemindersAsync));
+            Assert(budget.Cron == Cron.Hourly() && budget.Options.TimeZone.Id == "Asia/Manila" && budget.Job.Method.Name == nameof(FinanceJobs.SendBudgetAlertsAsync));
+            Assert(monthly.Cron == Cron.Monthly(1, 0, 30) && monthly.Options.TimeZone.Id == "Asia/Manila" && monthly.Job.Method.Name == nameof(FinanceJobs.GenerateMonthlySummariesAsync));
+            return Task.CompletedTask;
+        });
+        await check("Finance job dates and bill reminders follow Philippine midnight", async f =>
+        {
+            f.Clock.Now = new DateTimeOffset(2026, 11, 2, 15, 59, 59, TimeSpan.Zero);
+            Assert(HangfireSetup.ManilaToday(f.Clock) == new DateOnly(2026, 11, 2));
+            f.Clock.Now = new DateTimeOffset(2026, 11, 2, 16, 0, 0, TimeSpan.Zero);
+            Assert(HangfireSetup.ManilaToday(f.Clock) == new DateOnly(2026, 11, 3));
+            await Created(f, Bill(first: "2026-11-03", reminder: 0));
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 1);
+        });
+        await check("Monthly summary uses Manila month boundary", async f =>
+        {
+            f.Clock.Now = new DateTimeOffset(2026, 10, 31, 16, 0, 0, TimeSpan.Zero);
+            Assert(HangfireSetup.ManilaToday(f.Clock) == new DateOnly(2026, 11, 1));
+            Assert((await Expense(f, 100m, "2026-10-05", category: 1, type: "Income")).Status == 201);
+            Assert(await Job(f, j => j.GenerateMonthlySummariesAsync(default)) == 1);
+            await f.DbAsync(async db => Assert((await db.MonthlySummaries.SingleAsync()).SummaryMonth == new DateOnly(2026, 10, 1)));
         });
         await check("Hangfire stays disabled by default", f =>
         {

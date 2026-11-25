@@ -40,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +72,6 @@ sealed interface AccountMode {
     data object Demo : AccountMode
 }
 
-private enum class AccountSheet { Profile, Session, Appearance, Currency, Password, About, Logout }
 
 /** Two-letter initials from a real name only; never invented. */
 internal fun initials(name: String?): String = name?.trim()?.split(Regex("\\s+"))?.filter { it.isNotEmpty() }?.take(2)
@@ -94,10 +92,15 @@ fun AccountDialog(
     onClose: () -> Unit,
     /** Opens the read-only Currency converter page. Null hides the row. */
     onOpenCurrencyConverter: (() -> Unit)? = null,
+    live: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
+    onSessionEnded: () -> Unit = {},
+    onPasswordChanged: (Boolean) -> Unit = {},
+    currencyPreferences: com.elect3.mobdev.personalfinance.domain.currency.AccountCurrencyPreferences? = null,
+    isCurrent: () -> Boolean = { true },
 ) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            AccountScreen(mode, appearance, onAppearance, onManageCategories, onLogout, onClose, onOpenCurrencyConverter)
+            AccountScreen(mode, appearance, onAppearance, onManageCategories, onLogout, onClose, onOpenCurrencyConverter, live, onSessionEnded, onPasswordChanged, currencyPreferences, isCurrent)
         }
     }
 }
@@ -112,8 +115,15 @@ fun AccountScreen(
     onLogout: () -> Unit,
     onBack: () -> Unit,
     onOpenCurrencyConverter: (() -> Unit)? = null,
+    live: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
+    onSessionEnded: () -> Unit = {},
+    onPasswordChanged: (Boolean) -> Unit = {},
+    currencyPreferences: com.elect3.mobdev.personalfinance.domain.currency.AccountCurrencyPreferences? = null,
+    isCurrent: () -> Boolean = { true },
 ) {
-    var sheet by rememberSaveable { mutableStateOf<AccountSheet?>(null) }
+    val sheetNavigation = remember(currencyPreferences, live, mode is AccountMode.Demo) { AccountSheetNavigation() }
+    val sheet = sheetNavigation.current
+    val leaveAccount: () -> Unit = { sheetNavigation.leave(onBack) }
     var loggingOut by remember { mutableStateOf(false) }
     val demo = mode is AccountMode.Demo
     val profile = (mode as? AccountMode.SignedIn)?.profile
@@ -122,11 +132,11 @@ fun AccountScreen(
     val context = LocalContext.current
     val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "—" }
     val debuggable = remember { (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 }
-    BackHandler(enabled = !loggingOut) { onBack() }
+    BackHandler(enabled = !loggingOut) { sheetNavigation.back(onBack) }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack, enabled = !loggingOut, modifier = Modifier.size(48.dp)) {
+            IconButton(onClick = leaveAccount, enabled = !loggingOut, modifier = Modifier.size(48.dp)) {
                 Icon(painterResource(R.drawable.ic_cat_chevl), stringResource(R.string.account_back))
             }
             Text(stringResource(R.string.account_title), style = typography.screenTitle, modifier = Modifier.semantics { heading() })
@@ -137,34 +147,36 @@ fun AccountScreen(
                 AccountRow(R.drawable.ic_acc_user, stringResource(R.string.account_profile), stringResource(when {
                     demo -> R.string.account_profile_sub_demo
                     profile?.fullName != null || profile?.email != null -> R.string.account_profile_sub
-                    else -> R.string.account_profile_sub_missing })) { sheet = AccountSheet.Profile }
-                RowDivider()
-                AccountRow(R.drawable.ic_acc_shield, stringResource(R.string.account_session),
-                    stringResource(if (demo) R.string.account_session_sub_demo else R.string.account_status_signed_in)) { sheet = AccountSheet.Session }
+                    else -> R.string.account_profile_sub_missing })) { sheetNavigation.open(AccountSheet.Profile) }
+                if (demo) {
+                    RowDivider()
+                    AccountRow(R.drawable.ic_acc_shield, stringResource(R.string.account_session),
+                        stringResource(R.string.account_session_sub_demo)) { sheetNavigation.open(AccountSheet.Session) }
+                }
             }
             Group(R.string.account_group_preferences) {
-                AccountRow(R.drawable.ic_acc_palette, stringResource(R.string.account_appearance), null, value = stringResource(themeLabel(appearance))) { sheet = AccountSheet.Appearance }
+                AccountRow(R.drawable.ic_acc_palette, stringResource(R.string.account_appearance), null, value = stringResource(themeLabel(appearance))) { sheetNavigation.open(AccountSheet.Appearance) }
                 RowDivider()
-                AccountRow(R.drawable.ic_acc_globe, stringResource(R.string.account_currency), stringResource(R.string.account_currency_sub),
-                    value = if (demo) "PHP" else profile?.baseCurrency ?: "—") { sheet = AccountSheet.Currency }
+                AccountRow(R.drawable.ic_acc_globe, stringResource(R.string.account_currency), if (demo) stringResource(R.string.account_currency_sub) else null,
+                    value = if (demo) "PHP" else profile?.baseCurrency ?: "—") { sheetNavigation.open(AccountSheet.Currency) }
             }
             if (onManageCategories != null || onOpenCurrencyConverter != null) Group(R.string.account_group_finance) {
                 if (onManageCategories != null)
-                    AccountRow(R.drawable.ic_cat_tag, stringResource(R.string.account_categories), stringResource(R.string.account_categories_sub), onClick = onManageCategories)
+                    AccountRow(R.drawable.ic_cat_tag, stringResource(R.string.account_categories), stringResource(R.string.account_categories_sub), onClick = { sheetNavigation.leave(onManageCategories) })
                 if (onManageCategories != null && onOpenCurrencyConverter != null) RowDivider()
                 if (onOpenCurrencyConverter != null)
                     AccountRow(R.drawable.ic_acc_globe, stringResource(R.string.cur_entry_title),
                         stringResource(R.string.cur_entry_sub, com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies.all.size),
-                        onClick = onOpenCurrencyConverter)
+                        onClick = { sheetNavigation.leave(onOpenCurrencyConverter) })
             }
             if (!demo) Group(R.string.account_group_security) {
-                AccountRow(R.drawable.ic_acc_key, stringResource(R.string.account_password), null, pill = stringResource(R.string.account_unavailable_pill)) { sheet = AccountSheet.Password }
+                AccountRow(R.drawable.ic_acc_key, stringResource(R.string.account_password), null, pill = if (live == null) stringResource(R.string.account_unavailable_pill) else null) { sheetNavigation.open(AccountSheet.Password) }
             }
             Group(R.string.account_group_about) {
-                AccountRow(R.drawable.ic_cat_info, stringResource(R.string.account_about), stringResource(R.string.app_tagline), value = "v$version") { sheet = AccountSheet.About }
+                AccountRow(R.drawable.ic_cat_info, stringResource(R.string.account_about), stringResource(R.string.app_tagline), value = "v$version") { sheetNavigation.open(AccountSheet.About) }
             }
             val danger = scheme.error
-            OutlinedButton(onClick = { sheet = AccountSheet.Logout }, enabled = !loggingOut, shape = RoundedCornerShape(16.dp),
+            OutlinedButton(onClick = { sheetNavigation.open(AccountSheet.Logout) }, enabled = !loggingOut, shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.5.dp, danger.copy(alpha = 0.55f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = danger),
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp).heightIn(min = 52.dp)) {
                 Icon(painterResource(R.drawable.ic_owli_logout), null, modifier = Modifier.size(20.dp))
@@ -176,11 +188,17 @@ fun AccountScreen(
         }
     }
 
-    sheet?.let { current ->
-        ModalBottomSheet(onDismissRequest = { if (!loggingOut) sheet = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    if (!demo && live != null && (sheet == AccountSheet.Profile || sheet == AccountSheet.Password)) {
+        LiveAccountEditor(live, sheet == AccountSheet.Password, onClose = { sheetNavigation.dismiss() }, onSessionEnded = onSessionEnded, onPasswordChanged = onPasswordChanged)
+    }
+    if (!demo && sheet == AccountSheet.Currency && currencyPreferences != null) {
+        CurrencyPreferencesEditor(currencyPreferences, profile?.baseCurrency, isCurrent) { sheetNavigation.dismiss() }
+    }
+    sheet?.takeUnless { (!demo && it == AccountSheet.Currency && currencyPreferences != null) || !demo && live != null && (it == AccountSheet.Profile || it == AccountSheet.Password) }?.let { current ->
+        ModalBottomSheet(onDismissRequest = { if (!loggingOut) sheetNavigation.dismiss() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = scheme.surface) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val close: @Composable () -> Unit = { SheetButton(stringResource(R.string.account_close)) { sheet = null } }
+                val close: @Composable () -> Unit = { SheetButton(stringResource(R.string.account_close)) { sheetNavigation.dismiss() } }
                 when (current) {
                     AccountSheet.Profile -> {
                         SheetTitle(R.string.account_profile)
@@ -211,7 +229,7 @@ fun AccountScreen(
                         SheetTitle(R.string.account_currency)
                         Lead(stringResource(if (demo) R.string.account_currency_lead_demo else R.string.account_currency_lead))
                         Rows(buildList {
-                            add(stringResource(R.string.account_currency_account) to (if (demo) "PHP (₱)" else profile?.baseCurrency ?: stringResource(R.string.account_not_provided)))
+                            add(stringResource(R.string.account_currency_account) to (if (demo) "PHP (â‚±)" else profile?.baseCurrency ?: stringResource(R.string.account_not_provided)))
                             add(stringResource(R.string.account_currency_display) to stringResource(R.string.account_currency_display_value))
                             if (!demo) add(stringResource(R.string.account_rates) to stringResource(R.string.account_rates_value))
                         })
@@ -225,9 +243,11 @@ fun AccountScreen(
                     AccountSheet.About -> {
                         SheetTitle(R.string.account_about)
                         Lead(stringResource(R.string.account_about_lead))
-                        Rows(listOf(stringResource(R.string.account_version) to version,
-                            stringResource(R.string.account_build) to stringResource(if (debuggable) R.string.account_build_debug else R.string.account_build_release),
-                            stringResource(R.string.account_made_by) to stringResource(R.string.account_made_by_value)))
+                        Rows(buildList {
+                            add(stringResource(R.string.account_version) to version)
+                            if (demo) add(stringResource(R.string.account_build) to stringResource(if (debuggable) R.string.account_build_debug else R.string.account_build_release))
+                            add(stringResource(R.string.account_made_by) to stringResource(R.string.account_made_by_value))
+                        })
                         close()
                     }
                     AccountSheet.Logout -> {
@@ -242,7 +262,7 @@ fun AccountScreen(
                                 Text(stringResource(R.string.account_logging_out), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                             } else Text(stringResource(if (demo) R.string.account_exit_confirm else R.string.account_logout), style = typography.button)
                         }
-                        if (!loggingOut) SheetButton(stringResource(R.string.account_cancel)) { sheet = null }
+                        if (!loggingOut) SheetButton(stringResource(R.string.account_cancel)) { sheetNavigation.dismiss() }
                     }
                 }
             }

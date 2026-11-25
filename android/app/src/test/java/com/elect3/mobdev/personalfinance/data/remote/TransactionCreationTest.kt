@@ -123,10 +123,15 @@ class TransactionCreationTest {
         assertTrue(f.repository.create(request()) is CreationResult.Success)
         assertEquals("Bearer offline-access-2", f.requests.last().authorization())
     }
-    @Test fun expiryDuringDispatchRejectsResponseAsUncertain() = runTest {
+    @Test fun accessExpiryDoesNotDiscardAConfirmedSaveForTheSameRetainedLogin() = runTest {
         val f = Fixture(); f.login()
         f.reply = { f.clock.now = expiry; FinanceHttpResponse(201, response(it)) }
-        assertEquals(CreationResult.UnknownOutcome(UnknownCreationReason.SessionChanged, true), f.repository.create(request()))
+        // Authorized before expiry, confirmed by the server, same login, eligible refresh token.
+        assertTrue(f.repository.create(request()) is CreationResult.Success)
+        assertEquals(1, f.requests.size)
+        assertFalse(f.auth.hasActiveSession()) // No further use of the old access token.
+        assertEquals(CreationResult.Failure(FinanceFailure.SessionExpired), f.repository.create(request()))
+        assertEquals(1, f.requests.size)
     }
     @Test fun callerCancellationPropagates() = runTest {
         val f = Fixture(); f.login(); var cancelled = false

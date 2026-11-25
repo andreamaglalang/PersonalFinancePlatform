@@ -1,0 +1,38 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberCurrencyConverterViewModel
+@{
+    ViewData["Title"] = "Currency converter";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard member-converter-page account-settings-page">
+    <header class="member-dashboard-head"><div class="member-dashboard-title"><p class="owli-greeting">OWLI speaks 12 currencies</p><h1 class="owli-screen-title">Currency converter</h1></div></header>
+    <a class="account-back" asp-area="Member" asp-controller="Account" asp-action="Index"><partial name="_NavIcon" model='"chevl"' />Back to Account</a>
+    <p class="owli-caption">Explore an indicative reference rate. This quote never creates or changes a transaction.</p>
+    <div class="member-converter-grid">
+        <section class="member-card member-converter-card" aria-labelledby="convert-heading">
+            <div class="member-card-heading"><div><p class="owli-overline">Reference conversion</p><h2 id="convert-heading">Convert an amount</h2></div></div>
+            @if (Model.Error is not null) { <p class="notice login-notice" role="alert">@Model.Error</p> }
+            <form class="member-form member-converter-form" method="post" asp-action="Quote" data-busy="Getting rate…">
+                <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
+                <div class="member-converter-fields">
+                    <div class="member-field"><label class="member-label" for="Amount">Amount</label><input id="Amount" name="Amount" type="number" min="0.01" max="1000000000" step="0.01" inputmode="decimal" value="@Model.Amount" autocomplete="off" required /><span asp-validation-for="Amount" class="member-field-error"></span></div>
+                    <div class="member-field"><label class="member-label" for="From">From</label><select id="From" name="From">@foreach (var currency in Model.Currencies) { <option value="@currency" selected="@(Model.From == currency)">@currency</option> }</select><span asp-validation-for="From" class="member-field-error"></span></div>
+                    <button class="member-converter-swap" type="button" data-currency-swap aria-label="Swap currencies" title="Swap currencies">↔</button>
+                    <div class="member-field"><label class="member-label" for="To">To</label><select id="To" name="To">@foreach (var currency in Model.Currencies) { <option value="@currency" selected="@(Model.To == currency)">@currency</option> }</select><span asp-validation-for="To" class="member-field-error"></span></div>
+                </div>
+                <div class="member-form-actions"><button class="member-btn" type="submit">Get reference rate</button><a class="member-btn member-btn-secondary" asp-area="Member" asp-controller="Account" asp-action="Index">Cancel</a></div>
+            </form>
+        </section>
+        @if (Model.Quote is { } quote)
+        {
+            <section class="member-card member-converter-result" aria-live="polite" aria-labelledby="result-heading">
+                <p class="owli-overline">Indicative result</p><h2 id="result-heading">@quote.ConvertedAmount.ToString("N2", invariant) @quote.To</h2>
+                <p>@quote.Amount.ToString("N2", invariant) @quote.From at @quote.Rate.ToString("0.########", invariant) @quote.To per @quote.From</p>
+                <dl class="member-converter-facts"><div><dt>Reference date</dt><dd>@quote.RateDate.ToString("MMMM d, yyyy", System.Globalization.CultureInfo.CurrentCulture)</dd></div><div><dt>Source</dt><dd>@quote.Source</dd></div></dl>
+                <p class="owli-caption">Rates are indicative reference rates, not a live market price or a guaranteed transaction rate. A saved foreign-currency transaction uses a separately validated rate for its transaction date.</p>
+            </section>
+        }
+        else { <section class="member-card member-converter-result member-converter-empty"><span aria-hidden="true">↔</span><h2>Reference rates, clearly explained</h2><p class="owli-caption">Choose a supported pair to view the published rate date and conversion. Rates are provided through Frankfurter.</p></section> }
+    </div>
+    <p class="owli-caption member-converter-footer">For a transaction in another currency, <a asp-area="Member" asp-controller="Activity" asp-action="Create">add a transaction</a> and review its transaction-date rate before saving.</p>
+</section>

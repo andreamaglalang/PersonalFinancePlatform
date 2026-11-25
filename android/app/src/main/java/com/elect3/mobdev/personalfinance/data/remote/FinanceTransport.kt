@@ -12,15 +12,19 @@ import kotlin.coroutines.resume
 
 internal enum class FinanceResource(val path: String) { Categories("categories"), Transactions("transactions"), Budgets("budgets"), ExchangeRateQuote("exchange-rates/quote") }
 internal class FinanceSessionLease(
-    private val token: String, val lifetime: Job, private val valid: () -> Boolean,
+    private val token: String, val lifetime: Job,
+    private val canAuthorize: () -> Boolean = { true }, private val onUnauthorized: () -> Unit = {}, private val valid: () -> Boolean,
 ) {
     fun isCurrent() = valid()
+    fun rejectAuthorization() = onUnauthorized()
     fun authorization(): String {
+        if (!canAuthorize() || !valid()) throw ExpiredFinanceAccess()
         require(token.isNotBlank() && token.length <= 16384 && token.all { it.code in 33..126 }) { "Invalid session" }
         return "Bearer $token"
     }
     override fun toString() = "FinanceSessionLease([redacted])"
 }
+internal class ExpiredFinanceAccess : IllegalStateException()
 internal class FinanceHttpRequest(val url: URL, private val bearer: String) {
     fun authorization() = bearer
     override fun toString() = "FinanceHttpRequest([redacted])"
@@ -79,7 +83,13 @@ internal class AuthenticatedFinanceTransport(
 ) {
     suspend fun <T> get(resource: FinanceResource, query: String, decode: (String) -> T): FinanceResult<T> {
         val url = configuration.financeUrl(resource, query) ?: return FinanceResult.Failure(FinanceFailure.NotConfigured)
-        val lease = when (val access = auth.financeSession()) {
+        return getUrl(url, decode)
+    }
+
+    suspend fun <T> getUrl(url: URL?, decode: (String) -> T): FinanceResult<T> = getAttempt(url, decode, true)
+    private suspend fun <T> getAttempt(url: URL?, decode: (String) -> T, canRecover: Boolean): FinanceResult<T> {
+        if (url == null) return FinanceResult.Failure(FinanceFailure.NotConfigured)
+        val lease = when (val access = auth.readyFinanceSession()) {
             is FinanceResult.Success -> access.value
             is FinanceResult.Failure -> return access
         }
@@ -100,6 +110,13 @@ internal class AuthenticatedFinanceTransport(
                             // JSON reader IO failures are malformed responses, not network failures.
                             throw InvalidFinanceResponse()
                         }
+                    } else if (response.status == 401) {
+                        lease.rejectAuthorization()
+                        if (canRecover) {
+                            auth.refreshIfDue()
+                            if (auth.hasActiveSession()) return@async getAttempt(url, decode, false)
+                        }
+                        auth.financeAccessResult()
                     } else FinanceResult.Failure(statusFailure(response.status))
                     ensureActive()
                     if (lease.isCurrent()) result else FinanceResult.Failure(FinanceFailure.SessionExpired)
@@ -107,6 +124,8 @@ internal class AuthenticatedFinanceTransport(
                 val registration = lease.lifetime.invokeOnCompletion { work.cancel(FinanceSessionChanged()) }
                 try { work.start(); work.await() } finally { registration.dispose() }
             }
+        } catch (_: ExpiredFinanceAccess) {
+            auth.financeAccessResult()
         } catch (changed: FinanceSessionChanged) {
             currentCoroutineContext().ensureActive()
             FinanceResult.Failure(FinanceFailure.SessionExpired)
@@ -123,7 +142,7 @@ internal fun statusFailure(status: Int) = when (status) {
     401 -> FinanceFailure.SessionExpired
     403 -> FinanceFailure.AccessDenied
     404 -> FinanceFailure.NotFound
-    409 -> FinanceFailure.Conflict
+    409, 412, 428 -> FinanceFailure.Conflict
     429 -> FinanceFailure.RateLimited
     in 500..599 -> FinanceFailure.Unavailable
     else -> FinanceFailure.InvalidResponse

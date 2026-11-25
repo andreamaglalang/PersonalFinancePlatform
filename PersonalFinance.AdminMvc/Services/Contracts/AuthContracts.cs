@@ -13,6 +13,40 @@ public sealed class LoginRequest
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class UpdateProfileRequest
+{
+    [Required, StringLength(100, MinimumLength = 1)]
+    public string FullName { get; set; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class ChangePasswordRequest
+{
+    [Required, StringLength(128)]
+    public string CurrentPassword { get; set; } = string.Empty;
+    [Required, StringLength(128, MinimumLength = 12)]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+// Registration creates a regular member account. The API assigns the User role and issues no tokens,
+// so the client contract deliberately carries no role, privilege or session field.
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class RegisterRequest
+{
+    [Required, StringLength(100)]
+    public string FullName { get; set; } = string.Empty;
+
+    [Required, EmailAddress, StringLength(256)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, StringLength(128, MinimumLength = 12)]
+    public string Password { get; set; } = string.Empty;
+
+    [Required, Compare(nameof(Password))]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class RefreshRequest
 {
     [Required, StringLength(86, MinimumLength = 86), RegularExpression("^[A-Za-z0-9_-]{86}$")]
@@ -51,6 +85,9 @@ public static class ContractValidation
             && value.AccessTokenExpiresAtUtc > now && value.RefreshTokenExpiresAtUtc > now
             && value.AccessTokenExpiresAtUtc <= value.RefreshTokenExpiresAtUtc;
     }
+
+    public static bool Authenticated(CurrentUserResponse? user) =>
+        User(user) && user!.Roles.Count > 0;
 
     public static bool Administrator(CurrentUserResponse user) =>
         User(user) && user.Roles.Contains("Administrator", StringComparer.Ordinal);

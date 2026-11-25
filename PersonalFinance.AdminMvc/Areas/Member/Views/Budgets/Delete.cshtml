@@ -1,0 +1,40 @@
+@model PersonalFinance.AdminMvc.Services.BudgetResponse
+@{
+    ViewData["Title"] = "Delete budget";
+    Layout = "_MemberLayout";
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+<section class="member-dashboard">
+    <header class="member-dashboard-head">
+        <span class="member-avatar" aria-hidden="true"><partial name="_OwlMark" /></span>
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Remove a monthly limit</p>
+            <h1 class="owli-screen-title">Delete budget</h1>
+        </div>
+    </header>
+
+    <div class="member-card">
+        <dl class="member-detail">
+            <dt>Month</dt>
+            <dd>@Model.PeriodMonth.ToString("yyyy-MM", invariant)</dd>
+            <dt>Category</dt>
+            <dd>@Model.CategoryName</dd>
+            <dt>Limit</dt>
+            <dd class="member-amount">@Model.LimitAmount.ToString("0.00", invariant) @Model.BaseCurrency</dd>
+            <dt>Spent</dt>
+            <dd class="member-amount">@Model.SpentAmount.ToString("0.00", invariant) @Model.BaseCurrency</dd>
+            <dt>Alert threshold</dt>
+            <dd>@Model.AlertThresholdPct%</dd>
+            <dt>Status</dt>
+            <dd>@Model.Status</dd>
+        </dl>
+
+        <p class="owli-caption">This cannot be undone. The budget will be removed from your OWLI account on
+            every platform.</p>
+
+        <form class="member-form-actions" method="post" asp-action="Delete" asp-route-id="@Model.BudgetId">
+            <button class="member-btn member-btn-danger" type="submit">Delete budget</button>
+            <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
+        </form>
+    </div>
+</section>

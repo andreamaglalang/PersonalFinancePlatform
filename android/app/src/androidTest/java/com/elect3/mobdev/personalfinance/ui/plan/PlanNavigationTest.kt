@@ -42,6 +42,15 @@ class PlanNavigationTest {
         compose.onNodeWithText("HOME CONTENT").assertIsDisplayed()
     }
 
+    @Test fun liveTabsDoNotAppendRecordCounts() {
+        compose.setContent { PersonalFinanceTheme {
+            PlanScreen(false, YearMonth.of(2026, 11), PlanSections(budgetCount = 5, goalCount = 2, billCount = 3))
+        } }
+        compose.onNodeWithText(text(R.string.plan_tab_budgets)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.plan_tab_budgets) + "  5").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.plan_demo_ribbon)).assertDoesNotExist()
+    }
+
     @Test fun withoutPlanContentPlanStaysAnUnavailableSoonItem() {
         show(withPlan = false)
         compose.onNode(hasText(text(R.string.plan_title)) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).assertDoesNotExist()

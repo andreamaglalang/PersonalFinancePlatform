@@ -1,0 +1,118 @@
+@model PersonalFinance.AdminMvc.ViewModels.MemberTransactionDraftViewModel
+@{
+    ViewData["Title"] = "Add transaction";
+    Layout = "_MemberLayout";
+}
+<section class="member-dashboard activity-entry-page">
+    <header class="member-dashboard-head member-page-heading">
+        <div class="member-dashboard-title">
+            <p class="owli-greeting">Record a transaction</p>
+            <h1 class="owli-screen-title">@(Model.TransactionId.HasValue ? "Edit transaction" : "Add transaction")</h1>
+        </div>
+        <a class="member-btn" href="@Url.Action("Index")">Back to Activity</a>
+    </header>
+
+    <div class="member-card activity-entry-card">
+        <form class="member-form activity-entry-form" data-transaction-entry method="post" asp-action="@(Model.TransactionId.HasValue ? "Edit" : "Create")" asp-route-id="@Model.TransactionId" data-busy>
+            <div class="activity-entry-wide"><div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div></div>
+
+            <div class="member-field activity-entry-wide">
+                <span class="member-label">Type</span>
+                <div class="member-period-tabs" role="radiogroup" aria-label="Transaction type">
+                    <label class="member-type">
+                        <input type="radio" name="Type" value="Expense"
+                               checked="@(Model.Type == "Expense")" />
+                        <span>Expense</span>
+                    </label>
+                    <label class="member-type">
+                        <input type="radio" name="Type" value="Income"
+                               checked="@(Model.Type == "Income")" />
+                        <span>Income</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="member-field activity-entry-wide">
+                <label class="member-label" for="CategoryId">Category</label>
+                <div class="activity-entry-category"><span data-entry-category-icon aria-hidden="true"><partial name="_ActivityCategoryIcon" model='@(PersonalFinance.AdminMvc.Services.ActivityProjection.IconKey(Model.Categories.FirstOrDefault(c => c.CategoryId == Model.CategoryId)?.Name ?? "", Model.Type))' /></span><select id="CategoryId" name="CategoryId" required><option value="">Choose a category</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option data-type="@category.Type" selected="@(Model.CategoryId == category.CategoryId)" value="@category.CategoryId">
+                            @category.Name (@category.Type)</option>
+                    }
+                </select></div>
+                @foreach (var category in Model.Categories) { <template data-category-icon="@category.CategoryId"><partial name="_ActivityCategoryIcon" model='@PersonalFinance.AdminMvc.Services.ActivityProjection.IconKey(category.Name, category.Type)' /></template> }
+                <span asp-validation-for="CategoryId" class="member-field-error"></span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-label" for="Amount">Amount</label>
+                <input id="Amount" name="Amount" type="number" step="0.01" min="0.01" inputmode="decimal"
+                       value="@(Model.Amount?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" />
+                <span asp-validation-for="Amount" class="member-field-error"></span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-label" for="CurrencyCode">Currency</label>
+                <select id="CurrencyCode" name="CurrencyCode">
+                    @foreach (var currency in Model.Currencies)
+                    {
+                        <option selected="@(Model.CurrencyCode == currency)" value="@currency">@currency</option>
+                    }
+                </select>
+                <span asp-validation-for="CurrencyCode" class="member-field-error"></span>
+                <span class="owli-caption">
+                    Selected currency: @Model.CurrencyCode · Account currency: @Model.BaseCurrency.
+                    Amounts in other currencies are converted to @Model.BaseCurrency by the OWLI server when saved.
+                </span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-label" for="TransactionDate">Date</label>
+                <input id="TransactionDate" name="TransactionDate" type="date"
+                       value="@(Model.TransactionDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))" />
+                <span asp-validation-for="TransactionDate" class="member-field-error"></span>
+            </div>
+
+            <div class="member-field">
+                <label class="member-label" for="Description">Description</label>
+                <input id="Description" name="Description" type="text" maxlength="200"
+                       value="@Model.Description" placeholder="Optional" />
+                <span asp-validation-for="Description" class="member-field-error"></span>
+            </div>
+
+            @if (Model.FxQuote is { } quote)
+            {
+                <div class="member-fx-review activity-entry-wide" role="group" aria-labelledby="fx-review-title">
+                    <h2 id="fx-review-title" class="member-fx-title">Review the exchange rate</h2>
+                    <dl class="member-detail">
+                        <dt>Amount</dt>
+                        <dd>@quote.Amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) @quote.CurrencyCode</dd>
+                        <dt>Exchange rate</dt>
+                        <dd>1 @quote.CurrencyCode = @quote.Rate.ToString("0.00000000", System.Globalization.CultureInfo.InvariantCulture) @quote.BaseCurrency</dd>
+                        <dt>Rate date</dt>
+                        <dd><time datetime="@quote.RateDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)">@quote.RateDate.ToString("dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture)</time></dd>
+                        <dt>You will record</dt>
+                        <dd>@quote.BaseAmount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) @quote.BaseCurrency</dd>
+                        <dt>Source</dt>
+                        <dd>@quote.Source</dd>
+                    </dl>
+                    <label class="member-check" for="FxConfirmed">
+                        <input id="FxConfirmed" type="checkbox" name="FxConfirmed" value="true" />
+                        <span>I confirm this exchange rate</span>
+                    </label>
+                    <input type="hidden" name="FxProof" value="@Model.FxProof" />
+                    <p class="owli-caption">
+                        Reference rates published by the European Central Bank and retrieved through Frankfurter.
+                        The transaction is not saved until you confirm.
+                    </p>
+                </div>
+            }
+
+            <div class="member-form-actions activity-entry-wide">
+                <button class="member-btn" type="submit">@(Model.FxQuote is not null ? "Confirm and save" : Model.TransactionId.HasValue ? "Save changes" : "Save transaction")</button>
+                <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>

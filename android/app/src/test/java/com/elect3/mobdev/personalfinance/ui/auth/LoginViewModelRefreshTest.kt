@@ -81,14 +81,14 @@ class LoginViewModelRefreshTest {
         assertTrue(AuthDiagnosticEvent.REFRESH_SUCCEEDED in diagnostics.events)
     }
 
-    @Test fun rejectedRefreshSignsOutAtTheOriginalExpiryWithoutRetryOrLogout() = verify {
+    @Test fun rejectedRefreshSignsOutImmediatelyWithoutRetryOrLogout() = verify {
         val clock = MutableAuthClock(expiry.minusSeconds(90))
         val diagnostics = RecordingAuthDiagnostics()
         val api = FakeApi { ApiResult.Failure(AuthFailure.SessionExpired) }
         val vm = model(api, clock, diagnostics)
         vm.login("demo@example.test", "test-only-input"); runCurrent()
         advanceTimeBy(10_000); runCurrent()
-        assertEquals(EntryMode.Authenticated, vm.state.value.entryMode)
+        assertEquals(EntryMode.SignedOut, vm.state.value.entryMode)
         assertEquals(1, api.refreshTokens.size)
         clock.now = expiry
         advanceTimeBy(1000); runCurrent()
@@ -106,6 +106,45 @@ class LoginViewModelRefreshTest {
         repeat(5) { clock.now = clock.now.plusSeconds(10); advanceTimeBy(1000); runCurrent() }
         assertEquals(1, api.refreshTokens.size)
         assertEquals(EntryMode.Authenticated, vm.state.value.entryMode)
+    }
+
+    @Test fun foregroundRecoversAfterExpiryWithoutChangingAccountContent() = verify {
+        val clock = MutableAuthClock(expiry.minusSeconds(300))
+        val api = FakeApi { ApiResult.Success(payload("access-new", 'b', expiry.plusSeconds(900))) }
+        val vm = model(api, clock, RecordingAuthDiagnostics())
+        vm.login("demo@example.test", "fixture-only"); runCurrent()
+        val key = vm.state.value.authenticatedContentKey
+        // Wall time advanced while Android was suspended; no timer executions in between.
+        clock.now = expiry.plusSeconds(60)
+        vm.onForeground(); vm.onForeground(); runCurrent()
+        assertEquals(1, api.refreshTokens.size)
+        assertEquals(EntryMode.Authenticated, vm.state.value.entryMode)
+        assertEquals(key, vm.state.value.authenticatedContentKey)
+    }
+
+    @Test fun foregroundFailureSignsOutWithoutRetryAndLogoutCannotRestore() = verify {
+        val clock = MutableAuthClock(expiry.minusSeconds(300))
+        val api = FakeApi { ApiResult.Failure(AuthFailure.Timeout) }
+        val vm = model(api, clock, RecordingAuthDiagnostics())
+        vm.login("demo@example.test", "fixture-only"); runCurrent()
+        clock.now = expiry.plusSeconds(1)
+        vm.onForeground(); runCurrent()
+        assertEquals(EntryMode.SignedOut, vm.state.value.entryMode)
+        assertEquals(AuthFailure.RenewalUnconfirmed, vm.state.value.error)
+        vm.onForeground(); runCurrent()
+        assertEquals(1, api.refreshTokens.size)
+    }
+
+    @Test fun foregroundAfterLogoutDoesNotRefreshOrRestoreSession() = verify {
+        val clock = MutableAuthClock(expiry.minusSeconds(300))
+        val api = FakeApi { error("Logged-out session must not refresh") }
+        val vm = model(api, clock, RecordingAuthDiagnostics())
+        vm.login("demo@example.test", "fixture-only"); runCurrent()
+        vm.logout(); runCurrent()
+        clock.now = expiry.plusSeconds(1)
+        vm.onForeground(); runCurrent()
+        assertTrue(api.refreshTokens.isEmpty())
+        assertEquals(EntryMode.SignedOut, vm.state.value.entryMode)
     }
 
     @Test fun mockDemoNeverRefreshes() = verify {
