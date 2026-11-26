@@ -41,6 +41,7 @@ await InsightsRedesignChecks.RunAsync();
 await InsightsRenderChecks.RunAsync();
 MemberGoalBillChecks.Run();
 MemberNotificationChecks.Run();
+await MemberSummaryChecks.RunAsync();
 MemberCurrencyChecks.Run();
 await MemberAccountCurrencyConverterChecks.RunAsync();
 await AccountRenderChecks.RunAsync();

@@ -15,6 +15,8 @@ public sealed class MemberInsightsViewModel
     public IReadOnlyDictionary<int, string> CategoryColors { get; set; } = new Dictionary<int, string>();
     public bool HistoryPartial { get; set; }
     public string? ReportError { get; set; }
+    public IReadOnlyList<MonthlySummaryResponse> Summaries { get; set; } = [];
+    public string? SummariesError { get; set; }
     public string? QuoteFrom { get; set; }
     public string? QuoteTo { get; set; }
     public string? QuoteAmount { get; set; }
