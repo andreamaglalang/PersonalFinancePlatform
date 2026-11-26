@@ -33,6 +33,29 @@ public sealed class NotificationsApiClient(HttpClient http)
     public Task<NotificationResult> ListAsync(bool unreadOnly, int page, string bearer, CancellationToken ct) =>
         SendAsync(unreadOnly, page, bearer, ct);
 
+    /// <summary>C3: POST api/notifications/{id}/read. Returns 204 on success, otherwise the mapped status.</summary>
+    public Task<int> MarkReadAsync(int id, string bearer, CancellationToken ct) =>
+        id > 0 ? PostAsync(FormattableString.Invariant($"api/notifications/{id}/read"), bearer, ct) : Task.FromResult(400);
+
+    /// <summary>C3: POST api/notifications/read-all.</summary>
+    public Task<int> MarkAllReadAsync(string bearer, CancellationToken ct) => PostAsync("api/notifications/read-all", bearer, ct);
+
+    private async Task<int> PostAsync(string route, string bearer, CancellationToken ct)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, route);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
+            var status = (int)response.StatusCode;
+            return status is 204 or 400 or 401 or 403 or 404 or 429 ? status : 503;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
+        {
+            return 503;
+        }
+    }
+
     private async Task<NotificationResult> SendAsync(bool unreadOnly, int page, string bearer, CancellationToken ct)
     {
         try

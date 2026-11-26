@@ -112,5 +112,28 @@
                 </tbody></table>
             </div>
         </section>
+        <section class="insights-card insights-snapshots" aria-labelledby="snapshots-title">
+            <div class="insights-comparison-table">
+                <h2 id="snapshots-title">Monthly snapshots</h2>
+                <p class="owli-caption">Saved automatically on the first day of each month and not changed afterwards. The overview above always reflects your latest transactions.</p>
+                @if (Model.SummariesError is not null)
+                {
+                    <p class="notice login-notice" role="alert">@Model.SummariesError</p>
+                }
+                else if (Model.Summaries.Count == 0)
+                {
+                    <p class="member-empty" role="status">No monthly snapshots yet. OWLI saves one at the start of each month.</p>
+                }
+                else
+                {
+                    <table><caption class="visually-hidden">Saved monthly snapshots, newest first</caption><thead><tr><th scope="col">Month</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Net</th><th scope="col">Saved to goals</th></tr></thead><tbody>
+                    @foreach (var snapshot in Model.Summaries)
+                    {
+                        <tr><th scope="row"><time datetime="@snapshot.SummaryMonth.ToString("yyyy-MM", invariant)">@snapshot.SummaryMonth.ToString("MMM yyyy", invariant)</time></th><td>@Money(snapshot.TotalIncome, snapshot.BaseCurrency)</td><td>@Money(snapshot.TotalExpense, snapshot.BaseCurrency)</td><td class="@(snapshot.NetCashFlow < 0 ? "insights-net-negative" : snapshot.NetCashFlow > 0 ? "insights-net-positive" : "")">@SignedMoney(snapshot.NetCashFlow, snapshot.BaseCurrency)</td><td>@Money(snapshot.SavingsAllocated, snapshot.BaseCurrency)</td></tr>
+                    }
+                    </tbody></table>
+                }
+            </div>
+        </section>
     }
 </section>
