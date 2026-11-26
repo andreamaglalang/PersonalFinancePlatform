@@ -95,6 +95,23 @@ dotnet PersonalFinance.AdminMvc.dll
 
 Retain previous binaries, checksums and configuration version. Under separate service-change approval, withdraw traffic, stop only deployment service instances, switch both release directories to the previous compatible pair and restart through their supervisor. Restore matching non-secret configuration references; preserve signing key unless a separately reviewed rotation requires otherwise. MVC sessions are lost; users sign in again. Do not touch shared port 7027. No database rollback/restore/migration is part of this procedure. If schema compatibility is uncertain, stop and refer to DBA rather than launch incompatible binaries. First deployment has no prior release: keep service offline on failure. Document version, reason and smoke results.
 
+## Phase 3 deployment readiness (R11)
+
+- **Processes:** API, MVC and the independent `PersonalFinance.Worker` run as three separately supervised
+  processes. Publish the worker with `dotnet publish PersonalFinance.Worker -c Release --self-contained false -p:UseAppHost=false -o deployment/out/worker`.
+  Configure it with its own settings (`OWLI_WORKER_SETTINGS` file or environment variables; see
+  [worker preparation](../docs/worker-config/README.md)). Stop it with SIGTERM. Keep `Hangfire:Enabled=false`
+  until the controlled cutover to `OWLI_Hangfire` is approved. The API never hosts Hangfire.
+- **Android release endpoint:** build with
+  `./gradlew assembleRelease -PowliApiBaseUrl=https://<approved-api-host>/` (or
+  `ORG_GRADLE_PROJECT_owliApiBaseUrl`). A non-HTTPS value fails the build. Without the property, the release
+  app stays unconfigured, with no default host. Release builds trust only system CAs, so the API needs a
+  publicly trusted certificate. Signing is a separate, owner-held step.
+- **JDK:** Android builds need JDK 17 to 25 (CI uses 17; Android Studio's bundled JBR works). JDK 26 fails
+  AGP's JDK image transform once `BuildConfig` is generated.
+- **Live deployment (D10)** stays a required final deliverable. It is blocked until the owner supplies the host,
+  certificates, secrets and approval.
+
 ## Android deployment notes
 
 Android checkout was untouched. Later change its API base URL from workstation/emulator/local LAN addresses to the approved public HTTPS API origin, retaining the API route prefix expected by Retrofit. Check release network configuration trusts the public certificate, do not enable cleartext or bypass certificate verification. Keep JWT key/SQL credentials out of APK. Verify issuer/audience expectations, token refresh/logout, error mapping and Room synchronization against approved schema/contracts. Do not queue financial writes without an agreed conflict/replay policy. No background-job endpoint is promised here.
