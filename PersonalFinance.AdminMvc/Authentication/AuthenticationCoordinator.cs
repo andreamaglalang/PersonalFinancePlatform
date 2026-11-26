@@ -7,6 +7,10 @@ namespace PersonalFinance.AdminMvc.Authentication;
 
 public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenticationApiClient api)
 {
+    /// <summary>A successful API session check is reused this long, so page views don't each call GET api/auth/me.
+    /// The API still authorizes every finance call itself (JWT + security stamp).</summary>
+    public static readonly TimeSpan VerificationReuse = TimeSpan.FromSeconds(30);
+
     public async Task<ApiResult<AdminSession>> LoginAsync(LoginRequest request, CancellationToken ct)
     {
         var login = await api.LoginAsync(request, ct);
@@ -33,6 +37,13 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
         try
         {
             if (!store.IsCurrent(session)) return Fail(session, ApiFailure.Unauthorized);
+            var now = DateTimeOffset.UtcNow;
+            if (session.Tokens.AccessTokenExpiresAtUtc > DateTime.UtcNow.AddSeconds(60)
+                && session.LastVerifiedAt is { } verified && now - verified < VerificationReuse)
+            {
+                session.LastActivity = now;
+                return ApiFailure.None;
+            }
             if (session.Tokens.AccessTokenExpiresAtUtc <= DateTime.UtcNow.AddSeconds(60))
             {
                 // Held across the request AND atomic replacement. Never retry an ambiguous rotation.
@@ -62,6 +73,7 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
             }
             session.User = me.Value;
             session.LastActivity = DateTimeOffset.UtcNow;
+            session.LastVerifiedAt = session.LastActivity;
             return ApiFailure.None;
         }
         catch
