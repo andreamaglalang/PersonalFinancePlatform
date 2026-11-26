@@ -15,13 +15,15 @@ Keep **OWLI** as the product name.
 ```powershell
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
-git switch integration/owli-platform
+git switch dev
 ```
 
-Work on the Integration Branch `integration/owli-platform`, or on a branch created from it. An earlier integration
-branch with the same history up to this branch's creation is kept on GitHub for reference only; do not develop on it.
-**`main` is still the initial
-commit. Never push to it or force-push anywhere.** Merging into `main` needs the owner's review via a pull request.
+Follow the [Git workflow](../DEVELOPMENT_WORKFLOW.md): `dev` is the permanent
+development/integration branch, initialized from `handoff/owli-20261125`. Start
+temporary task branches from synchronized `dev` and integrate verified changes
+back into `dev` through review. Preserve handoff as the original baseline.
+`main` is reserved for stable releases with explicit owner approval. Never force-push.
+Use the [current handoff](../handoff/README.md) for current setup and verification status.
 
 ## 2. Read in this order
 
@@ -46,11 +48,14 @@ Sanitized configuration examples are in [config-examples/](config-examples/).
 - **Do not weaken TLS.** No certificate-validation bypasses and no cleartext HTTP in the Android app.
 - Offline tests passing does **not** mean a feature works end to end. Record what you actually verified.
 
-## 4. Branch map (verified on GitHub)
+## 4. Historical integration branch map (21 November 2026)
+
+This records earlier consolidation, not current development instructions.
+The [Git workflow](../DEVELOPMENT_WORKFLOW.md) defines current branch responsibilities.
 
 | Branch | Purpose | Status |
 | --- | --- | --- |
-| `integration/owli-platform` | **Integration Branch: use this.** All Android, MVC, API, reports, FX, Hangfire and provisioning work merged | current |
+| `integration/owli-platform` | Earlier integration of Android, MVC, API, reports, FX, Hangfire and provisioning work | historical; use `dev` for new development |
 | `deployment/owli-server` | Backend + MVC integration used for the earlier deployment candidate | merged into integration |
 | `feature/backend-hangfire-demo`, `feature/backend-fx-quote`, `feature/reports-monthly-handoff` | Backend feature lines | merged |
 | `feature/mvc-admin-dashboard`, `review/mvc-admin-dashboard-c77cd54` | MVC feature lines | merged |

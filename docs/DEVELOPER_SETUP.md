@@ -1,14 +1,16 @@
 # OWLI — Development Setup
 
-This page is the short entry point for setting up OWLI on a development machine. The full documentation is in
-**[docs/developer-guide/](developer-guide/README.md)**. If anything here disagrees with that folder, the folder wins.
+This page is a short setup entry point. Use the [current handoff](handoff/README.md)
+for current setup/status and the [Git workflow](DEVELOPMENT_WORKFLOW.md) for branch policy.
+The [developer guide](developer-guide/README.md) remains a technical reference; older
+implementation and verification claims are historical.
 
 Quick start:
 
 ```
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
-git switch integration/owli-platform
+git switch dev
 ```
 
 Then read [README](developer-guide/README.md) → [WINDOWS_SETUP](developer-guide/WINDOWS_SETUP.md) →

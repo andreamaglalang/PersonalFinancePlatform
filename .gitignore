@@ -86,6 +86,8 @@ appsettings.*.Local.json
 /artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-181920-116-0fe0a20856e04e788138c1b902c19e76.json
 /artifacts/DevelopmentDatabaseVerification/ReadOnly-20261102-182006-476-d322628c2ee64567b8035e6b0e5c46f6.json
 /artifacts/SourceIntegrity-8B-5G-5C-B3-R1-3cc4de2119d34de5b83ea37de753c460.sha256.json
+# Unavailable historical documents: retain exclusions until their contents are reviewed.
+# See docs/README.md for the publication review and full list.
 /docs/CategoryUniqueness_BackupRecovery_ReadinessAssessment.md
 /docs/CategoryUniqueness_ConstraintExpression_Review.md
 /docs/CategoryUniqueness_DevelopmentMigration_ExecutionRunbook.md

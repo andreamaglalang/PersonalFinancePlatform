@@ -25,7 +25,7 @@ winget install Google.AndroidStudio
 
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
-git switch integration/owli-platform
+git switch dev
 dotnet tool restore
 dotnet --list-sdks
 sqllocaldb info          # should list MSSQLLocalDB

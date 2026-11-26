@@ -4,8 +4,13 @@ This is the current setup entry point. It supersedes dated claims in `docs/devel
 
 ## Clone and prerequisites
 
+Development now follows the [Git workflow](../DEVELOPMENT_WORKFLOW.md). The clone
+command below requires `dev` initialization to be complete. Handoff is the
+original baseline and recovery reference; new work belongs on task branches
+from synchronized `dev`, with verified changes integrated back into `dev`.
+
 ```powershell
-git clone --branch handoff/owli-20261125 --single-branch https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
+git clone --branch dev https://github.com/andreamaglalang/PersonalFinancePlatform.git OWLI
 cd OWLI
 ```
 
@@ -64,4 +69,4 @@ The newer alternative `*AutomationJobs` / `HangfireJobRegistration` classes are 
 
 ## Continue development
 
-Read [SOURCE_MAP.md](SOURCE_MAP.md), [ISSUES.md](ISSUES.md), and [VERIFICATION.md](VERIFICATION.md). Create your own feature branch from this handoff. No original database, Cloudflare tunnel, account, certificate, secret store, absolute SDK path, or deployment service is required. Existing deployment scripts are historical opt-in material; none runs during setup, build, or tests.
+Read [SOURCE_MAP.md](SOURCE_MAP.md), [ISSUES.md](ISSUES.md), and [VERIFICATION.md](VERIFICATION.md). Create your own task branch from the latest synchronized `dev`; preserve this handoff as the original baseline. No original database, Cloudflare tunnel, account, certificate, secret store, absolute SDK path, or deployment service is required. Existing deployment scripts are historical opt-in material; none runs during setup, build, or tests.

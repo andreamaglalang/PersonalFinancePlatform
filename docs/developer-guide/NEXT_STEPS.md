@@ -1,4 +1,8 @@
-# Next Steps (prioritized)
+# Next Steps (historical priorities)
+
+These priorities and test counts describe the earlier integration. Use the
+[current handoff issues](../handoff/ISSUES.md) for current status and the
+[Git workflow](../DEVELOPMENT_WORKFLOW.md) for all new development planning.
 
 ## Before Monday's presentation
 
@@ -28,6 +32,8 @@
     and reporting must cover all users. Then extend the MVC pages.
 11. Hangfire: owner-approved schema installation script, then enable it in Development only and observe the 3 jobs.
     Consider a dev trigger for bill reminders.
-12. Update the root `README.md` to match `docs/developer-guide/`. Open a reviewed PR from the integration branch into `main`.
+12. Keep development documentation current. Integrate completed, verified task
+    branches into `dev`; propose a `dev` to `main` release only after final
+    verification and explicit owner approval.
 
-Work on short-lived branches from `integration/owli-platform`. Push with normal pushes only.
+Work on short-lived branches from synchronized `dev`. Push with normal pushes only.
