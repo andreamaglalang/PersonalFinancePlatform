@@ -39,9 +39,13 @@
                         <strong class="member-bill-amount">@bill.Amount.ToString("N2", invariant) <small>@bill.CurrencyCode</small></strong>
                         <p class="member-bill-due">Next due <time datetime="@bill.NextDueDate.ToString("yyyy-MM-dd", invariant)">@bill.NextDueDate.ToString("MMMM d, yyyy", invariant)</time></p>
                         <footer class="member-bill-actions">
-                            @if (bill.IsActive)
+                            @if (bill.IsActive && bill.NextDueDate <= PersonalFinance.AdminMvc.Services.BudgetPlanSummary.PhilippineToday)
                             {
                                 <a class="member-btn member-btn-small" href="@Url.Action("Pay", new { id = bill.BillId })">Record payment</a>
+                            }
+                            else if (bill.IsActive)
+                            {
+                                <span class="owli-caption">Payment opens on @bill.NextDueDate.ToString("MMMM d", invariant)</span>
                             }
                             <a class="member-row-link" href="@Url.Action("Edit", new { id = bill.BillId })">Edit</a>
                             <a class="member-row-link member-row-danger" href="@Url.Action("Delete", new { id = bill.BillId })">Delete</a>
