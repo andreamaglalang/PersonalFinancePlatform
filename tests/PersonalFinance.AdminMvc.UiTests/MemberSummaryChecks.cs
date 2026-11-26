@@ -21,6 +21,8 @@ internal static class MemberSummaryChecks
         var view = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Views", "Reports", "Index.cshtml"));
         Check(view.Contains("Monthly snapshots") && view.Contains("No monthly snapshots yet") && view.Contains("Model.SummariesError")
             && view.Contains("<caption class=\"visually-hidden\">Saved monthly snapshots"), "Snapshot section has empty, error and accessible table states.");
+        Check(view.Contains("@Money(report.SavingsContributed, report.BaseCurrency)</strong> saved to goals"),
+            "Parity with Android Insights: the monthly overview shows savings contributed (M2).");
         Console.WriteLine("PASS: Reports shows stored monthly snapshots (C4) with validation, empty and error states.");
     }
 
