@@ -1,6 +1,7 @@
 # OWLI Phase 2 — Prioritized Implementation Roadmap
 
-> Status: **proposed, awaiting owner approval**, 26 November 2026 (Asia/Manila).
+> Status: **approved with review amendments**, 26 November 2026 (Asia/Manila).
+> Decisions D1–D5, D7–D9, D11 and D12 are approved. D6 and D10 remain owner-confirmation items (§7).
 > Baseline: `dev` at `8083c72` (Phase 1 merge). Inputs: [PRODUCT.md](../../PRODUCT.md),
 > [Phase 1 audit](../audits/OWLI_Phase1_Audit.md) (finding IDs below refer to it),
 > [backend integration](../backend-integration.md), [worker preparation](../worker-config/README.md),
@@ -52,12 +53,13 @@ Every branch starts from synchronized `dev` in its own worktree (`../owli-wt/<br
 ### R0 — Portable disposable SQL and runtime baseline (Codex, P0)
 
 - **Branch:** `test/portable-sql-runtime`. **Depends on:** none. **Parallel with:** R2 (offline coding), R3, R9.
-- **Files:** `tests/PersonalFinance.{HangfireTests,SavingsSqlLiveTests,BillPaymentSqlTests}` target policies; `tools/PersonalFinance.AdminProvisioning` target check + `docs/Development_Admin_Provisioning.md`; new short `docs/runtime/README.md` (commands only); `.github/workflows/handoff.yml` (add `dev` to push branches).
+- **Files:** `tests/PersonalFinance.{SavingsSqlLiveTests,BillPaymentSqlTests}` target policies (**not** `HangfireTests`, which R2 owns); `tools/PersonalFinance.AdminProvisioning` target check + `docs/Development_Admin_Provisioning.md`; new short `docs/runtime/README.md` (commands only); `.github/workflows/handoff.yml` (add `dev` to push branches).
 - **Outcomes:**
   - One documented procedure creates `OWLI_Runtime_<yyyymmdd>` (shared runtime/demo) and per-suite `PersonalFinance*Tests_<runId>` catalogs on the approved local SQL container. It applies all migrations from empty via `dotnet ef database update --connection`.
+  - The same procedure creates a disposable `OWLI_HangfireTests_<runId>` catalog from the pinned Hangfire 1.8.25 `install.sql`, using the Phase 0 guarded method on an empty catalog. Operational `OWLI_Hangfire` and `PersonalFinanceDb` are never test targets; existing job history is never deleted.
   - SQL-live suites accept an explicitly authorized non-LocalDB target via env var, reusing the `AuthenticationTests` guards: required prefix, never `PersonalFinanceDb`/system catalogs, no `AttachDbFilename`. LocalDB remains supported.
   - Admin provisioning accepts the same explicit disposable target (Windows auth or SQL auth from a private env var). It never prints the connection.
-- **Acceptance:** migration from empty PASS; `AuthenticationTests`, `HangfireTests`, `SavingsSqlLiveTests` and `BillPaymentSqlTests` PASS against the container; an Administrator is provisioned on `OWLI_Runtime_*`. The `PersonalFinanceDb` schema/migration fingerprint is unchanged before and after. CI runs on a push to `dev`.
+- **Acceptance:** migration from empty PASS; `AuthenticationTests`, `SavingsSqlLiveTests` and `BillPaymentSqlTests` PASS against the container; an empty `OWLI_HangfireTests_*` catalog is provisioned (schema version 9, zero servers/jobs); an Administrator is provisioned on `OWLI_Runtime_*`. The `PersonalFinanceDb` schema/migration fingerprint is unchanged before and after. CI runs on a push to `dev`.
 - **Risks:** SQL auth vs Windows-auth assumptions in policies; collation differences. **Done when:** the evidence is recorded in the PR and R1 can start.
 
 ### R1 — Early bidirectional smoke (Claude, P0)
@@ -79,17 +81,26 @@ Every branch starts from synchronized `dev` in its own worktree (`../owli-wt/<br
   - New `PersonalFinance.Worker/` (csproj, `Program.cs`); `PersonalFinancePlatform.slnx`.
   - `Infrastructure/DependencyInjection.cs`; `Infrastructure/Jobs/HangfireSetup.cs`; `Api/Program.cs`.
   - Delete `Api/Controllers/DevJobsController.cs` and the alternative family `Jobs/HangfireJobRegistration.cs` registration/`FinanceAutomationJobs.cs`. Keep `EnsureDedicatedStorage`.
-  - `tests/PersonalFinance.HangfireTests`; `docs/worker-config/README.md`.
+  - `tests/PersonalFinance.HangfireTests` (**R2 owns all changes**, including its target guard, using R0's disposable procedure); `docs/worker-config/README.md`.
 - **Outcomes:**
   - Split `AddInfrastructure` into shared (DbContext, Identity stores, `FinanceJobs`, `IBudgetUsageService`, `IFinancialWriteScope`, `TimeProvider`) and HTTP-scoped (`ICurrentUser`-dependent) registrations.
   - Hangfire server + `FinanceJobRegistration` become worker-only. The API has **no** code path to a server or recurring registration, regardless of flags.
   - The worker loads `.local/worker/appsettings.Worker.Local.json` or env vars, validates the same instance/separate catalogs, keeps `PrepareSchemaIfNecessary=false`, and fails fast when invalid or disabled.
   - Same stable IDs, crons, `Asia/Manila`, job type/assembly identity and serializer settings.
-- **Tests:** an API host build asserts no `IHostedService` from Hangfire. A worker host builds with `ValidateOnBuild`. A registration test asserts exactly 3 recurring IDs and their crons/timezone.
-- **Runtime acceptance:**
-  - The worker starts against `OWLI_Hangfire` + `OWLI_Runtime_*`, registers 3 jobs, then stops, restarts and handles Ctrl+C.
-  - Each job is triggered via a test-harness Hangfire client (`RecurringJob.TriggerJob`). Synthetic users receive the expected reminders/alerts/summaries, a re-trigger creates no duplicates, and two concurrent triggers create no duplicate financial effects.
-  - The API runs at the same time with zero Hangfire servers registered (query `HangFire.Server`).
+- **HangfireTests adaptation:** retarget from the alternative family to `FinanceJobs`. Assert:
+  - exactly the approved IDs `owli-bill-reminders`, `owli-budget-alerts`, `owli-monthly-summaries`, with their crons and `Asia/Manila`;
+  - the persisted job type/assembly names are unchanged;
+  - `AutomaticRetry(Attempts = 3)` and `DisableConcurrentExecution` behavior: a failing attempt is retried and a retry creates no duplicate financial effect;
+  - worker host start, stop and restart;
+  - the target is only `OWLI_HangfireTests_*` + a disposable finance catalog; it refuses `OWLI_Hangfire` and `PersonalFinanceDb`;
+  - `EnsureDedicatedStorage` guards are preserved.
+- **Other tests:** a worker host builds with `ValidateOnBuild`.
+- **Acceptance A — API processor-free (separate check):** the API starts with `Hangfire:Enabled` both false and true. A host test asserts no Hangfire server/`IHostedService` and no recurring registration. At runtime, the API alone registers zero rows in `HangFire.Server` and writes nothing to `HangFire.Set`/recurring jobs.
+- **Acceptance B — only the worker processes jobs:**
+  - Against `OWLI_HangfireTests_*` + `OWLI_Runtime_*`: the worker registers 3 jobs, then stops, restarts and handles Ctrl+C.
+  - With the worker stopped and the API running, a triggered job stays enqueued and unprocessed. Starting the worker processes it.
+  - Each job triggered via a test-harness Hangfire client (`RecurringJob.TriggerJob`) gives synthetic users the expected reminders, alerts and summaries. A re-trigger creates no duplicates, and two concurrent triggers create no duplicate financial effects.
+- **Operational cutover:** first use of operational `OWLI_Hangfire` follows the worker-config README (inspect state first; no history deletion). It is not part of automated tests.
 - **Risks:** `Microsoft.AspNetCore.App` framework reference (Identity) is required by the worker — accepted. Persisted job type names must not change.
 
 ### R3 — Registration (Claude, P1)
@@ -106,7 +117,7 @@ Every branch starts from synchronized `dev` in its own worktree (`../owli-wt/<br
 - **Files:** `Infrastructure/Finance/TransactionService.cs`, `Finance/Contracts/*Transaction*`, `Api/Controllers/TransactionsController.cs`, `tests/PersonalFinance.FinanceTests`, `docs/backend-integration.md`.
 - **Outcomes:** C1 computed `version` on every transaction response; PUT requires the matching `version` → stale 409. C2 replayed ClientId with a different canonical payload → 409; an identical replay keeps today's success.
 - **Acceptance:** unit tests for stale, missing and malformed versions and payload mismatch/match; a SQL-live concurrent PUT test on a disposable catalog (one 200, one 409); MVC edit continues to work after R5's client change.
-- **Risk:** this is a breaking PUT contract. Merge R4 and both client updates together, or accept a missing `version` for one release behind a short-lived flag. Recommended: coordinated same-day merge, no flag.
+- **Integration:** R4 never merges to `dev` alone. See R4+R5 integration below.
 
 ### R5 — Transaction delete and versioned edit, clients (Claude, P1)
 
@@ -115,6 +126,12 @@ Every branch starts from synchronized `dev` in its own worktree (`../owli-wt/<br
   - Android: `domain/repository/TransactionUpdateRepository.kt`, `data/remote/RemoteTransactionRepository.kt`, `ApiConfiguration.kt` (DELETE route), `ui/transactions/edit/*` (delete with confirm), list refresh, strings, tests.
   - MVC: transaction edit form/client sends `version` and shows a 409 "changed elsewhere, reload" message.
 - **Acceptance:** Android delete → MVC no longer lists it, and the reverse. A concurrent edit from both clients → one succeeds and the other shows a conflict without losing data. Deleting a pending offline item removes it locally only.
+
+### R4 + R5 integration — one compatible contract change (Codex + Claude)
+
+- **Branch:** `integration/transaction-contract`, created from synchronized `dev`. Codex merges `fix/transaction-concurrency-idempotency` into it; Claude merges `feature/transaction-delete-version` into it. Neither task branch merges to `dev` directly.
+- **Gate:** on the combined head, all .NET suites, MVC UiTests and Android unit tests PASS, and the R1 script plus versioned edit/conflict/delete steps PASS at runtime for MVC and Android against one API build.
+- **Single PR** from the integration branch to `dev`, reviewed by both agents. `dev` therefore never contains a server that requires `version` with clients that do not send it, or the reverse. Android delete (no contract change) may ship earlier on its own branch if the edit path is excluded.
 
 ### R6 — Durable uncertain-write identities (Claude, P2)
 
@@ -157,18 +174,18 @@ Every branch starts from synchronized `dev` in its own worktree (`../owli-wt/<br
 
 - **Branch:** `test/final-acceptance` (evidence only). **Depends on:** all merged milestones.
 - **Scope:** the full checklist in §5 on fresh `OWLI_Runtime_*`; all offline suites; SQL-live suites; Android `testDebugUnitTest`, `testReleaseUnitTest`, `connectedDebugAndroidTest` on an emulator; MVC rendered at 360/768/1280 px with keyboard and screen reader spot checks; Android font scale 200% and TalkBack spot checks; worker lifecycle.
-- **Done when:** every essential checklist row is PASS or an owner-accepted BLOCKED/NOT TESTED; `dev` → `main` is requested from the owner (explicit approval only).
+- **Done when:** every essential checklist row is PASS. An essential row that is BLOCKED or NOT TESTED stays **incomplete** and is reported as such; it is never counted as accepted or complete. `dev` → `main` is requested from the owner (explicit approval only).
 
 ## 3. Dependency matrix and parallel lanes
 
 | Milestone | Hard dependency | Can run in parallel with | Shared-file risk |
 | --- | --- | --- | --- |
-| R0 | — | R2 (offline), R3, R9 | `handoff.yml` (Codex only) |
+| R0 | — | R2 (offline), R3, R9 | `handoff.yml`; does **not** edit `HangfireTests` |
 | R1 | R0 | R2, R4, R7 | none (evidence) |
-| R2 | D1, D3; R0 for runtime | all client lanes | `DependencyInjection.cs`, `Api/Program.cs` (Codex only) |
+| R2 | D1, D3; R0 for runtime | all client lanes | `DependencyInjection.cs`, `Api/Program.cs`, all of `tests/PersonalFinance.HangfireTests` (Codex, R2 only) |
 | R3 | — | all | `AuthenticationApiClient.cs` (Claude only) |
-| R4 | C1, C2 | R3, R7 | `TransactionService.cs` (Codex only) |
-| R5 | R4 merge (same-day pair) | R6, R9 | `ApiConfiguration.kt` with R3 — R3 first |
+| R4 | C1, C2 | R3, R7 | `TransactionService.cs` (Codex only); merges only via `integration/transaction-contract` |
+| R5 | R4 (joint integration branch) | R6, R9 | `ApiConfiguration.kt` with R3 — R3 first |
 | R6 | — | R5, R7 | `LivePlanSection.kt` with R9 — R6 first |
 | R7 | C3, C4, D1, D2, D5 | R4, client lanes | `ReportService.cs` (Codex only) |
 | R8 | R7 | R9, R10 | Android nav graph with R3 — R3 first |
@@ -201,7 +218,7 @@ Every branch starts from synchronized `dev` in its own worktree (`../owli-wt/<br
 
 ## 5. Academic requirements and parity acceptance checklist
 
-E = essential (PRODUCT.md); O = optional. Each row needs PASS evidence on runtime catalogs in R12.
+E = essential (PRODUCT.md); O = optional. Each row needs PASS evidence on runtime catalogs in R12. BLOCKED/NOT TESTED essential rows remain incomplete.
 
 | # | Requirement | E/O | Android | MVC | Evidence |
 | --- | --- | --- | --- | --- | --- |
@@ -217,36 +234,39 @@ E = essential (PRODUCT.md); O = optional. Each row needs PASS evidence on runtim
 | 10 | Currency preferences + Frankfurter quote, unavailable rate → 503 handled | E | ✓ | ✓ | runtime + offline test |
 | 11 | Android offline create, pending/rejected/confirmed, retry, no duplicates | E | ✓/R6 | n/a | emulator airplane-mode |
 | 12 | Separate worker, API processor-free, 3 Manila schedules, restart/retry safe | E | — | — | R2 runtime |
-| 13 | Admin role-based budgets/categories/reports preserved; portable provisioning | E | n/a | ✓ | R0 + runtime |
+| 13 | Admin role-based budgets/categories/reports preserved; portable provisioning; cross-user scope per D6 | E | n/a | ✓ (D6 pending) | R0 + runtime |
 | 14 | Responsive, accessible, consistent OWLI branding | E | R9 | ✓ | R12 rendered checks |
 | 15 | Ownership/isolation (user A cannot see/modify B) | E | ✓ | ✓ | API + runtime two users |
 | 16 | Android release endpoint configurable | E (deploy readiness) | R11 | n/a | `assembleRelease` |
+| 16a | Live deployment of API, MVC, worker and release APK endpoint | E (per D10, pending) | R11 | R11 | deployed smoke test; BLOCKED until host/credentials supplied |
 | 17 | MVC Manila default months, dashboard paging | O | n/a | R10 | UiTests |
-| 18 | Background/WorkManager sync, distributed MVC sessions, admin cross-user views | O | — | — | not planned (D6, D11, D12) |
+| 18 | Background/WorkManager sync, distributed MVC sessions | O | — | — | not planned (D11, D12) |
 
 ## 6. Runtime verification and deployment strategy
 
-- **Targets:** the approved local SQL container only. `OWLI_Runtime_<date>` for shared runtime/demo; `PersonalFinance*Tests_<runId>` per SQL suite; `OWLI_Hangfire` for the worker. `PersonalFinanceDb` is not migrated or written without separate approval (D9).
+- **Targets:** the approved local SQL container only. `OWLI_Runtime_<date>` for shared runtime/demo; `PersonalFinance*Tests_<runId>` per SQL suite; `OWLI_HangfireTests_<runId>` for worker/Hangfire tests. Operational `OWLI_Hangfire` is used only after controlled cutover, never by tests, and its history is preserved. `PersonalFinanceDb` is not migrated or written without separate approval (D9).
 - **Cadence:** R1 smoke after R0, then re-run its script after every client merge (≈15 min). Bidirectional verification is continuous, not end-loaded.
 - **Evidence:** each PR records commands, commit, PASS/FAIL/BLOCKED/NOT TESTED; R12 consolidates into one acceptance record (`docs/audits/OWLI_Phase3_Acceptance.md`). No secrets, hosts, tokens or real financial data.
-- **Deployment:** the deadline deliverable is deployment-ready artifacts (API, MVC, worker publish; Android release APK with configured endpoint) plus a local demonstration. Live deployment needs a supplied host and explicit approval (D10). `dev` → `main` needs explicit owner approval after R12.
+- **Deployment:** live deployment stays in the final deliverable unless the owner decides otherwise (D10). R11 produces deployment-ready artifacts (API, MVC, worker; Android release APK with configured endpoint). The live deployment and its smoke test run once the owner supplies the host, certificates and secrets and approves. Until then, row 16a is BLOCKED/incomplete. `dev` → `main` needs explicit owner approval after R12.
 
-## 7. Decisions requiring owner approval
+## 7. Decisions
 
-| ID | Decision | Recommended default | Trade-off |
+Approved with the review safeguards: D1–D5, D7–D9, D11, D12. **Owner confirmation still required: D6, D10.**
+
+| ID | Decision | Status / resolution | Trade-off |
 | --- | --- | --- | --- |
-| D1 | Summary immutability | Keep immutable snapshots (current `FinanceJobs`); the live report stays the source of truth for corrected numbers | Late transactions are not reflected in a snapshot; recomputation would need a rewrite policy and new tests |
-| D2 | Summary access from both clients | Yes, read-only list (C4) | Small API + 2 client screens; skipping leaves summary notifications pointing at nothing (M1) |
-| D3 | Development manual-job endpoint | Delete `DevJobsController`; trigger jobs in tests via a Hangfire client against the worker's storage | Loses a convenience endpoint; removes an API execution path PRODUCT.md forbids |
-| D4 | Overdue-bill reminders | Keep the current due-soon-only behavior | Overdue bills get no reminder; adding one needs a new dedup key and tests |
-| D5 | Budget deletion after alerts | Allow deletion; keep notification history as text with a stale reference. Verified: `Notification` has an FK only to the user (`NotificationConfiguration.cs:19`), so no migration is needed | Alternative (archive flag) needs a migration |
-| D6 | Administrator cross-user scope | Keep the current own-scope behavior; no new admin features | Admin "Reports/Budgets" stay personal; cross-user views need new endpoints and privacy rules |
-| D7 | Account contract split (`auth/*` vs `account/*`) | Keep both, documented | Duplicate contracts remain; unifying risks both clients late |
-| D8 | Transaction version mechanism | Computed hash body version (no migration) | A rowversion would need migration 6 and an If-Match style matching savings |
-| D9 | Runtime/demo database | Disposable `OWLI_Runtime_<date>`; leave `PersonalFinanceDb` untouched | The demo uses synthetic data; any real migration of `PersonalFinanceDb` is a separate approval |
-| D10 | Release endpoint and hosting | Build-time property, no default host; no live deployment by Friday | A real deployment needs a host, certificates and secrets the owner must supply |
-| D11 | Android offline scope | Keep transaction-create offline + durable retry IDs (R6); retry on app start/connectivity; no WorkManager, no offline edit/delete | No background sync while the app is closed |
-| D12 | MVC session store | Accept the in-process store with a single MVC instance (already documented) | Restart signs users out |
+| D1 | Summary immutability | **Approved.** Keep immutable snapshots (current `FinanceJobs`); the live report stays the source of truth for corrected numbers | Late transactions are not reflected in a snapshot; recomputation would need a rewrite policy and new tests |
+| D2 | Summary access from both clients | **Approved.** Yes, read-only list (C4) | Small API + 2 client screens; skipping leaves summary notifications pointing at nothing (M1) |
+| D3 | Development manual-job endpoint | **Approved.** Delete `DevJobsController`; trigger jobs in tests via a Hangfire client against disposable `OWLI_HangfireTests_*` storage | Loses a convenience endpoint; removes an API execution path PRODUCT.md forbids |
+| D4 | Overdue-bill reminders | **Approved.** Keep the current due-soon-only behavior | Overdue bills get no reminder; adding one needs a new dedup key and tests |
+| D5 | Budget deletion after alerts | **Approved.** Allow deletion; keep notification history as text with a stale reference. Verified: `Notification` has an FK only to the user (`NotificationConfiguration.cs:19`), so no migration is needed | Alternative (archive flag) needs a migration |
+| D6 | Administrator cross-user scope | **Owner confirmation required.** Until confirmed, preserve all existing admin features unchanged; nothing is removed or restricted. If the academic requirement includes cross-user reports/budgets, add an Administrator milestone (Codex endpoints with role checks and privacy rules; Claude MVC views) | Cross-user views need new endpoints and privacy rules; not confirming risks an unmet academic requirement |
+| D7 | Account contract split (`auth/*` vs `account/*`) | **Approved.** Keep both, documented | Duplicate contracts remain; unifying risks both clients late |
+| D8 | Transaction version mechanism | **Approved.** Computed hash body version (no migration) | A rowversion would need migration 6 and an If-Match style matching savings |
+| D9 | Runtime/demo database | **Approved.** Disposable `OWLI_Runtime_<date>`; leave `PersonalFinanceDb` untouched | The demo uses synthetic data; any real migration of `PersonalFinanceDb` is a separate approval |
+| D10 | Release endpoint and live deployment | **Owner confirmation required** for host, certificates, secrets and timing. Release endpoint is a build-time property with no default host. Live deployment remains a required final deliverable and is not removed | Blocked until the owner supplies hosting details; late supply compresses Saturday testing |
+| D11 | Android offline scope | **Approved.** Keep transaction-create offline + durable retry IDs (R6); retry on app start/connectivity; no WorkManager, no offline edit/delete | No background sync while the app is closed |
+| D12 | MVC session store | **Approved.** Accept the in-process store with a single MVC instance (already documented) | Restart signs users out |
 
 ## 8. Progress estimate and schedule risks
 
@@ -262,8 +282,8 @@ E = essential (PRODUCT.md); O = optional. Each row needs PASS evidence on runtim
 | Thu 26 night | R0; R2 DI split + tests (offline) | R3 MVC fix → R3 Android; R6 |
 | Fri 27 morning | R2 runtime acceptance; R4 | R1 smoke; R5 (against C1) |
 | Fri 27 afternoon | R7 | R9; R8 (against C3/C4) |
-| Fri 27 night | R11 server; review Claude PRs | R8 finish; R11 Android; review Codex PRs; feature freeze |
-| Sat 28 | R12 jointly; fixes only; R10 if time | R12 jointly |
+| Fri 27 night | R11 server; R4+R5 integration gate; review Claude PRs | R8 finish; R11 Android; R4+R5 integration gate; review Codex PRs; feature freeze |
+| Sat 28 | R12 jointly; live deployment if D10 supplied; fixes only; R10 if time | R12 jointly; deployed smoke test |
 
 **Risks:**
 - **Very tight:** ~12 milestones in about 30 working hours. R10 and parts of R9 polish are the first to drop; no essential correctness item is dropped.
@@ -271,12 +291,12 @@ E = essential (PRODUCT.md); O = optional. Each row needs PASS evidence on runtim
 - **Emulator ↔ localhost HTTPS** (dev certificate trust on the emulator) may block R1. Mitigation: verify in the first 30 minutes of R1; fall back to an instrumentation test with the existing fixture engine and report BLOCKED honestly.
 - **Coordinated breaking change** (R4/R5 PUT version). Mitigation: same-day paired merge.
 - **Worker job identity drift** breaks persisted definitions. Mitigation: a registration test asserts type/assembly names.
-- **Approval latency** on D1–D12 stalls R2/R7. Mitigation: proceed with the defaults unless the owner objects.
+- **D6/D10 confirmation latency:** a cross-user admin requirement adds a milestone, and late hosting details compress live-deployment testing. Mitigation: request both now; R11 artifacts are prepared regardless.
 
 ## 9. Recommended first parallel tasks (after approval)
 
 1. **Codex — R0** `test/portable-sql-runtime`: disposable catalogs + migrations from empty; generalize SQL-live targets; CI on `dev`.
-2. **Codex — R2 (offline part)** `feature/worker-host`: DI split, worker project, API processor-free test, remove `DevJobsController`.
+2. **Codex — R2 (offline part)** `feature/worker-host`: DI split, worker project, API processor-free host test, remove `DevJobsController`, adapt `HangfireTests` to `FinanceJobs` (sole owner of those files).
 3. **Claude — R3** `fix/mvc-registration-status` (≈1 h, merge first), then `feature/android-registration`.
 4. **Claude — R6** `fix/android-durable-write-identity` (independent of all server work).
 

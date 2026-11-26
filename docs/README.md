@@ -18,9 +18,9 @@ These do not certify application functionality or authorize application changes.
 
 The [Phase 1 system audit](audits/OWLI_Phase1_Audit.md) records the current
 requirements/parity matrix, source-confirmed defects and verification gaps at
-`dev` `e15d859`. It is an assessment, not an implementation roadmap. The proposed
-[Phase 2 roadmap](plans/OWLI_Phase2_Roadmap.md) plans its resolution and awaits
-owner approval.
+`dev` `e15d859`. It is an assessment, not an implementation roadmap. The approved
+[Phase 2 roadmap](plans/OWLI_Phase2_Roadmap.md) plans its resolution; D6 and
+D10 still need owner confirmation.
 
 Follow the [Git development workflow](DEVELOPMENT_WORKFLOW.md),
 [shared agent instructions](../AGENTS.md), and [Claude Code instructions](../CLAUDE.md).

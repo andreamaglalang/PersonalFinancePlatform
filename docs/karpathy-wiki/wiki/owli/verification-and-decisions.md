@@ -67,9 +67,11 @@ job execution, persisted summary consumption, operational cutover and portable
 approved disposable tests during the audit. The Phase 1 audit adds four
 decisions: overdue-bill reminders, budget deletion after alerts, administrator
 cross-user scope, and notification mark-read/summary read contracts. These are
-not approved scope. Proposed defaults for these and earlier open decisions
-(D1–D12) are in the [Phase 2 roadmap](../../../plans/OWLI_Phase2_Roadmap.md),
-pending owner approval. Verified there: transactions have no rowversion, and
+not approved scope. The [Phase 2 roadmap](../../../plans/OWLI_Phase2_Roadmap.md)
+resolves these and earlier open decisions: D1–D5, D7–D9, D11 and D12 are approved,
+and D6 (administrator cross-user scope) and D10 (live deployment) still need owner
+confirmation. Hangfire tests use disposable `OWLI_HangfireTests_*` storage, never
+operational `OWLI_Hangfire`. Essential BLOCKED/NOT TESTED rows remain incomplete. Verified there: transactions have no rowversion, and
 notifications have a foreign key only to the user. Require fresh SQL/retry/lifecycle,
 API, rendered-client and bidirectional consistency evidence for acceptance.
 

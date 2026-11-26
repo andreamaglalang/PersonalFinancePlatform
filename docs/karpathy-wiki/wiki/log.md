@@ -52,3 +52,9 @@
 - Disposition: Update
 - Updated: OWLI verification limits and architectural decisions
 - Linked proposed docs/plans/OWLI_Phase2_Roadmap.md (decisions D1–D12, pending approval); roadmap content not duplicated.
+
+## [2026-11-26] update | Phase 2 roadmap approval amendments
+- Disposition: Update
+- Updated: OWLI verification limits and architectural decisions
+- Approved D1–D5, D7–D9, D11, D12; D6 and D10 remain owner-confirmation items.
+- Disposable Hangfire test storage isolated; R4+R5 integrate on one branch; essential BLOCKED/NOT TESTED rows remain incomplete.
