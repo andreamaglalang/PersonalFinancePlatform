@@ -38,7 +38,7 @@ class CrossClientRuntimeTest {
     }
 
     /** Android creates a transaction through the app's real creation repository. */
-    @Test fun createTransaction() = runBlocking {
+    @Test fun createTransaction(): Unit = runBlocking {
         step("create")
         val (_, finance) = signedIn()
         val draft = TransactionDraft(TransactionType.Expense, arg("owliCategoryId").toInt(), BigDecimal("123.45"), "PHP",
@@ -48,7 +48,7 @@ class CrossClientRuntimeTest {
     }
 
     /** After MVC edited the transaction: Android sees MVC's edit, a stale version is refused, then a reloaded edit wins. */
-    @Test fun seeMvcEditThenConflictThenReloadedEdit() = runBlocking {
+    @Test fun seeMvcEditThenConflictThenReloadedEdit(): Unit = runBlocking {
         step("edit")
         val (_, finance) = signedIn()
         val id = arg("owliTransactionId").toInt()
@@ -62,7 +62,7 @@ class CrossClientRuntimeTest {
     }
 
     /** Android edits while an MVC edit form is open (the shell then submits that stale MVC form). */
-    @Test fun editWhileMvcFormOpen() = runBlocking {
+    @Test fun editWhileMvcFormOpen(): Unit = runBlocking {
         step("edit-again")
         val (_, finance) = signedIn()
         val id = arg("owliTransactionId").toInt()
@@ -72,7 +72,7 @@ class CrossClientRuntimeTest {
     }
 
     /** Android deletes; MVC must stop listing it. */
-    @Test fun deleteTransaction() = runBlocking {
+    @Test fun deleteTransaction(): Unit = runBlocking {
         step("delete")
         val (_, finance) = signedIn()
         val id = arg("owliTransactionId").toInt()
@@ -80,6 +80,77 @@ class CrossClientRuntimeTest {
         assertTrue(finance.transactionUpdates.delete(current) is FinanceResult.Success)
         val gone = finance.transactionUpdates.get(id)
         assertTrue("deleted row must be gone: $gone", gone is FinanceResult.Failure && gone.reason == FinanceFailure.NotFound)
+    }
+
+    /** R3a/R3b: an account registered on MVC signs in on Android. */
+    @Test fun loginWithMvcRegisteredAccount(): Unit = runBlocking {
+        step("login")
+        signedIn()
+        Unit
+    }
+
+    /** R3b: Android registers through the app's real auth repository (no session is issued). */
+    @Test fun registerOnAndroid(): Unit = runBlocking {
+        step("register")
+        val result = InMemoryAuthRepository(configuration).register("Android Member", arg("owliEmail"), arg("owliPassword"), arg("owliPassword"))
+        assertEquals("Android registration", AuthResult.Success, result)
+    }
+
+    private fun live(auth: InMemoryAuthRepository) = LiveAccountPlanRepository(configuration, auth,
+        com.elect3.mobdev.personalfinance.data.local.RoomPendingRequestStore(
+            com.elect3.mobdev.personalfinance.data.local.room.OwliDatabase.get(
+                InstrumentationRegistry.getInstrumentation().targetContext).pendingRequests()))
+
+    /** R6 step 1: signs in, then (after the shell cuts the API) sends a contribution whose outcome is unknown. */
+    @Test fun contributionWithUnknownOutcome(): Unit = runBlocking {
+        step("contribute-uncertain")
+        val (auth, _) = signedIn()
+        val path = "savings-goals/${arg("owliGoalId")}/contributions"
+        android.util.Log.i("OWLI-XC", "signedIn")
+        Thread.sleep(8000) // the shell removes the adb reverse forwarding as soon as it sees "signedIn"
+        val body = com.google.gson.JsonObject().apply {
+            addProperty("amount", BigDecimal("75.00")); addProperty("contributedOn", arg("owliDate"))
+            add("note", com.google.gson.JsonNull.INSTANCE) // same shape as the app's fields(...) builder
+            addProperty("clientId", UUID.randomUUID().toString())
+        }
+        val first = live(auth).save(path, body)
+        assertTrue("first attempt must not be confirmed: $first", first is FinanceResult.Failure)
+        val persisted = live(auth).pendingRequest(path)
+        assertTrue("identity persisted before sending", persisted != null)
+        android.util.Log.i("OWLI-XC", "pendingClientId=" + persisted!!.get("clientId").asString)
+    }
+
+    /** R6 step 2: a new process (app restart) retries with the persisted identity; a second retry is a replay. */
+    @Test fun contributionRetryAfterRestart(): Unit = runBlocking {
+        step("contribute-retry")
+        val (auth, _) = signedIn()
+        val path = "savings-goals/${arg("owliGoalId")}/contributions"
+        val persisted = live(auth).pendingRequest(path)
+        assertTrue("persisted identity survives process restart", persisted != null)
+        android.util.Log.i("OWLI-XC", "retryClientId=" + persisted!!.get("clientId").asString)
+        val retried = live(auth).save(path, persisted)
+        assertTrue("retry with stored identity: $retried", retried is FinanceResult.Success)
+        assertTrue("record cleared after a definitive answer", live(auth).pendingRequest(path) == null)
+    }
+
+    /** R8: Android reads the worker-created inbox and marks one notification read (MVC must then show it read). */
+    @Test fun markOneNotificationRead(): Unit = runBlocking {
+        step("notifications")
+        val (_, finance) = signedIn()
+        val unread = (finance.notifications.list(true, 1, 20) as FinanceResult.Success).value
+        assertTrue("worker notifications visible on Android", unread.items.isNotEmpty())
+        val target = unread.items.first()
+        assertTrue(finance.notifications.markRead(target.notificationId) is FinanceResult.Success)
+        android.util.Log.i("OWLI-XC", "markedRead=${target.notificationId};unreadBefore=${unread.totalCount}")
+    }
+
+    /** R8/M2: Android's report for a month comes from the server (logged for comparison with MVC). */
+    @Test fun serverReportTotals(): Unit = runBlocking {
+        step("report")
+        val (_, finance) = signedIn()
+        val report = (finance.reports.monthly(java.time.YearMonth.parse(arg("owliMonth"))) as FinanceResult.Success).value
+        android.util.Log.i("OWLI-XC", "report=income:${report.totalIncome.toPlainString()};expenses:${report.totalExpenses.toPlainString()};" +
+            "net:${report.netBalance.toPlainString()};savings:${report.savingsContributed?.toPlainString()};budgets:${report.budgets.size};count:${report.transactionCount}")
     }
 
     private fun draftOf(categoryId: Int, amount: String, date: LocalDate) =
