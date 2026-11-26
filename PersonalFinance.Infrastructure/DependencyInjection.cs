@@ -17,15 +17,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<ApplicationDbContext>(options =>
-        {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-                options.UseSqlServer();
-            else
-                options.UseSqlServer(connectionString);
-        });
+        services.AddFinanceCore(configuration);
 
         services.AddIdentityCore<ApplicationUser>(options =>
         {
@@ -46,7 +38,6 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton<DummyPasswordVerifier>();
 
         services.AddScoped<IAuthSessionStore, SqlAuthSessionStore>();
@@ -74,20 +65,16 @@ public static class DependencyInjection
                 provider.GetRequiredService<TimeProvider>());
         });
 
-        services.AddScoped<IFinancialWriteScope, SqlFinancialWriteScope>();
         services.AddScoped<IConversionService, ConversionService>();
         services.AddScoped<IExchangeRateQuoteService, ExchangeRateQuoteService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICategoryService, CategoryService>();
-        services.AddScoped<IBudgetUsageService, BudgetUsageService>();
         services.AddScoped<IBudgetService, BudgetService>();
         services.AddScoped<ISavingsGoalService, SavingsGoalService>();
         services.AddScoped<IRecurringBillService, RecurringBillService>();
         services.AddScoped<IBillPaymentService, BillPaymentService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<INotificationService, NotificationService>();
-        // Background jobs: off unless Hangfire:Enabled=true; never creates Hangfire tables.
-        services.AddFinanceJobs(configuration);
 
         services.AddOptions<CurrencyPolicyOptions>()
             .Bind(configuration.GetSection(CurrencyPolicyOptions.SectionName))
@@ -95,6 +82,30 @@ public static class DependencyInjection
                 x => x.MaximumRateAgeDays >= 0,
                 "MaximumRateAgeDays cannot be negative.");
 
+        return services;
+    }
+
+    /// <summary>
+    /// Shared by the API and the independent worker: SQL persistence, clock, financial write scope, budget usage and
+    /// the selected <see cref="FinanceJobs"/> implementation. Nothing here depends on HTTP or <see cref="ICurrentUser"/>,
+    /// and nothing here hosts Hangfire processing or recurring registration (only PersonalFinance.Worker does).
+    /// </summary>
+    public static IServiceCollection AddFinanceCore(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+                options.UseSqlServer();
+            else
+                options.UseSqlServer(connectionString);
+        });
+
+        services.AddSingleton<TimeProvider>(TimeProvider.System);
+        services.AddScoped<IFinancialWriteScope, SqlFinancialWriteScope>();
+        services.AddScoped<IBudgetUsageService, BudgetUsageService>();
+        services.AddScoped<FinanceJobs>();
         return services;
     }
 }

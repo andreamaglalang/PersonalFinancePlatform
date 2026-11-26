@@ -14,6 +14,10 @@
     {
         <p class="notice login-notice" role="alert">@Model.Error</p>
     }
+    @if (Model.Notice is not null)
+    {
+        <p class="notice" role="status">@Model.Notice</p>
+    }
 
     <form class="member-filter member-filter-notify" method="get" asp-action="Index" asp-route-Page="1">
         <label class="member-check" for="UnreadOnly">
@@ -44,6 +48,13 @@
         else
         {
             <p class="owli-caption member-list-summary" role="status">@Model.Summary</p>
+            @if (Model.Results.Items.Any(n => n.IsRead is false))
+            {
+                <form method="post" asp-action="MarkAllRead" class="member-notification-markall">
+                    <input type="hidden" name="unreadOnly" value="@(Model.UnreadOnly ? "true" : "false")" />
+                    <button class="member-btn member-btn-secondary" type="submit">Mark all as read</button>
+                </form>
+            }
             <ul class="member-list">
                 @foreach (var notification in Model.Results.Items)
                 {
@@ -73,6 +84,15 @@
                                 </time>
                             </p>
                         </div>
+                        @if (unread)
+                        {
+                            <form method="post" asp-action="MarkRead" class="member-notification-mark">
+                                <input type="hidden" name="id" value="@notification.NotificationId" />
+                                <input type="hidden" name="unreadOnly" value="@(Model.UnreadOnly ? "true" : "false")" />
+                                <input type="hidden" name="page" value="@Model.Page" />
+                                <button class="member-btn member-btn-secondary" type="submit" aria-label="Mark as read: @label, @manilaTime.ToString("dd MMM yyyy", invariant)">Mark read</button>
+                            </form>
+                        }
                     </li>
                 }
             </ul>

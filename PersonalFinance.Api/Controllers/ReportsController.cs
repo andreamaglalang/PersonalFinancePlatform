@@ -16,4 +16,12 @@ public sealed class ReportsController(IReportService reports) : ControllerBase
         var result = await reports.MonthlyAsync(query, ct);
         return result.Succeeded ? Ok(result.Value) : Problem(statusCode: result.StatusCode, title: result.Error);
     }
+
+    /// <summary>GET api/reports/summaries?page=1&amp;pageSize=12 — stored monthly snapshots, newest first (C4).</summary>
+    [HttpGet("summaries"), ProducesResponseType<PagedResponse<MonthlySummaryResponse>>(200)]
+    public async Task<IActionResult> Summaries([FromQuery] MonthlySummaryQuery query, CancellationToken ct)
+    {
+        var result = await reports.SummariesAsync(query, ct);
+        return result.Succeeded ? Ok(result.Value) : Problem(statusCode: result.StatusCode, title: result.Error);
+    }
 }

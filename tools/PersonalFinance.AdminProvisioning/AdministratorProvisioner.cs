@@ -7,6 +7,8 @@ namespace PersonalFinance.AdminProvisioning;
 public sealed class ProvisioningException(string message) : Exception(message);
 public interface IProvisioningDatabase
 {
+    /// <summary>The approved catalog name, resolved without connecting.</summary>
+    string Catalog { get; }
     Task VerifyAsync(CancellationToken ct);
     Task<T> ExecuteAsync<T>(Func<Task<T>> action, CancellationToken ct);
 }
@@ -14,6 +16,8 @@ public interface IProvisioningDatabase
 public static class ProvisioningSafety
 {
     public const string Confirmation = "CREATE DEVELOPMENT ADMINISTRATOR IN PersonalFinanceDb";
+    public const string RuntimeCatalogPrefix = "OWLI_Runtime_";
+    public static string ConfirmationFor(string catalog) => "CREATE DEVELOPMENT ADMINISTRATOR IN " + catalog;
     public static void RequireDevelopment(string? environment, string? aspnetEnvironment)
     {
         if (environment != "Development" ||
@@ -21,15 +25,29 @@ public static class ProvisioningSafety
             throw new ProvisioningException("Set DOTNET_ENVIRONMENT=Development; conflicting ASPNETCORE_ENVIRONMENT values are not permitted.");
     }
 
-    public static void RequireTarget(string connectionString)
+    /// <summary>Returns the approved catalog: Windows LocalDB PersonalFinanceDb, or a disposable
+    /// OWLI_Runtime_* catalog on any server (SQL or Windows authentication).</summary>
+    public static string RequireTarget(string connectionString)
     {
-        var target = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+        Microsoft.Data.SqlClient.SqlConnectionStringBuilder target;
+        try { target = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString); }
+        catch (Exception ex) when (ex is ArgumentException or FormatException or KeyNotFoundException)
+        { throw new ProvisioningException("The configured connection is not a valid SQL connection string."); }
+        if (!string.IsNullOrEmpty(target.AttachDBFilename))
+            throw new ProvisioningException("AttachDbFilename is not permitted.");
+        if (IsRuntimeCatalog(target.InitialCatalog)) return target.InitialCatalog;
         if (!string.Equals(target.DataSource, @"(localdb)\MSSQLLocalDB", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(target.InitialCatalog, "PersonalFinanceDb", StringComparison.Ordinal) ||
-            !target.IntegratedSecurity || !string.IsNullOrEmpty(target.AttachDBFilename) ||
+            !target.IntegratedSecurity ||
             !string.IsNullOrEmpty(target.UserID) || !string.IsNullOrEmpty(target.Password))
-            throw new ProvisioningException("Only Windows Authentication to (localdb)\\MSSQLLocalDB / PersonalFinanceDb is permitted.");
+            throw new ProvisioningException("Only Windows Authentication to (localdb)\\MSSQLLocalDB / PersonalFinanceDb or a disposable OWLI_Runtime_* catalog is permitted.");
+        return target.InitialCatalog;
     }
+
+    public static bool IsRuntimeCatalog(string? catalog) =>
+        catalog is not null && catalog.Length > RuntimeCatalogPrefix.Length &&
+        catalog.StartsWith(RuntimeCatalogPrefix, StringComparison.Ordinal) &&
+        catalog[RuntimeCatalogPrefix.Length..].All(c => char.IsAsciiLetterOrDigit(c) || c == '_');
 }
 
 public sealed class AdministratorProvisioner(
@@ -39,7 +57,7 @@ public sealed class AdministratorProvisioner(
         string email, string userName, string fullName, string password, string confirmPassword, CancellationToken ct = default)
     {
         ProvisioningSafety.RequireDevelopment(environment, aspnetEnvironment);
-        if (!string.Equals(confirmation, ProvisioningSafety.Confirmation, StringComparison.Ordinal))
+        if (!string.Equals(confirmation, ProvisioningSafety.ConfirmationFor(database.Catalog), StringComparison.Ordinal))
             throw new ProvisioningException("Confirmation did not match. No account was created.");
         email = email.Trim(); userName = userName.Trim(); fullName = fullName.Trim();
         var allowedUserNameCharacters = users.Options.User.AllowedUserNameCharacters;

@@ -84,7 +84,9 @@ class MainActivity : ComponentActivity() {
                         authenticatedBudgets = finance.budgets,
                         authenticatedUpdates = finance.transactionUpdates,
                         authenticatedQuotes = finance.exchangeRateQuotes,
-                        authenticatedLive = com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository(authConfiguration, repository),
+                        authenticatedLive = com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository(authConfiguration, repository,
+                            com.elect3.mobdev.personalfinance.data.local.RoomPendingRequestStore(
+                                com.elect3.mobdev.personalfinance.data.local.room.OwliDatabase.get(applicationContext).pendingRequests())),
                     ).create(modelClass)
                 }
                 DashboardViewModel::class.java -> DashboardViewModel.Factory(
