@@ -148,7 +148,7 @@ Evidence, 26 November 2026, on a local SQL container with synthetic data:
 | Check | Result |
 | --- | --- |
 | `HangfireTests` offline (IDs, Manila crons, job identity, retry/concurrency attributes, guard, worker DI without `ICurrentUser`) | PASS 7/7 |
-| `HangfireTests` live on disposable catalogs (registration, forced-failure retry then success, processing, repeated/concurrent triggers without duplicates, stop deregisters, no processing while stopped, restart drains backlog) | PASS 13/13 |
+| `HangfireTests` live on disposable catalogs (registration, forced-failure retry then success, processing, repeated/concurrent triggers without duplicates, stop deregisters, no processing while stopped, restart drains backlog) | PASS 6/6 live (13/13 including the offline checks) |
 | FinanceTests acceptance A (API registers no Hangfire services with `Enabled` false/true; API source has no Hangfire/job controller) | PASS |
 | Runtime A: real API with `Hangfire__Enabled=true` and storage configured | 0 servers, 0 recurring, 0 jobs; former `/api/dev/jobs/*` returns 404 |
 | Runtime B: worker executable beside the API | 1 server `owli-worker:*`, 3 recurring jobs with `0 7 * * *`, `0 * * * *`, `30 0 1 * *` in `Asia/Manila`; SIGTERM stops it in about 2 s and deregisters; restart re-registers the same 3 |
