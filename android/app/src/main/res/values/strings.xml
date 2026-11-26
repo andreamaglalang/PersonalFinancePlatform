@@ -848,21 +848,4 @@
     <string name="demo_bill_mark_confirm">Mark paid (demo)</string>
     <string name="demo_cancel">Cancel</string>
     <!-- Registration (mirrors MVC Account/Register) -->
-    <string name="register_entry">New to OWLI? Create account</string>
-    <string name="register_title">Create your account</string>
-    <string name="register_intro">Register with your name and email. You sign in after the account is ready.</string>
-    <string name="register_full_name">Full name</string>
-    <string name="register_confirm_password">Confirm password</string>
-    <string name="register_password_hint">At least 12 characters, with upper and lower case letters, a number and a symbol.</string>
-    <string name="register_submit">Create account</string>
-    <string name="register_creating">Creating account…</string>
-    <string name="register_back_to_sign_in">Back to sign in</string>
-    <string name="register_success">Your OWLI account is ready. Sign in with your email and password.</string>
-    <string name="register_error_full_name">Enter your full name (up to 100 characters).</string>
-    <string name="register_error_email">Enter a valid email address.</string>
-    <string name="register_error_password_length">Passwords must be at least 12 characters.</string>
-    <string name="register_error_password_mismatch">Passwords do not match.</string>
-    <string name="register_error_invalid">Check your name, email and password. Passwords must be at least 12 characters and match.</string>
-    <string name="register_error_duplicate">That email is already registered. Sign in instead.</string>
-    <string name="register_error_unavailable">Registration is temporarily unavailable. Please try again later.</string>
 </resources>
