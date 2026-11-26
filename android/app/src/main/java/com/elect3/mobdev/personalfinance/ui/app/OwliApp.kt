@@ -97,6 +97,8 @@ fun OwliApp(
     dashboardRequests: Int = 0,
     /** Insights (Financial Reports) content; null keeps Insights as an unavailable "Soon" item. */
     insightsContent: (@Composable () -> Unit)? = null,
+    /** Opens the notifications inbox from the Dashboard header; null hides the entry (Mock Demo). */
+    onOpenNotifications: (() -> Unit)? = null,
 ) {
     val navController = rememberNavController()
     val currentPlan by androidx.compose.runtime.rememberUpdatedState(planContent)
@@ -121,11 +123,12 @@ fun OwliApp(
         }
     }
     var filterRequested by remember { mutableStateOf(false) }
-    val shellActions = remember(onAddTransaction, onOpenCategories, onOpenAccount, insightsAvailable) {
+    val shellActions = remember(onAddTransaction, onOpenCategories, onOpenAccount, insightsAvailable, onOpenNotifications) {
         OwliShellActions(addTransaction = onAddTransaction, openActivity = { navigateTo(OwliDestination.Transactions) },
             openActivityFilter = { filterRequested = true; navigateTo(OwliDestination.Transactions) },
             openCategories = onOpenCategories, openAccount = onOpenAccount,
-            openInsights = if (insightsAvailable) ({ navigateTo(OwliDestination.Insights) }) else null)
+            openInsights = if (insightsAvailable) ({ navigateTo(OwliDestination.Insights) }) else null,
+            openNotifications = onOpenNotifications)
     }
     LaunchedEffect(dashboardRequests) { if (dashboardRequests > 0) navigateTo(OwliDestination.Dashboard) }
     val filterRequest = OwliFilterRequest(pending = filterRequested, consume = { filterRequested = false })

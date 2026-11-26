@@ -23,6 +23,8 @@ class AccountTransactionStore(
     /** Activity starting period (the app passes the current month). */
     initialFilter: com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter =
         com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter(),
+    /** Server reports for Insights; null hides Insights for this account. */
+    reports: com.elect3.mobdev.personalfinance.domain.reports.ReportRepository? = null,
 ) : AutoCloseable {
     private val store = ViewModelStore()
     private var invalidated = false
@@ -31,11 +33,12 @@ class AccountTransactionStore(
     private val dashboardFactory = DashboardViewModel.Factory(
         LoadDashboardSummary(repository, pageSize = DASHBOARD_PAGE_SIZE, accountCurrency = accountCurrency),
         fallbackMonth, isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired)
-    /** Insights: the same repository's server-side date filter; null when the repository cannot filter. */
-    private val reportsFactory = (repository as? com.elect3.mobdev.personalfinance.domain.repository.FilterableTransactionRepository)?.let { filterable ->
-        val loader = com.elect3.mobdev.personalfinance.domain.reports.LoadFinancialReport(filterable, baseCurrency = accountCurrency)
+    /** Insights: the server's own monthly report (C6) and stored snapshots (C4); null without a report repository. */
+    private val reportsFactory = reports?.let { server ->
+        val loader = com.elect3.mobdev.personalfinance.domain.reports.LoadServerReport(server)
         com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel.Factory({ loader(it) },
-            isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired)
+            isSessionCurrent = { !invalidated && isSessionCurrent() }, onSessionExpired = onSessionExpired,
+            snapshots = { server.summaries() })
     }
     private var model: TransactionListViewModel? = null
     private var dashboard: DashboardViewModel? = null
@@ -53,7 +56,7 @@ class AccountTransactionStore(
         return dashboard ?: ViewModelProvider(store, dashboardFactory).get(DashboardViewModel::class.java).also { dashboard = it }
     }
 
-    /** Created on first Insights visit; null when this account's repository has no server-side date filter. */
+    /** Created on first Insights visit; null when no report repository was supplied. */
     fun reportsModel(): com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel? {
         check(!closed) { "Financial scope closed" }
         val factory = reportsFactory ?: return null

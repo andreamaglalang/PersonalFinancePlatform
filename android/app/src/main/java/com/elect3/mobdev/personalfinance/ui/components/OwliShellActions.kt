@@ -22,6 +22,8 @@ data class OwliShellActions(
     val openAccount: (() -> Unit)? = null,
     /** Opens Insights (Financial Reports); null while the owner provides no Insights content. */
     val openInsights: (() -> Unit)? = null,
+    /** Opens the notifications inbox (signed in only). */
+    val openNotifications: (() -> Unit)? = null,
 )
 
 val LocalOwliShellActions = staticCompositionLocalOf { OwliShellActions() }
