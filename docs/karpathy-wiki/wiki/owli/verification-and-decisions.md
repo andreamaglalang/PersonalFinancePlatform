@@ -67,7 +67,10 @@ job execution, persisted summary consumption, operational cutover and portable
 approved disposable tests during the audit. The Phase 1 audit adds four
 decisions: overdue-bill reminders, budget deletion after alerts, administrator
 cross-user scope, and notification mark-read/summary read contracts. These are
-not approved scope. Require fresh SQL/retry/lifecycle,
+not approved scope. Proposed defaults for these and earlier open decisions
+(D1–D12) are in the [Phase 2 roadmap](../../../plans/OWLI_Phase2_Roadmap.md),
+pending owner approval. Verified there: transactions have no rowversion, and
+notifications have a foreign key only to the user. Require fresh SQL/retry/lifecycle,
 API, rendered-client and bidirectional consistency evidence for acceptance.
 
 Use Confirmed/Suspected/Proposed/Implemented/Fixed/Verified/Blocked/Not tested
