@@ -1,7 +1,7 @@
 name: Handoff offline verification
 on:
   push:
-    branches: ['handoff/**']
+    branches: ['handoff/**', 'dev']
   pull_request:
 permissions:
   contents: read
@@ -16,6 +16,28 @@ jobs:
       - run: dotnet build PersonalFinancePlatform.slnx
       - shell: pwsh
         run: ./tools/Test-Handoff.ps1
+  sql:
+    # Real SQL Server checks in a throwaway service container; the harness creates and drops
+    # its own PersonalFinanceSqlTests_* catalog. The password exists only for this job's container.
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: OwliCi_${{ github.run_id }}_Aa
+        ports: ['1433:1433']
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P OwliCi_${{ github.run_id }}_Aa -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet run --project tests/PersonalFinance.SqlIntegrationTests
+        env:
+          OWLI_SQL_TEST_SERVER: Server=localhost,1433;Database=master;User ID=sa;Password=OwliCi_${{ github.run_id }}_Aa;Encrypt=True;TrustServerCertificate=True
   android:
     runs-on: ubuntu-latest
     steps:
