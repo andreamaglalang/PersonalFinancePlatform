@@ -1,11 +1,12 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Infrastructure.Finance.Contracts;
 
 namespace PersonalFinance.FinanceTests;
 
-/// <summary>Read-only notifications API and the Development-only job trigger (in-memory EF, real JWT/MVC pipeline).</summary>
+/// <summary>Read-only notifications API and the FinanceJobs behavior (in-memory EF, real JWT/MVC pipeline).</summary>
 internal static class NotificationDevJobTests
 {
     private static void Assert(bool condition, string detail = "Assertion failed") { if (!condition) throw new Exception(detail); }
@@ -70,51 +71,96 @@ internal static class NotificationDevJobTests
                 && page2.GetProperty("items")[0].GetProperty("message").GetString() == "a");
             Assert((await List(f, 1, "?pageSize=101")).Status == 400 && (await List(f, 1, "?page=0")).Status == 400);
         });
-        await check("Notifications API is read-only", async f =>
+        await check("Notifications cannot be created, replaced or deleted through the API", async f =>
         {
             await Seed(f, Note(1, "x"));
             foreach (var method in new[] { "POST", "PUT", "DELETE", "PATCH" })
                 Assert((await f.SendAsync(method, "/api/notifications", new { }, f.Issue(1))).Status is 404 or 405, method);
             await f.DbAsync(async db => Assert(await db.Notifications.CountAsync() == 1 && !(await db.Notifications.SingleAsync()).IsRead));
         });
+        // ---------- C4 stored monthly summaries ----------
+        await check("C4 summaries are owner-scoped, newest first, empty-safe and expose no delivery metadata", async f =>
+        {
+            Assert((await f.SendAsync("GET", "/api/reports/summaries")).Status == 401);
+            var empty = Json(await f.SendAsync("GET", "/api/reports/summaries", bearer: f.Issue(1)));
+            Assert(empty.GetProperty("totalCount").GetInt64() == 0 && empty.GetProperty("items").GetArrayLength() == 0);
+            await f.DbAsync(async db =>
+            {
+                db.MonthlySummaries.AddRange(
+                    new() { UserId = 1, SummaryMonth = new DateOnly(2026, 9, 1), TotalIncome = 100m, TotalExpense = 40m, NetCashFlow = 60m, SavingsAllocated = 5m, EmailSentAtUtc = DateTime.UtcNow },
+                    new() { UserId = 1, SummaryMonth = new DateOnly(2026, 10, 1), TotalIncome = 200m, TotalExpense = 50.25m, NetCashFlow = 149.75m, SavingsAllocated = 0m },
+                    new() { UserId = 2, SummaryMonth = new DateOnly(2026, 10, 1), TotalIncome = 9m, TotalExpense = 9m, NetCashFlow = 0m, SavingsAllocated = 0m });
+                await db.SaveChangesAsync();
+            });
+            var r = await f.SendAsync("GET", "/api/reports/summaries", bearer: f.Issue(1));
+            Assert(r.Status == 200 && r.CacheControl == "no-store", r.Body);
+            var page = Json(r);
+            Assert(page.GetProperty("totalCount").GetInt64() == 2, "another user's summary visible");
+            var first = page.GetProperty("items")[0];
+            Assert(first.GetProperty("summaryMonth").GetString() == "2026-10-01" && first.GetProperty("totalExpense").GetDecimal() == 50.25m
+                && first.GetProperty("netCashFlow").GetDecimal() == 149.75m && first.GetProperty("baseCurrency").GetString() is { Length: 3 });
+            Assert(!r.Body.Contains("emailSent", StringComparison.OrdinalIgnoreCase) && !r.Body.Contains("userId", StringComparison.OrdinalIgnoreCase), r.Body);
+            Assert((await f.SendAsync("GET", "/api/reports/summaries?page=0", bearer: f.Issue(1))).Status == 400);
+            Assert(Json(await f.SendAsync("GET", "/api/reports/summaries?pageSize=1&page=2", bearer: f.Issue(1))).GetProperty("items")[0].GetProperty("summaryMonth").GetString() == "2026-09-01");
+        });
+        // ---------- C3 read state ----------
+        await check("C3 mark one notification read: owner only, idempotent, reflected in unreadOnly", async f =>
+        {
+            await Seed(f, Note(1, "a"), Note(1, "b", minutes: 1), Note(2, "theirs"));
+            var ids = new List<int>();
+            await f.DbAsync(async db => ids.AddRange(await db.Notifications.OrderBy(n => n.NotificationId).Select(n => n.NotificationId).ToListAsync()));
+            Assert((await f.SendAsync("POST", $"/api/notifications/{ids[0]}/read")).Status == 401, "anonymous");
+            Assert((await f.SendAsync("POST", $"/api/notifications/{ids[2]}/read", bearer: f.Issue(1))).Status == 404, "another user's notification");
+            Assert((await f.SendAsync("POST", $"/api/notifications/{ids[0]}/read", bearer: f.Issue(1), scheme: "http")).Status == 400, "plain HTTP");
+            for (var i = 0; i < 2; i++)
+                Assert((await f.SendAsync("POST", $"/api/notifications/{ids[0]}/read", bearer: f.Issue(1))).Status == 204, "idempotent mark read");
+            var unread = Json(await List(f, 1, "?unreadOnly=true"));
+            Assert(unread.GetProperty("totalCount").GetInt64() == 1 && unread.GetProperty("items")[0].GetProperty("message").GetString() == "b");
+            Assert(Json(await List(f, 2, "?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 1, "other user's read state changed");
+            Assert((await f.SendAsync("POST", "/api/notifications/999999/read", bearer: f.Issue(1))).Status == 404);
+        });
+        await check("C3 mark all read affects only the caller's notifications", async f =>
+        {
+            await Seed(f, Note(1, "a"), Note(1, "b"), Note(2, "theirs"));
+            Assert((await f.SendAsync("POST", "/api/notifications/read-all", bearer: f.Issue(1))).Status == 204);
+            Assert((await f.SendAsync("POST", "/api/notifications/read-all", bearer: f.Issue(1))).Status == 204, "idempotent");
+            Assert(Json(await List(f, 1, "?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 0);
+            Assert(Json(await List(f, 2, "?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 1);
+        });
 
-        // ---------- Development-only job trigger ----------
-        await check("Dev job trigger does not exist outside Development (404 even for administrators)", async f =>
+        // ---------- Direct job execution path removed; jobs run only in PersonalFinance.Worker ----------
+        await check("The former API job endpoint no longer exists in any environment", async f =>
         {
             Assert((await Run(f, "budget-alerts")).Status == 404);
             Assert((await Run(f, "monthly-summaries", user: null)).Status == 404, "anonymous callers learn nothing either");
             await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync() && !await db.MonthlySummaries.AnyAsync()));
         });
-        await check("Dev job trigger requires authentication and the Administrator role", InDevelopment(async f =>
+        await check("The former API job endpoint is gone in Development too, even for administrators", InDevelopment(async f =>
         {
-            Assert((await Run(f, "budget-alerts", user: null)).Status == 401);
-            Assert((await Run(f, "budget-alerts", user: 1)).Status == 403);
-            Assert((await Run(f, "budget-alerts", user: 3, scheme: "http")).Status == 400);
-            Assert((await Run(f, "bill-reminders")).Status == 404, "bill reminders are not offered");
-            Assert((await Run(f, "anything")).Status == 404);
+            Assert((await Run(f, "budget-alerts")).Status == 404);
+            Assert((await Run(f, "monthly-summaries")).Status == 404);
+            await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync() && !await db.MonthlySummaries.AnyAsync()));
         }));
-        await check("Dev trigger runs budget alerts once per transition and the owner can read them", InDevelopment(async f =>
+        await check("Budget alerts job notifies once per transition and only the owner can read it", async f =>
         {
             Assert((await f.SendAsync("POST", "/api/budgets", new { categoryId = 2, periodMonth = "2026-11-01", limitAmount = 100m, alertThresholdPct = 80 }, f.Issue(1))).Status == 201);
             var tx = await f.SendAsync("POST", "/api/transactions", new CreateTransactionRequest { ClientId = Guid.NewGuid(), CategoryId = 2, Type = "Expense",
                 Amount = 90m, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 11, 2), Description = "t" }, f.Issue(1));
             Assert(tx.Status == 201, tx.Body);
-            var first = await Run(f, "budget-alerts");
-            Assert(first.Status == 200 && Json(first).GetProperty("created").GetInt32() == 1, first.Body);
-            var second = await Run(f, "budget-alerts");
-            Assert(Json(second).GetProperty("created").GetInt32() == 0, "no duplicate alert for the same status");
+            Assert(await Job(f, j => j.SendBudgetAlertsAsync(default)) == 1);
+            Assert(await Job(f, j => j.SendBudgetAlertsAsync(default)) == 0, "no duplicate alert for the same status");
             var mine = Json(await List(f, 1));
             Assert(mine.GetProperty("totalCount").GetInt64() == 1 && mine.GetProperty("items")[0].GetProperty("type").GetString() == "BudgetAlert");
             Assert(Json(await List(f, 2)).GetProperty("totalCount").GetInt64() == 0);
-            Assert(Json(await List(f, 3)).GetProperty("totalCount").GetInt64() == 0, "the administrator who ran the job sees no member data");
-        }));
-        await check("Dev trigger generates last month's summary once", InDevelopment(async f =>
+            Assert(Json(await List(f, 3)).GetProperty("totalCount").GetInt64() == 0, "administrators see no member data");
+        });
+        await check("Monthly summary job generates last month's summary once (immutable, D1)", async f =>
         {
             var tx = await f.SendAsync("POST", "/api/transactions", new CreateTransactionRequest { ClientId = Guid.NewGuid(), CategoryId = 2, Type = "Expense",
                 Amount = 25m, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 10, 10), Description = "t" }, f.Issue(1));
             Assert(tx.Status == 201, tx.Body);
-            Assert(Json(await Run(f, "monthly-summaries")).GetProperty("created").GetInt32() == 1);
-            Assert(Json(await Run(f, "monthly-summaries")).GetProperty("created").GetInt32() == 0, "existing summaries are left unchanged");
+            Assert(await Job(f, j => j.GenerateMonthlySummariesAsync(default)) == 1);
+            Assert(await Job(f, j => j.GenerateMonthlySummariesAsync(default)) == 0, "existing summaries are left unchanged");
             await f.DbAsync(async db =>
             {
                 var s = await db.MonthlySummaries.SingleAsync();
@@ -122,13 +168,12 @@ internal static class NotificationDevJobTests
             });
             var mine = Json(await List(f, 1));
             Assert(mine.GetProperty("items")[0].GetProperty("type").GetString() == "MonthlySummary");
-        }));
-        await check("Dev trigger response contains only the job name and a count", InDevelopment(async f =>
-        {
-            var r = await Run(f, "monthly-summaries");
-            Assert(r.Status == 200 && r.CacheControl == "no-store", r.Body);
-            var props = Json(r).EnumerateObject().Select(p => p.Name).OrderBy(n => n).ToArray();
-            Assert(props.SequenceEqual(new[] { "created", "job" }), string.Join(",", props));
-        }));
+        });
+    }
+
+    private static async Task<int> Job(FinanceFixture f, Func<PersonalFinance.Infrastructure.Jobs.FinanceJobs, Task<int>> run)
+    {
+        await using var scope = f.Services.CreateAsyncScope();
+        return await run(scope.ServiceProvider.GetRequiredService<PersonalFinance.Infrastructure.Jobs.FinanceJobs>());
     }
 }

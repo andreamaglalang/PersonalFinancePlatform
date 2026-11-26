@@ -38,6 +38,9 @@ interface AuthRepository {
     fun hasRecoverableSession(): Boolean = hasActiveSession()
     fun sessionFailure(): AuthFailure = AuthFailure.SessionExpired
     fun onUiDetached() = clearSession()
+    /** Creates an account without signing in; never touches the current session. Default fails closed. */
+    suspend fun register(fullName: String, email: String, password: String, confirmPassword: String): AuthResult =
+        AuthResult.Failure(AuthFailure.NotConfigured)
 }
 
 /** Credentials stay within the session owner and its optional protected store; UI never receives them. */
@@ -145,6 +148,12 @@ class InMemoryAuthRepository internal constructor(
             synchronized(lock) { loginInProgress = false }
         }
     }
+
+    override suspend fun register(fullName: String, email: String, password: String, confirmPassword: String): AuthResult =
+        when (val result = api.register(fullName, email, password, confirmPassword)) {
+            is ApiResult.Success -> AuthResult.Success
+            is ApiResult.Failure -> AuthResult.Failure(result.reason)
+        }
 
     override suspend fun logout(): AuthResult {
         val previous = synchronized(lock) {

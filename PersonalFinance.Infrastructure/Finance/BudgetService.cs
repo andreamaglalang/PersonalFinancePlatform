@@ -94,14 +94,8 @@ public sealed class BudgetService(ApplicationDbContext db, ICurrentUser current,
             var budget = await Owned(id, userId).SingleOrDefaultAsync(token);
             if (budget is null) return FinanceResult<bool>.Failure(404, "Budget not found.");
             CheckUnchanged(budget, original);
-            // No notification producer exists yet. Use the entity name as reference discriminator,
-            // accepting case variants and the existing NotificationKeys budget-transition key convention.
-            // Check all history without rewriting it, including older notifications lacking typed references.
-            var transitionKeyPrefix = $"budget:{id}:transition:";
-            if (await Db.Notifications.AnyAsync(n =>
-                (n.ReferenceId == id && n.ReferenceType != null && n.ReferenceType.ToUpper() == "BUDGET")
-                || n.DeduplicationKey.StartsWith(transitionKeyPrefix), token))
-                throw new FinanceException(409, "This budget is referenced by notification history and cannot be deleted.");
+            // D5: alert history stays as text; Notification has no foreign key to Budget, so its reference simply
+            // becomes stale. Deleting a budget never rewrites or removes notification history.
             Db.Budgets.Remove(budget);
             await Db.SaveChangesAsync(token);
             return FinanceResult<bool>.Success(true, 204);

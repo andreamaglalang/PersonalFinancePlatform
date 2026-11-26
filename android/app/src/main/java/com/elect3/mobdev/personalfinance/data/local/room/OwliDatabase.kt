@@ -119,17 +119,54 @@ val MIGRATION_1_2: Migration = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) { MIGRATION_1_2_SQL.forEach(db::execSQL) }
 }
 
-@Database(entities = [LocalTransactionEntity::class, LocalCategoryEntity::class], version = 2, exportSchema = true)
+/**
+ * An uncertain savings contribution or bill payment, persisted before it is sent. Keyed by (namespace, path):
+ * namespace is endpoint + account ID, so another signed-in account never sees it. [body] is the exact JSON
+ * payload with its ClientId; the row is deleted only after a definitive server answer.
+ */
+@Entity(tableName = "pending_requests", primaryKeys = ["namespace", "path"])
+data class PendingRequestEntity(
+    val namespace: String,
+    val path: String,
+    val body: String,
+    val createdAtEpochMs: Long,
+)
+
+@Dao
+interface PendingRequestDao {
+    @Upsert suspend fun upsert(row: PendingRequestEntity)
+
+    @Query("SELECT * FROM pending_requests WHERE namespace = :namespace AND path = :path")
+    suspend fun find(namespace: String, path: String): PendingRequestEntity?
+
+    @Query("SELECT path FROM pending_requests WHERE namespace = :namespace ORDER BY path")
+    suspend fun paths(namespace: String): List<String>
+
+    @Query("DELETE FROM pending_requests WHERE namespace = :namespace AND path = :path")
+    suspend fun delete(namespace: String, path: String)
+}
+
+/** Version 2 -> 3 is purely additive: it creates pending_requests and never touches existing tables. */
+val MIGRATION_2_3_SQL: List<String> = listOf(
+    "CREATE TABLE IF NOT EXISTS `pending_requests` (`namespace` TEXT NOT NULL, `path` TEXT NOT NULL, `body` TEXT NOT NULL, `createdAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`namespace`, `path`))",
+)
+
+val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) { MIGRATION_2_3_SQL.forEach(db::execSQL) }
+}
+
+@Database(entities = [LocalTransactionEntity::class, LocalCategoryEntity::class, PendingRequestEntity::class], version = 3, exportSchema = true)
 abstract class OwliDatabase : RoomDatabase() {
     abstract fun transactions(): LocalTransactionDao
     abstract fun categories(): LocalCategoryDao
+    abstract fun pendingRequests(): PendingRequestDao
 
     companion object {
         @Volatile private var instance: OwliDatabase? = null
         // Explicit migrations only: never fall back to a destructive rebuild that would drop pending expenses.
         fun get(context: Context): OwliDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context.applicationContext, OwliDatabase::class.java, "owli-local.db")
-                .addMigrations(MIGRATION_1_2).build().also { instance = it }
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
         }
     }
 }
