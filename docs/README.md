@@ -5,6 +5,10 @@ Reviewed on 26 November 2026 for `handoff/owli-20261125` in
 
 ## Start here
 
+For AI-assisted work, read [shared AI development standards](AI_DEVELOPMENT.md)
+and the [Phase 0 environment and skill verification](PHASE0_AI_SETUP.md).
+These do not certify application functionality or authorize application changes.
+
 Follow the [Git development workflow](DEVELOPMENT_WORKFLOW.md),
 [shared agent instructions](../AGENTS.md), and [Claude Code instructions](../CLAUDE.md).
 `dev` is the permanent development/integration branch, initialized from the

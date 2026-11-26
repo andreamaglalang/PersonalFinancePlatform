@@ -54,3 +54,13 @@ For current setup, architecture, issues, and verification, start at
 [the documentation index](docs/README.md) and [the handoff guide](docs/handoff/README.md).
 Older reports retain historical implementation claims; they do not override
 this branch policy or constitute current verification.
+
+## OWLI AI development standards
+
+Follow [AI_DEVELOPMENT.md](docs/AI_DEVELOPMENT.md) for skill selection, academic
+requirements, financial safeguards, agent ownership, and evidence labels.
+Use only relevant skills; scale planning and tests to task risk. Project policy
+supersedes conflicting optional skill workflows and inherited role templates,
+subject to mandatory platform/security policy. Phase 0 configuration changes
+stay on `chore/ai-agent-skills-setup` until reviewed and explicitly approved for
+integration; do not begin the system audit or application work in that phase.
