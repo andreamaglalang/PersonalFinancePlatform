@@ -9,6 +9,8 @@ public sealed class MemberTransactionDraftViewModel
 {
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public int? TransactionId { get; set; }
+    /// <summary>The transaction version read when the edit form was opened (C1); never refreshed on POST.</summary>
+    public string? Version { get; set; }
 
     [Required, RegularExpression("^(Income|Expense)$")]
     public string Type { get; set; } = "Expense";
