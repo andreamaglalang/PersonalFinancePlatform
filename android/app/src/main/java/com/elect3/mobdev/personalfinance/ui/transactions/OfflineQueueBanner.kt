@@ -37,6 +37,7 @@ data class OfflineQueueUi(
     val items: List<LocalPendingTransaction>,
     val syncing: Boolean,
     val onSync: () -> Unit,
+    /** Removes a pending or rejected item from this device only. */
     val onDiscard: (UUID) -> Unit,
 )
 
@@ -67,7 +68,8 @@ fun OfflineQueueBanner(queue: OfflineQueueUi) {
                     }
                     Text((if (item.draft.type == TransactionType.Income) "+" else "−") + formatTransactionAmount(item.draft.amount, item.draft.currencyCode),
                         style = typography.amountRow)
-                    if (item.rejected) TextButton(onClick = { queue.onDiscard(item.clientId) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    // Not yet on the server (no server ID): discarding is local only. Hidden mid-sync, while it may be in flight.
+                    if (item.rejected || !queue.syncing) TextButton(onClick = { queue.onDiscard(item.clientId) }, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.offline_discard), color = MaterialTheme.colorScheme.error)
                     }
                 }

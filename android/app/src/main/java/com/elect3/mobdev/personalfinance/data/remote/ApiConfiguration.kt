@@ -22,7 +22,7 @@ class ApiConfiguration private constructor(private val base: URI?) {
 
     internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 
-    /** PUT api/transactions/{id} (member edit). */
+    /** api/transactions/{id}: GET (reload), PUT (member edit) and DELETE. */
     internal fun transactionUpdateUrl(transactionId: Int): URL? {
         require(transactionId > 0)
         return base?.resolve("api/transactions/$transactionId")?.toURL()

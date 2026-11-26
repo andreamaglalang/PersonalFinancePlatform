@@ -21,6 +21,8 @@ data class Transaction(
     val createdAtUtc: Instant,
     val billId: Int?,
     val billDueDate: LocalDate?,
+    /** Server concurrency token (uppercase 64-hex) the edit must echo; null when the source carries none (demo, device cache). */
+    val version: String? = null,
 )
 
 enum class TransactionType(val wireValue: String) {

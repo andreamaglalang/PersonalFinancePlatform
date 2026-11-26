@@ -52,6 +52,8 @@ class TransactionCreationCoordinator(
             }
             val selected = attempt
             (selected.result as? CreationResult.Success)?.let { return it } // Repeated completed taps do not send again.
+            // C2: a 409 means the server holds different data under this ClientId. Definitive: never resend it.
+            selected.result?.takeIf { it == CreationResult.Failure(FinanceFailure.Conflict) }?.let { return it }
             mutable.value = CreationState.Submitting
             val result = try {
                 coroutineScope {
