@@ -21,6 +21,7 @@ RoleClaimsChecks.Run();
 OwliLandingChecks.Run();
 MemberAreaChecks.Run();
 RegistrationChecks.Run();
+await RegistrationChecks.RunStatusContractAsync();
 MemberShellChecks.Run();
 DesignTokenChecks.Run();
 MemberLayoutChecks.Run();
