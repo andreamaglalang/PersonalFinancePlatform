@@ -637,7 +637,7 @@
     <string name="offline_discard">Discard</string>
     <string name="offline_syncing">Syncing…</string>
     <string name="offline_rejected_label">Not accepted</string>
-    <string name="local_history_title">Offline ? On-device history</string>
+    <string name="local_history_title">Offline · On-device history</string>
     <string name="local_history_notice">Up to 200 saved entries. Incomplete history; totals unavailable. Synced entries may be out of date.</string>
     <string name="local_history_pending">Pending · Awaiting sync</string>
     <string name="local_history_synced">Synced · Last confirmed copy</string>

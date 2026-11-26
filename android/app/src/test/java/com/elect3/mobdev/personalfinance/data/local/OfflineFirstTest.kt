@@ -34,6 +34,14 @@ class OfflineFirstTest {
         }
     }
 
+    @Test fun queuedItemCarriesTheCategoryNameForTheOfflineBanner() = runTest {
+        // Phase 4 device run: the banner showed "#<categoryId>" because no name lookup was wired.
+        val ledger = InMemoryLedger()
+        val creation = OfflineFirstCreationRepository(Server(), ledger, { 42 }, categoryName = { id -> if (id == draft.categoryId) "Groceries" else null })
+        creation.create(CreateTransactionRequest(UUID.randomUUID(), draft))
+        assertEquals(listOf("Groceries"), ledger.pending(42).map { it.categoryName })
+    }
+
     @Test fun offlineSaveIsQueuedWithItsClientIdAndSyncedOnceWhenOnline() = runTest {
         val server = Server(); val ledger = InMemoryLedger()
         val creation = OfflineFirstCreationRepository(server, ledger, { 42 })
