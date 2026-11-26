@@ -1,6 +1,8 @@
 package com.elect3.mobdev.personalfinance.data.remote
 
 import com.elect3.mobdev.personalfinance.data.auth.InMemoryAuthRepository
+import com.elect3.mobdev.personalfinance.data.local.InMemoryPendingRequestStore
+import com.elect3.mobdev.personalfinance.data.local.PendingRequestStore
 import com.elect3.mobdev.personalfinance.domain.repository.*
 import com.google.gson.*
 import com.google.gson.stream.JsonReader
@@ -13,17 +15,22 @@ class LiveAccountPlanRepository internal constructor(
     private val auth: InMemoryAuthRepository,
     engine: FinanceHttpEngine,
     writeEngine: FinanceWriteEngine,
+    private val pendingStore: PendingRequestStore = InMemoryPendingRequestStore(),
 ) {
-    constructor(configuration: ApiConfiguration, auth: InMemoryAuthRepository) : this(configuration, auth, PlatformFinanceHttpEngine(), PlatformFinanceWriteEngine())
+    constructor(configuration: ApiConfiguration, auth: InMemoryAuthRepository, pendingStore: PendingRequestStore = InMemoryPendingRequestStore()) :
+        this(configuration, auth, PlatformFinanceHttpEngine(), PlatformFinanceWriteEngine(), pendingStore)
     private val reader = AuthenticatedFinanceTransport(configuration, auth, engine)
     private val writer = FinanceWriter(auth, writeEngine)
     private val mutationLock = kotlinx.coroutines.sync.Mutex()
-    private var pendingMarker: Any? = null
-    private val pending = mutableMapOf<String, JsonObject>()
-    fun pendingRequest(path: String): JsonObject? = synchronized(pending) {
-        if (pendingMarker !== auth.sessionMarker()) { pending.clear(); pendingMarker = auth.sessionMarker() }
-        pending[path]?.deepCopy()
+    /** Endpoint + account: another signed-in user never sees or replays these records. */
+    private fun namespace(): String? = auth.accountId()?.let { "${configuration.sessionNamespace()}#$it" }
+    /** The persisted, uncertain contribution or payment for [path]. It is never evidence of success. */
+    suspend fun pendingRequest(path: String): JsonObject? {
+        val namespace = namespace() ?: return null
+        return pendingStore.find(namespace, path)?.let { runCatching { json(it) }.getOrNull() }
     }
+    /** Paths of every uncertain contribution or payment of the signed-in account. */
+    suspend fun pendingPaths(): Set<String> = namespace()?.let { pendingStore.paths(it).toSet() }.orEmpty()
     private fun json(body: String): JsonObject {
         val input = JsonReader(StringReader(body)); input.isLenient = false
         val value = JsonParser.parseReader(input)
@@ -93,16 +100,19 @@ class LiveAccountPlanRepository internal constructor(
         }
         val financial = !update && !delete && (path.endsWith("/contributions") || path.endsWith("/payments"))
         if (financial && !mutationLock.tryLock()) return FinanceResult.Failure(FinanceFailure.Conflict)
-        val marker = auth.sessionMarker()
+        val namespace = namespace()
         try {
-            if (financial) synchronized(pending) {
-                if (pendingMarker !== marker) { pending.clear(); pendingMarker = marker }
-                val previous = pending[path]
-                if (previous != null && previous != body) return FinanceResult.Failure(FinanceFailure.Conflict)
-                if (body != null) pending[path] = body.deepCopy()
+            var payload = body?.toString()
+            if (financial) {
+                if (namespace == null || body == null) return FinanceResult.Failure(FinanceFailure.MissingSession)
+                val previous = try { pendingStore.find(namespace, path) } catch (_: Exception) { return FinanceResult.Failure(FinanceFailure.Unavailable) }
+                if (previous != null && runCatching { json(previous) }.getOrNull() != body) return FinanceResult.Failure(FinanceFailure.Conflict)
+                // Persist the identity and exact payload before the request can leave the device; never send unpersisted.
+                if (previous == null) try { pendingStore.save(namespace, path, payload!!) } catch (_: Exception) { return FinanceResult.Failure(FinanceFailure.Unavailable) }
+                payload = previous ?: payload
             }
         val result = writer.sendVersioned(if (delete) WriteMethod.DELETE else if (update) WriteMethod.PUT else WriteMethod.POST,
-            configuration.memberUrl(path), body?.toString(), if (delete || path == "account/change-password") setOf(204) else setOf(200, 201), tag) {
+            configuration.memberUrl(path), payload, if (delete || path == "account/change-password") setOf(204) else setOf(200, 201), tag) {
                 if (it.isBlank()) {
                     require(delete || path == "account/change-password"); JsonObject()
                 } else checked(path, json(it), false).also { root ->
@@ -120,9 +130,9 @@ class LiveAccountPlanRepository internal constructor(
                     }
                 }
             }
-        if (financial && (result is FinanceResult.Success || (result is FinanceResult.Failure && result.reason !in uncertainFailures))) synchronized(pending) {
-            if (pendingMarker === marker) pending.remove(path)
-        }
+        // Cleared only on a definitive answer; transport failures, 5xx, 401 and 429 keep the identity for retry.
+        if (financial && (result is FinanceResult.Success || (result is FinanceResult.Failure && result.reason in definitiveRejections)))
+            runCatching { pendingStore.remove(namespace!!, path) } // A leftover record only causes a harmless server replay.
         return result
         } finally { if (financial) mutationLock.unlock() }
     }
@@ -140,6 +150,8 @@ class LiveAccountPlanRepository internal constructor(
         return result
     }
 }
+/** 400/403/404/409: the server permanently rejected this request, so its identity is not reused. */
+internal val definitiveRejections = setOf(FinanceFailure.InvalidInput, FinanceFailure.AccessDenied, FinanceFailure.NotFound, FinanceFailure.Conflict)
 internal val uncertainFailures = setOf(FinanceFailure.Timeout, FinanceFailure.Unavailable, FinanceFailure.InvalidResponse, FinanceFailure.SecureConnection)
 internal fun fields(vararg values: Pair<String, Any?>) = JsonObject().apply {
     values.forEach { (key, value) -> when (value) {
