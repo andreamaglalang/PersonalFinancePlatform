@@ -86,9 +86,10 @@ refresh across clients; real-time push is not presumed required.
 MVC [ReportsApiClient](../PersonalFinance.AdminMvc/Services/ReportsApiClient.cs)
 uses `GET /api/reports/monthly?month=YYYY-MM-01`. The backend report recomputes
 base-currency totals via shared `MonthlyTotals`; it does not retrieve the stored
-MonthlySummary row. Android [LoadFinancialReport](../android/app/src/main/java/com/elect3/mobdev/personalfinance/domain/reports/LoadFinancialReport.kt)
-currently reads/checks paginated transactions and calculates its report locally.
-These source differences need parity tests, not an assumption of a runtime bug.
+MonthlySummary row. Signed-in Android (R8) uses the same `GET /api/reports/monthly` with strict
+validation, so both clients show the server's totals, including savings contributed and budgets. Its local
+[LoadFinancialReport](../android/app/src/main/java/com/elect3/mobdev/personalfinance/domain/reports/LoadFinancialReport.kt)
+calculation remains only for the offline Mock Demo. Same-cent parity still needs runtime evidence.
 
 The selected jobs write financial notifications/monthly summaries into the shared
 finance database. Notification records are available through the user-scoped API;
