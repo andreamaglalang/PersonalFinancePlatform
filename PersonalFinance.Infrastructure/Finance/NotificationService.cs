@@ -23,9 +23,13 @@ namespace PersonalFinance.Infrastructure.Finance
     public interface INotificationService
     {
         Task<FinanceResult<PagedResponse<NotificationResponse>>> ListAsync(NotificationQuery query, CancellationToken ct);
+        /// <summary>C3: marks one owned notification read (idempotent). Unowned or missing → 404.</summary>
+        Task<FinanceResult<bool>> MarkReadAsync(int id, CancellationToken ct);
+        /// <summary>C3: marks every owned unread notification read (idempotent).</summary>
+        Task<FinanceResult<bool>> MarkAllReadAsync(CancellationToken ct);
     }
 
-    /// <summary>Read-only access to the signed-in user's own notifications (bill reminders, budget alerts, monthly summaries).</summary>
+    /// <summary>The signed-in user's own notifications (bill reminders, budget alerts, monthly summaries) and their read state.</summary>
     public sealed class NotificationService(ApplicationDbContext db, ICurrentUser current, IFinancialWriteScope writes)
         : FinanceServiceBase(db, current, writes), INotificationService
     {
@@ -42,6 +46,24 @@ namespace PersonalFinance.Infrastructure.Finance
                 .Select(n => new NotificationResponse(n.NotificationId, n.Type, n.ReferenceType, n.ReferenceId, n.Message, n.IsRead, n.CreatedAtUtc))
                 .ToListAsync(ct);
             return FinanceResult<PagedResponse<NotificationResponse>>.Success(new(items, query.Page, query.PageSize, total));
+        });
+
+        public Task<FinanceResult<bool>> MarkReadAsync(int id, CancellationToken ct) => Guard(async () =>
+        {
+            var userId = UserId;
+            var row = await Db.Notifications.SingleOrDefaultAsync(n => n.NotificationId == id && n.UserId == userId, ct);
+            if (row is null) return FinanceResult<bool>.Failure(404, "Notification not found.");
+            if (!row.IsRead) { row.IsRead = true; await Db.SaveChangesAsync(ct); }
+            return FinanceResult<bool>.Success(true, 204);
+        });
+
+        public Task<FinanceResult<bool>> MarkAllReadAsync(CancellationToken ct) => Guard(async () =>
+        {
+            var userId = UserId;
+            var unread = await Db.Notifications.Where(n => n.UserId == userId && !n.IsRead).ToListAsync(ct);
+            unread.ForEach(n => n.IsRead = true);
+            await Db.SaveChangesAsync(ct);
+            return FinanceResult<bool>.Success(true, 204);
         });
     }
 }

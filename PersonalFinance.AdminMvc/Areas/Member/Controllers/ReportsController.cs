@@ -49,6 +49,14 @@ public sealed class ReportsController(ReportsApiClient reports,
             model = new MemberInsightsViewModel(selectedMonth) { Report = report };
             if (!await LoadHistoryAsync(model, requestedMonth, report, token!, ct)) return RedirectToAction("Login", "Account", new { area = "" });
             if (!await LoadCategoryColorsAsync(model, token!, ct)) return RedirectToAction("Login", "Account", new { area = "" });
+            var summaries = await reports.GetSummariesAsync(token!, ct);
+            if (summaries.Status == 401)
+            {
+                await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
+                return RedirectToAction("Login", "Account", new { area = "" });
+            }
+            if (summaries.Page is { } page) model.Summaries = page.Items;
+            else model.SummariesError = "Monthly snapshots are temporarily unavailable.";
         }
         else
         {

@@ -36,8 +36,11 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
     var create by remember { mutableStateOf(false) }
     var contribution by remember { mutableStateOf<JsonObject?>(null) }
     var action by remember { mutableStateOf<Pair<JsonObject, String>?>(null) }
+    // Persisted uncertain contributions/payments (survive app restart); shown as pending, never as confirmed.
+    var pending by remember(live, bills) { mutableStateOf(emptySet<String>()) }
     suspend fun reload() {
         loading = true; error = null; records = emptyList()
+        pending = runCatching { live.pendingPaths() }.getOrDefault(emptySet())
         when(val result = live.page(path, page)) {
             is FinanceResult.Success -> runCatching {
                 val root = result.value
@@ -58,6 +61,8 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
         }
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (pending.any { it.startsWith("$path/") }) Text(if (bills) "A payment's outcome is unknown. It is pending, not confirmed. Open Record payment to check the same payment."
+            else "A contribution's outcome is unknown. It is pending, not confirmed. Open Contributions to check the same contribution.", color = MaterialTheme.colorScheme.error)
         if (available && !loading && records.isEmpty()) Text(if (bills) "No recurring bills yet." else "No savings goals yet.")
         records.forEach { record ->
             Card(Modifier.fillMaxWidth()) {
@@ -71,14 +76,18 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
                         val status = when { !active -> "Inactive"; due < today -> "Overdue"; due <= today.plusDays(record.get("reminderDaysBefore").asLong) -> "Due soon"; else -> "Upcoming" }
                         Text("${record.text("frequency")} · Due $due · $status")
                         Text(record.text("categoryName"))
-                        if ((active && due <= today) || live.pendingRequest("$path/${record.text("billId")}/payments") != null) TextButton(onClick = { action = record to "pay" }) { Text("Record payment") }
+                        val paymentPending = "$path/${record.text("billId")}/payments" in pending
+                        if (paymentPending) Text("Payment pending · outcome unknown")
+                        if ((active && due <= today) || paymentPending) TextButton(onClick = { action = record to "pay" }) { Text(if (paymentPending) "Check pending payment" else "Record payment") }
                     } else {
                         val currency = record.text("baseCurrency")
                         Text("${formatTransactionAmount(record.amount("savedAmount"), currency)} saved of ${formatTransactionAmount(record.amount("targetAmount"), currency)}")
                         LinearProgressIndicator(progress = { record.amount("progressPercentage").divide(BigDecimal(100)).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
                         Text("${record.text("progressPercentage")}% · ${formatTransactionAmount(record.amount("remainingAmount"), currency)} remaining")
                         Text(record.text("status") + record.text("targetDate").takeIf { it.isNotEmpty() }?.let { " · Target $it" }.orEmpty())
-                        if (record.text("status") != "Cancelled") TextButton(onClick = { contribution = record }) { Text("Contributions") }
+                        val contributionPending = "$path/${record.text("goalId")}/contributions" in pending
+                        if (contributionPending) Text("Contribution pending · outcome unknown")
+                        if (record.text("status") != "Cancelled" || contributionPending) TextButton(onClick = { contribution = record }) { Text("Contributions") }
                     }
                     Row {
                         if (bills || record.text("status") != "Cancelled") TextButton(onClick = { editing = record }) { Text("Edit") }
@@ -100,12 +109,16 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
     action?.let { (record, operation) ->
         val id = record.text(if (bills) "billId" else "goalId")
         val paymentPath = "$path/$id/payments"
-        val pendingPayment = remember(record, operation) { live.pendingRequest(paymentPath) }
-        val clientId = remember(record, operation) { pendingPayment?.text("clientId") ?: UUID.randomUUID().toString() }
         var busy by remember { mutableStateOf(false) }
         var message by remember { mutableStateOf<String?>(null) }
         var unknown by remember { mutableStateOf(false) }
         var done by remember { mutableStateOf(false) }
+        LaunchedEffect(record, operation) {
+            if (operation == "pay") live.pendingRequest(paymentPath)?.let {
+                unknown = true
+                message = "A previous attempt for the ${it.text("dueDate")} payment has an unknown outcome. It is pending, not confirmed. Check the same payment to find out."
+            }
+        }
         AlertDialog(onDismissRequest = { if (!busy) action = null }, title = { Text(when(operation) { "pay" -> "Record payment?"; "cancel" -> "Cancel goal?"; else -> "Delete ${record.text("name")}?" }) },
             text = { Column {
                 Text(if (operation == "pay") "Records a real expense for ${record.text("nextDueDate")} using the bill's current amount and advances its due date. No bank transfer is made." else "Records with financial history may require cancellation or deactivation instead.")
@@ -115,19 +128,20 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
             confirmButton = { if (!done) TextButton(enabled = !busy && (!unknown || operation == "pay"), onClick = { scope.launch {
                 busy = true
                 val requestPath = "$path/$id" + when(operation) { "pay" -> "/payments"; "cancel" -> "/cancel"; else -> "" }
-                val body = if (operation == "pay") pendingPayment ?: fields("clientId" to clientId, "dueDate" to record.text("nextDueDate")) else null
+                // Reuse the persisted identity and payload if one exists (even from before an app restart).
+                val body = if (operation == "pay") live.pendingRequest(paymentPath) ?: fields("clientId" to UUID.randomUUID().toString(), "dueDate" to record.text("nextDueDate")) else null
                 when(val result = live.save(requestPath, body, delete = operation == "delete", version = if (bills) null else record.text("version"))) {
                     is FinanceResult.Success -> {
                         done = true
                         message = if (operation == "pay") {
                             val receipt = result.value.getAsJsonObject("receipt")
-                            if (receipt.text("clientId").equals(clientId, true) && receipt.text("billId") == id && receipt.text("dueDate") == body!!.text("dueDate")) {
+                            if (receipt.text("clientId").equals(body!!.text("clientId"), true) && receipt.text("billId") == id && receipt.text("dueDate") == body!!.text("dueDate")) {
                                 onPaid(); "Payment recorded: ${formatTransactionAmount(receipt.amount("amount"), receipt.text("currencyCode"))}."
                             } else "Payment response could not be verified. Refresh your records before any further payment."
                         } else "Saved."
                         reload()
                     }
-                    is FinanceResult.Failure -> { unknown = result.reason in uncertainFailures; message = liveFailure(result.reason, true) }
+                    is FinanceResult.Failure -> { unknown = if (operation == "pay") result.reason !in definitiveRejections else result.reason in uncertainFailures; message = liveFailure(result.reason, true) }
                 }
                 busy = false
             } }) { Text(if (unknown) "Check same payment" else "Confirm") } })
@@ -204,12 +218,19 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: JsonObject
     val scope = rememberCoroutineScope()
     val path = "savings-goals/${goal.text("goalId")}/contributions"
     var entries by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
-    var amount by remember { mutableStateOf(live.pendingRequest(path)?.text("amount").orEmpty()) }
-    var date by remember { mutableStateOf(live.pendingRequest(path)?.text("contributedOn") ?: LocalDate.now().toString()) }
-    var note by remember { mutableStateOf(live.pendingRequest(path)?.text("note").orEmpty()) }
+    var amount by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(LocalDate.now().toString()) }
+    var note by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var request by remember { mutableStateOf<JsonObject?>(live.pendingRequest(path)) }
+    var request by remember { mutableStateOf<JsonObject?>(null) }
+    LaunchedEffect(live, path) {
+        // A persisted uncertain contribution is restored exactly (same ClientId and payload), even after a restart.
+        live.pendingRequest(path)?.let {
+            request = it; amount = it.text("amount"); date = it.text("contributedOn"); note = it.text("note")
+            error = "A previous contribution has an unknown outcome. It is pending, not confirmed. Check the same contribution to find out."
+        }
+    }
     var selected by remember { mutableStateOf<JsonObject?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     var ledgerPage by remember { mutableIntStateOf(1) }
@@ -253,16 +274,16 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: JsonObject
             else scope.launch {
                 busy = true
                 val item = selected
-                val body = request ?: fields("amount" to decimal, "contributedOn" to date, "note" to note.takeIf { it.isNotEmpty() }).apply { if (item == null) addProperty("clientId", UUID.randomUUID().toString()) }
+                val body = request ?: (if (item == null) live.pendingRequest(path) else null) ?: fields("amount" to decimal, "contributedOn" to date, "note" to note.takeIf { it.isNotEmpty() }).apply { if (item == null) addProperty("clientId", UUID.randomUUID().toString()) }
                 if (item == null) request = body // Retain exactly this key and payload across an explicit retry.
                 when(val result = live.save(path + (item?.let { "/${it.text("contributionId")}" } ?: ""), body, update = item != null, version = item?.text("version"))) {
                     is FinanceResult.Success -> {
                         val receipt = result.value.getAsJsonObject("receipt")
-                        val valid = item != null || (receipt != null && receipt.text("clientId").equals(body.text("clientId"), true) && receipt.text("goalId") == goal.text("goalId") && receipt.amount("originalAmount").compareTo(decimal) == 0 && receipt.text("originalContributedOn") == date && receipt.text("originalNote") == note)
+                        val valid = item != null || (receipt != null && receipt.text("clientId").equals(body.text("clientId"), true) && receipt.text("goalId") == goal.text("goalId") && receipt.amount("originalAmount").compareTo(body.amount("amount")) == 0 && receipt.text("originalContributedOn") == body.text("contributedOn") && receipt.text("originalNote") == body.text("note"))
                         error = if (!valid) "The response could not be verified. Check your ledger." else if (result.value.get("deleted")?.asBoolean == true) "This contribution was previously deleted. Nothing was added." else "Contribution saved."
                         request = null; selected = null; amount = ""; note = ""; load()
                     }
-                    is FinanceResult.Failure -> { error = liveFailure(result.reason, true); if (result.reason !in uncertainFailures) request = null }
+                    is FinanceResult.Failure -> { error = liveFailure(result.reason, true); if (result.reason in definitiveRejections) request = null }
                 }
                 busy = false
             }
