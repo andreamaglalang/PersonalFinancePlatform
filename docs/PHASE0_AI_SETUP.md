@@ -328,3 +328,11 @@ The local checks do not establish hosted CI acceptance. Both Android and .NET
 jobs must pass on the latest published PR head; record exact commit/run results
 in PR #1 before final approval. Do not merge or infer application-wide runtime
 readiness from these offline checks.
+
+Hosted follow-up: both required jobs passed on fix commit
+`39533657a0c930b93bfb2f38bab18dbf59280b4c` in
+[run 45817931183](https://github.com/andreamaglalang/PersonalFinancePlatform/actions/runs/45817931183).
+The Windows job completed the full build and handoff suite; Ubuntu completed SDK
+setup and all three Android tasks. This supersedes the initial failed-run status.
+The documentation-only evidence successor must also pass both jobs at the latest
+PR head before final approval; final commit/run evidence is recorded in PR #1.

@@ -1,7 +1,7 @@
 # OWLI verification limits and architectural decisions
 
 > Sources: Project owner, 2026-11-26; guarded Phase 0 SQL preparation, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md)
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md); [Hosted CI acceptance](../../raw/owli/2026-11-26-ci-hosted-acceptance.md)
 > Updated: 2026-11-26
 
 ## Verified preparation
@@ -37,8 +37,11 @@ negative-security checks, and all three Android tasks passed. Debug/release unit
 runs counted 596/599 tests without failures or skips. See the new raw CI evidence
 for scope, temporary fixture details and original failed-run links. Earlier
 instruction/storage readiness did not prove passing CI; that PR-ready claim was
-premature. Final acceptance requires both hosted jobs passing on the latest PR
-head, with exact commit/run evidence recorded in PR #1. No merge is authorized.
+premature. Both hosted jobs subsequently passed on fix commit
+`39533657a0c930b93bfb2f38bab18dbf59280b4c` in run `45817931183`,
+superseding the earlier failed/pending evidence. Final acceptance still requires
+both jobs at the latest PR head, including the documentation-only evidence
+successor; PR #1 records the final commit/run. No merge is authorized.
 
 ## Decisions and remaining acceptance work
 
