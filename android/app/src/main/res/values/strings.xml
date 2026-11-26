@@ -720,7 +720,7 @@
     <string name="plan_option_selected">✓ %1$s</string>
     <string name="plan_editor_invalid">Check the name, amount, date and bill settings.</string>
     <string name="plan_failure_session">Session ended. Sign in again.</string>
-    <string name="plan_failure_invalid">Check your entries. The current password may be incorrect, or an account rule was not met.</string>
+    <string name="plan_failure_invalid">Check your entries. A value was not accepted, for example a date later than today.</string>
     <string name="plan_failure_conflict">This record changed or has financial history. Reload before editing.</string>
     <string name="plan_failure_not_found">This operation is not available on the running API, or the record no longer exists.</string>
     <string name="plan_failure_denied">This operation is not permitted.</string>
