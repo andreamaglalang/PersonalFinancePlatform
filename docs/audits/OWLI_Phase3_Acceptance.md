@@ -49,7 +49,7 @@
 
 | ID | Resolution | Evidence |
 | --- | --- | --- |
-| H1 | API has no Hangfire; worker hosts processing | HangfireTests 20/20; runtime A/B |
+| H1 | API has no Hangfire; worker hosts processing | HangfireTests 13/13 (7 offline + 6 live); runtime A/B |
 | H2 | Android registration | device: register → MVC sign-in; duplicate → AlreadyRegistered |
 | H3 | Mark-read API + both inboxes | MVC→API (Android view) and Android→MVC read state, runtime |
 | H4 | Android delete | device delete → MVC no longer lists |
@@ -97,7 +97,7 @@
 ## Automated suites (combined branch)
 
 .NET: Finance 440, Authentication 30, ApiSecurity 34, CategoryUniqueness 15, SchemaValidation 65,
-AdminProvisioning 40, MVC UiTests (exit 0), SqlIntegration 13 live, Hangfire 20 live — all PASS.
+AdminProvisioning 40, MVC UiTests (exit 0), SqlIntegration 13 (5 offline + 8 live), Hangfire 13 (7 offline + 6 live) — all PASS.
 Android: 626 debug / 632 release unit tests PASS. Instrumented: 190 run, 186 PASS, 4 pre-existing failures,
 10 skipped (opt-in runtime steps).
 
