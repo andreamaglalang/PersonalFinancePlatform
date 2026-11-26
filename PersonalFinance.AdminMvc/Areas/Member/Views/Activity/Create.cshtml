@@ -15,6 +15,10 @@
     <div class="member-card activity-entry-card">
         <form class="member-form activity-entry-form" data-transaction-entry method="post" asp-action="@(Model.TransactionId.HasValue ? "Edit" : "Create")" asp-route-id="@Model.TransactionId" data-busy>
             <div class="activity-entry-wide"><div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div></div>
+            @if (Model.TransactionId.HasValue)
+            {
+                <input type="hidden" asp-for="Version" />
+            }
 
             <div class="member-field activity-entry-wide">
                 <span class="member-label">Type</span>

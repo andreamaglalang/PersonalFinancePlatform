@@ -33,9 +33,10 @@ class RoomLedgerAtomicTest {
         }
         override fun unsynced(accountId: Int): Flow<List<LocalTransactionEntity>> = flowOf(emptyList())
         override suspend fun history(accountId: Int,limit: Int): List<LocalTransactionEntity> = synchronized(this) { rows.values.filter { it.accountId == accountId }.take(limit) }
-        override suspend fun discardRejected(accountId: Int,clientId: String) {
-            synchronized(this) { val key = accountId to clientId; if (rows[key]?.syncState == SyncState.REJECTED) rows.remove(key) }
+        override suspend fun discardUnsynced(accountId: Int,clientId: String) {
+            synchronized(this) { val key = accountId to clientId; if (rows[key]?.syncState != SyncState.SYNCED) rows.remove(key) }
         }
+        override suspend fun delete(accountId: Int,clientId: String) { synchronized(this) { rows.remove(accountId to clientId) } }
     }
     private val draft = TransactionDraft(TransactionType.Expense,7,BigDecimal("12.34"),"PHP",LocalDate.of(2026,11,19),"Synthetic")
     private fun server(id: UUID) = Transaction(501,id,draft.type,7,"Food",draft.amount,"PHP",BigDecimal.ONE,
@@ -71,7 +72,7 @@ class RoomLedgerAtomicTest {
         assertEquals(LocalTransactionState.Pending,ledger.history(2).single().state)
         ledger.recordSynced(1,listOf(server(req.clientId)))
         ledger.markRejected(1,req.clientId)
-        ledger.discardRejected(1,req.clientId)
+        ledger.discardUnsynced(1,req.clientId)
         assertEquals(LocalTransactionState.Synced,ledger.history(1).single().state)
     }
 }

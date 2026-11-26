@@ -43,7 +43,9 @@ or authorization from posted financial identifiers.
 | Savings | `/api/savings-goals` and contribution resources. Resource version is base64 SQL rowversion; applicable mutations require one strong quoted `If-Match`, missing 428/malformed 400/stale 412. Creation receipts distinguish replay and retained deletion. This is different from account profile's body version |
 | Bills/payments | `/api/recurring-bills` and `/{id}/payments`; payment success may be 201 or 200 replay. Preserve occurrence/client request identity and receipts; do not resend uncertain payments under a fresh identity |
 | FX | `/api/exchange-rates/quote`; conversion uses Frankfurter and server policy. Stored transaction snapshot drives history/report amounts; do not recompute old records with today's rate |
-| Notifications | `GET /api/notifications`, paged/optional unread filter, scoped to the authenticated user. Only read access is exposed here; no assumed mark-read, push or email contract |
+| Notifications | `GET /api/notifications`, paged/optional unread filter, scoped to the authenticated user. C3: `POST /api/notifications/{id}/read` and `POST /api/notifications/read-all` return 204, are idempotent, and give 404 for another user's or a missing notification. No push or email contract |
+| Monthly summaries | C4: `GET /api/reports/summaries?page&pageSize` (default 12) returns the caller's stored, immutable (D1) worker snapshots, newest first: summaryMonth, totalIncome, totalExpense, netCashFlow, savingsAllocated, generatedAtUtc, baseCurrency. Read-only |
+| Budgets after alerts | D5: a budget referenced by alert notifications can be deleted (204). The notification history is kept unchanged; Notification has no foreign key to Budget |
 
 [Controllers](../PersonalFinance.Api/Controllers),
 [financial DTOs](../PersonalFinance.Infrastructure/Finance/Contracts),
@@ -63,8 +65,8 @@ Transport middleware returns 400 ProblemDetails with title `HTTPS is required.`
 for plain-HTTP financial-route requests; this is a transport rejection, not a
 field-validation result. It also sets no-store headers. Preserve rate limits,
 validation and HTTPS; expose no bearer/refresh tokens in browser scripts.
-Outside Development, `/api/dev` returns 404 before that transport check; its
-manual-job endpoint is an audit/cutover concern, not a public client contract.
+The former Development-only `/api/dev/jobs/*` manual-job endpoint is removed (D3).
+Finance jobs run only in `PersonalFinance.Worker`.
 
 Money maps to SQL decimal(18,2); FX rates to decimal(18,8). Server validation
 rounds accepted rates to 8 decimal places and converted amounts to 2 using

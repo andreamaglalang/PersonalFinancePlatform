@@ -14,6 +14,12 @@ public sealed record MonthlyReportResponse(DateOnly Month, string BaseCurrency, 
 
 public sealed record MonthlyReportResult(int Status, MonthlyReportResponse? Report = null);
 
+// Mirrors the API's stored monthly snapshot (C4); written by the worker and immutable (D1).
+public sealed record MonthlySummaryResponse(DateOnly SummaryMonth, decimal TotalIncome, decimal TotalExpense,
+    decimal NetCashFlow, decimal SavingsAllocated, DateTime GeneratedAtUtc, string BaseCurrency);
+public sealed record MonthlySummaryPage(IReadOnlyList<MonthlySummaryResponse> Items, int Page, int PageSize, long TotalCount);
+public sealed record MonthlySummaryResult(int Status, MonthlySummaryPage? Page = null);
+
 public sealed class ReportsApiClient(HttpClient http)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -35,6 +41,29 @@ public sealed class ReportsApiClient(HttpClient http)
 
             var report = await response.Content.ReadFromJsonAsync<MonthlyReportResponse>(Json, ct);
             return IsValid(report, month) ? new(200, report) : new(503);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException or JsonException
+            or NotSupportedException or InvalidOperationException or FormatException or OverflowException)
+        {
+            return new(503);
+        }
+    }
+
+    /// <summary>C4: GET api/reports/summaries (first page, newest first).</summary>
+    public async Task<MonthlySummaryResult> GetSummariesAsync(string bearer, CancellationToken ct)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "api/reports/summaries?page=1&pageSize=12");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
+            var status = (int)response.StatusCode;
+            if (status is 400 or 401 or 403 or 404 or 429) return new(status);
+            if (status != 200 || response.Content.Headers.ContentType?.MediaType != "application/json") return new(503);
+            var page = await response.Content.ReadFromJsonAsync<MonthlySummaryPage>(Json, ct);
+            return page is { Items: not null, Page: 1 } && page.Items.Count <= 12 && page.Items.All(s =>
+                s.SummaryMonth.Day == 1 && s.BaseCurrency is { Length: 3 } && s.TotalIncome >= 0 && s.TotalExpense >= 0
+                && s.NetCashFlow == s.TotalIncome - s.TotalExpense) ? new(200, page) : new(503);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException or JsonException
             or NotSupportedException or InvalidOperationException or FormatException or OverflowException)

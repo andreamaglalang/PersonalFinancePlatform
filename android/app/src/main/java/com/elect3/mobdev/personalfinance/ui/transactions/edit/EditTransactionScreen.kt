@@ -57,7 +57,7 @@ fun EditTransactionDialog(
     isCurrent: () -> Boolean,
     onExpired: () -> Unit,
     onClose: () -> Unit,
-    /** Called once after a server-confirmed edit so lists and the Dashboard reload. */
+    /** Called once after a server-confirmed edit or delete (or a 404 "already gone") so lists and the Dashboard reload. */
     onSaved: () -> Unit,
 ) {
     val store = remember { ViewModelStore() }
@@ -73,8 +73,12 @@ fun EditTransactionDialog(
     DisposableEffect(store) { onDispose { store.clear() } }
     val state by model.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.saved) { if (state.saved != null) onSaved() }
+    LaunchedEffect(state.deleted) {
+        if (state.deleted != null) onSaved()
+        if (state.deleted == DeleteOutcome.Deleted) onClose() // already-gone stays open to explain, then Done closes
+    }
     LaunchedEffect(state.invalidated) { if (state.invalidated) onClose() }
-    val back = { if (!state.saving) onClose() }
+    val back = { if (!state.busy) onClose() }
     Dialog(onDismissRequest = back, properties = DialogProperties(usePlatformDefaultWidth = false,
         dismissOnBackPress = false, dismissOnClickOutside = false)) {
         BackHandler { back() }
@@ -88,6 +92,7 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
     var categoryOpen by remember { mutableStateOf(false) }
     var dateOpen by remember { mutableStateOf(false) }
     var currencyOpen by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     val typography = LocalOwliTypography.current
     val shapes = LocalOwliShapes.current
@@ -98,7 +103,7 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
         topBar = {
             Column(Modifier.statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = onClose, enabled = !state.saving, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.form_back)) }
+                    TextButton(onClick = onClose, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.form_back)) }
                     OwliBrand()
                 }
                 Text(stringResource(R.string.fx_edit_title), style = typography.screenTitle, modifier = Modifier.semantics { heading() })
@@ -106,9 +111,16 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
         },
         bottomBar = {
             Column(Modifier.navigationBarsPadding().fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val done = state.saved != null || state.deleted != null
                 val status = when {
                     state.locked -> stringResource(R.string.fx_edit_bill_locked)
+                    state.deleted == DeleteOutcome.AlreadyDeleted -> stringResource(R.string.fx_delete_already)
                     state.saved != null -> stringResource(R.string.fx_edit_saved)
+                    state.deleteFailure != null -> stringResource(when (state.deleteFailure) {
+                        DeleteFailure.BillPayment -> R.string.fx_delete_failed_bill
+                        DeleteFailure.Offline -> R.string.fx_delete_failed_offline
+                        DeleteFailure.Unknown -> R.string.fx_delete_failed_unknown
+                    })
                     state.failure != null -> stringResource(when (state.failure) {
                         EditFailure.Offline -> R.string.fx_edit_failed_offline
                         EditFailure.Rejected -> R.string.fx_edit_failed_rejected
@@ -116,17 +128,31 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
                         EditFailure.NotFound -> R.string.fx_edit_failed_not_found
                         EditFailure.Unknown -> R.string.fx_edit_failed_unknown
                     })
+                    state.stale -> stringResource(R.string.fx_edit_failed_conflict)
+                    state.needsReload -> stringResource(R.string.fx_edit_reload_needed)
                     !state.changed -> stringResource(R.string.fx_edit_no_changes)
                     else -> stringResource(R.string.fx_edit_online_only)
                 }
+                val problem = state.failure != null || state.deleteFailure != null || state.locked || (state.needsReload && !done)
                 Text(status, style = typography.caption,
-                    color = if (state.failure != null || state.locked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (problem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                Button(onClick = { focus.clearFocus(); if (state.saved != null) onClose() else model.submit() },
-                    enabled = state.saved != null || state.canSave, shape = shapes.button,
+                if (state.needsReload && !done) OutlinedButton(onClick = { focus.clearFocus(); model.reload() }, enabled = state.canReload,
+                    shape = shapes.button, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                    if (state.reloading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
+                    Text(stringResource(if (state.reloading) R.string.fx_edit_reloading else R.string.fx_edit_reload))
+                }
+                Button(onClick = { focus.clearFocus(); if (done) onClose() else model.submit() },
+                    enabled = done || state.canSave, shape = shapes.button,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                     if (state.saving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
-                    Text(stringResource(if (state.saved != null) R.string.form_done else if (state.saving) R.string.fx_edit_saving else R.string.fx_edit_save))
+                    Text(stringResource(if (done) R.string.form_done else if (state.saving) R.string.fx_edit_saving else R.string.fx_edit_save))
+                }
+                if (!state.locked && !done) TextButton(onClick = { focus.clearFocus(); confirmDelete = true }, enabled = state.canDelete,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    if (state.deleting) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(if (state.deleting) R.string.fx_delete_deleting else R.string.fx_delete_action),
+                        color = if (state.canDelete || state.deleting) MaterialTheme.colorScheme.error else LocalContentColor.current)
                 }
             }
         },
@@ -184,6 +210,12 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
             }
         }
     }
+    if (confirmDelete) AlertDialog(onDismissRequest = { confirmDelete = false },
+        title = { Text(stringResource(R.string.fx_delete_title)) },
+        text = { Text(stringResource(R.string.fx_delete_message)) },
+        confirmButton = { TextButton(onClick = { confirmDelete = false; model.delete() }) {
+            Text(stringResource(R.string.fx_delete_confirm), color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.form_cancel)) } })
     if (currencyOpen) CurrencyPickerDialog(state.currencyOptions, state.currency, state.baseCurrency,
         onPick = { model.currency(it); currencyOpen = false }, onDismiss = { currencyOpen = false })
     if (categoryOpen) AlertDialog(onDismissRequest = { categoryOpen = false }, title = { Text(stringResource(R.string.form_choose_category)) },
@@ -210,7 +242,7 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
 /** Explains, before saving, what the server will do with the stored exchange rate. */
 @Composable
 private fun RateImpactCard(state: EditTransactionUiState) {
-    if (state.saved != null || state.locked) return
+    if (state.saved != null || state.locked || state.deleted != null) return
     val base = state.baseCurrency ?: return
     val colors = LocalOwliColors.current
     val typography = LocalOwliTypography.current

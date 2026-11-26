@@ -25,7 +25,7 @@ public sealed class TransactionsController(ITransactionService transactions) : C
     public async Task<IActionResult> Get(int id, CancellationToken ct) => Respond(await transactions.GetAsync(id, ct));
 
     [HttpPut("{id:int}"), ProducesResponseType<TransactionResponse>(200)]
-    public async Task<IActionResult> Update(int id, [FromBody] TransactionWriteRequest request, CancellationToken ct) =>
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateTransactionRequest request, CancellationToken ct) =>
         Respond(await transactions.UpdateAsync(id, request, ct));
 
     [HttpDelete("{id:int}"), ProducesResponseType<TransactionDeletionResponse>(200)]

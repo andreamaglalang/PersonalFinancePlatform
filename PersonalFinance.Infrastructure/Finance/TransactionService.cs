@@ -22,7 +22,7 @@ public sealed class TransactionService(
         var clientId = request.ClientId.Value;
         var existing = await ByClientAsync(userId, clientId, ct);
         if (existing is not null)
-            return FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, existing, ct));
+            return Replay(existing, request) ?? FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, existing, ct));
 
         await ValidateCategoryAsync(request.CategoryId!.Value, request.Type, false, false, ct);
         var target = await FinanceData.BaseCurrencyAsync(Db, userId, false, ct)
@@ -37,7 +37,7 @@ public sealed class TransactionService(
                 {
                     existing = await ByClientAsync(userId, clientId, token);
                     if (existing is not null)
-                        return FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, existing, ct));
+                        return Replay(existing, request) ?? FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, existing, ct));
 
                     await ValidateCategoryAsync(request.CategoryId.Value, request.Type, false, true, token);
                     if (await FinanceData.BaseCurrencyAsync(Db, userId, true, token) != target)
@@ -147,7 +147,7 @@ public sealed class TransactionService(
             : FinanceResult<TransactionResponse>.Success(item);
     });
 
-    public Task<FinanceResult<TransactionResponse>> UpdateAsync(int id, TransactionWriteRequest request, CancellationToken ct) => Guard(async () =>
+    public Task<FinanceResult<TransactionResponse>> UpdateAsync(int id, UpdateTransactionRequest request, CancellationToken ct) => Guard(async () =>
     {
         var userId = UserId;
         var original = await Db.Transactions.AsNoTracking()
@@ -157,7 +157,12 @@ public sealed class TransactionService(
             return FinanceResult<TransactionResponse>.Failure(404, "Transaction not found.");
 
         ProtectBillPayment(original);
+        if (request.Version is null || !System.Text.RegularExpressions.Regex.IsMatch(request.Version, "^[0-9A-F]{64}$"))
+            throw new FinanceException(400, "The current transaction version is required. Reload and retry.");
         Validate(request);
+        // C1: reject edits based on a state another client has since changed (row is re-checked under the lock below).
+        if (!string.Equals(request.Version, FinanceData.Version(original), StringComparison.Ordinal))
+            throw new FinanceException(409, "This transaction was changed elsewhere. Reload it and try again.");
 
         await ValidateCategoryAsync(
             request.CategoryId!.Value,
@@ -278,6 +283,14 @@ public sealed class TransactionService(
                     new(id, true, affected));
             }, ct);
     });
+
+    /// <summary>C2: a replayed ClientId must carry the same payload; otherwise the identity was reused for other data.</summary>
+    private static FinanceResult<TransactionResponse>? Replay(TransactionResponse existing, CreateTransactionRequest request) =>
+        existing.Type == request.Type && existing.CategoryId == request.CategoryId && existing.Amount == request.Amount
+        && existing.CurrencyCode == request.CurrencyCode && existing.TransactionDate == request.TransactionDate
+        && existing.Description == request.Description
+            ? null
+            : FinanceResult<TransactionResponse>.Failure(409, "This ClientId was already used for different transaction data.");
 
     private static void ProtectBillPayment(FinanceTransaction row)
     {

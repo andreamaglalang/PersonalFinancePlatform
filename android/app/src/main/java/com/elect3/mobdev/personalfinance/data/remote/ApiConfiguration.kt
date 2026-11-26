@@ -8,7 +8,7 @@ class ApiConfiguration private constructor(private val base: URI?) {
     internal fun sessionNamespace(): String = base?.toASCIIString() ?: "unconfigured"
 
     internal fun authUrl(operation: String): URL? {
-        require(operation == "login" || operation == "logout" || operation == "refresh")
+        require(operation in setOf("login", "logout", "refresh", "register"))
         return base?.resolve("api/auth/$operation")?.toURL()
     }
 
@@ -22,7 +22,7 @@ class ApiConfiguration private constructor(private val base: URI?) {
 
     internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 
-    /** PUT api/transactions/{id} (member edit). */
+    /** api/transactions/{id}: GET (reload), PUT (member edit) and DELETE. */
     internal fun transactionUpdateUrl(transactionId: Int): URL? {
         require(transactionId > 0)
         return base?.resolve("api/transactions/$transactionId")?.toURL()

@@ -1,13 +1,11 @@
 using Hangfire;
-using Hangfire.SqlServer;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace PersonalFinance.Infrastructure.Jobs;
 
-/// <summary>Opt-in Hangfire setup using the separately provisioned OWLI_Hangfire catalog.</summary>
+/// <summary>Shared Hangfire definitions for the selected <see cref="FinanceJobs"/> family: stable IDs, Manila schedules and
+/// the storage isolation guard. Processing and recurring registration are hosted only by PersonalFinance.Worker.</summary>
 public static class HangfireSetup
 {
     public const string ManilaTimeZoneId = "Asia/Manila";
@@ -24,6 +22,12 @@ public static class HangfireSetup
     public static DateOnly ManilaToday(TimeProvider clock) =>
         DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), ManilaTimeZone).DateTime);
 
+    public const string OperationalCatalog = "OWLI_Hangfire";
+    public const string TestCatalogPrefix = "OWLI_HangfireTests_";
+    private static readonly string[] DisposableFinancePrefixes = ["OWLI_Runtime_", "PersonalFinanceSqlTests_"];
+
+    /// <summary>Operational storage is OWLI_Hangfire. A disposable OWLI_HangfireTests_* catalog may only be paired with a
+    /// disposable finance catalog, so tests can never schedule work against operational finance data.</summary>
     public static void EnsureDedicatedStorage(string hangfireConnectionString, string financeConnectionString)
     {
         if (string.IsNullOrWhiteSpace(hangfireConnectionString))
@@ -33,14 +37,22 @@ public static class HangfireSetup
 
         var hangfire = new SqlConnectionStringBuilder(hangfireConnectionString);
         var finance = new SqlConnectionStringBuilder(financeConnectionString);
-        if (!string.Equals(hangfire.InitialCatalog, "OWLI_Hangfire", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Hangfire storage must target the OWLI_Hangfire database.");
+        var operational = string.Equals(hangfire.InitialCatalog, OperationalCatalog, StringComparison.OrdinalIgnoreCase);
+        var disposable = IsDisposable(hangfire.InitialCatalog, TestCatalogPrefix);
+        if (!operational && !disposable)
+            throw new InvalidOperationException("Hangfire storage must target the OWLI_Hangfire database or a disposable OWLI_HangfireTests_* database.");
+        if (disposable && !DisposableFinancePrefixes.Any(prefix => IsDisposable(finance.InitialCatalog, prefix)))
+            throw new InvalidOperationException("Disposable Hangfire storage must be paired with a disposable finance database.");
         if (string.IsNullOrWhiteSpace(hangfire.DataSource)
             || !string.Equals(hangfire.DataSource, finance.DataSource, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Hangfire storage must use the finance SQL instance and the separate OWLI_Hangfire catalog.");
+            throw new InvalidOperationException("Hangfire storage must use the finance SQL instance and a separate Hangfire catalog.");
         if (string.Equals(hangfire.InitialCatalog, finance.InitialCatalog, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Hangfire storage cannot share the finance database.");
     }
+
+    private static bool IsDisposable(string? catalog, string prefix) =>
+        catalog is not null && catalog.Length > prefix.Length && catalog.StartsWith(prefix, StringComparison.Ordinal)
+        && catalog[prefix.Length..].All(c => char.IsAsciiLetterOrDigit(c) || c == '_');
 
     public static void RegisterRecurringJobs(IRecurringJobManager jobs)
     {
@@ -53,40 +65,4 @@ public static class HangfireSetup
         jobs.AddOrUpdate<FinanceJobs>(MonthlySummariesJobId,
             job => job.GenerateMonthlySummariesAsync(CancellationToken.None), Cron.Monthly(1, 0, 30), local);
     }
-
-    public static IServiceCollection AddFinanceJobs(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddScoped<FinanceJobs>();
-        if (!IsEnabled(configuration)) return services;
-
-        var financeConnection = configuration.GetConnectionString("DefaultConnection");
-        var hangfireConnection = configuration.GetConnectionString("Hangfire");
-        if (string.IsNullOrWhiteSpace(financeConnection) || string.IsNullOrWhiteSpace(hangfireConnection))
-            throw new InvalidOperationException("Hangfire requires separate finance and Hangfire SQL connection strings.");
-        EnsureDedicatedStorage(hangfireConnection, financeConnection);
-
-        services.AddHangfire(config => config
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(() => new SqlConnection(hangfireConnection), new SqlServerStorageOptions
-            {
-                PrepareSchemaIfNecessary = false,
-                QueuePollInterval = TimeSpan.FromSeconds(15),
-            }));
-        services.AddHangfireServer();
-        services.AddHostedService<FinanceJobRegistration>();
-        return services;
-    }
-}
-
-/// <summary>Registers the stable recurring job IDs once at startup, only when Hangfire is explicitly enabled.</summary>
-internal sealed class FinanceJobRegistration(IRecurringJobManager jobs) : IHostedService
-{
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        HangfireSetup.RegisterRecurringJobs(jobs);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

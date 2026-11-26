@@ -26,7 +26,10 @@ interface LocalLedger {
     suspend fun enqueue(accountId: Int, request: CreateTransactionRequest, categoryName: String?)
     suspend fun pending(accountId: Int): List<LocalPendingTransaction>
     suspend fun markRejected(accountId: Int, clientId: UUID)
-    suspend fun discardRejected(accountId: Int, clientId: UUID)
+    /** Removes a pending or rejected row (never a synced one): local only, nothing is sent. */
+    suspend fun discardUnsynced(accountId: Int, clientId: UUID)
+    /** Removes this device's copy of a transaction the server deleted (or no longer has). */
+    suspend fun forget(accountId: Int, clientId: UUID)
     fun unsynced(accountId: Int): Flow<List<LocalPendingTransaction>>
     /** Most recent locally stored transactions (synced and pending), newest first. */
     suspend fun history(accountId: Int, limit: Int = 200): List<LocalHistoryTransaction>
@@ -53,7 +56,8 @@ class RoomLedger(private val dao: LocalTransactionDao, private val now: () -> Lo
     override suspend fun markRejected(accountId: Int, clientId: UUID) {
         dao.rejectPending(accountId, clientId.toString(), now())
     }
-    override suspend fun discardRejected(accountId: Int, clientId: UUID) = dao.discardRejected(accountId, clientId.toString())
+    override suspend fun discardUnsynced(accountId: Int, clientId: UUID) = dao.discardUnsynced(accountId, clientId.toString())
+    override suspend fun forget(accountId: Int, clientId: UUID) = dao.delete(accountId, clientId.toString())
     override fun unsynced(accountId: Int): Flow<List<LocalPendingTransaction>> = dao.unsynced(accountId).map { rows -> rows.map { it.toPending() } }
     override suspend fun history(accountId: Int, limit: Int) = dao.history(accountId, limit).map { row ->
         val item = row.toPending()
@@ -94,8 +98,12 @@ class InMemoryLedger : LocalLedger {
         }
         changes.value++
     }
-    override suspend fun discardRejected(accountId: Int, clientId: UUID) {
-        synchronized(lock) { if (rows[accountId to clientId]?.pending?.rejected == true) rows.remove(accountId to clientId) }
+    override suspend fun discardUnsynced(accountId: Int, clientId: UUID) {
+        synchronized(lock) { if (rows[accountId to clientId]?.synced == null) rows.remove(accountId to clientId) }
+        changes.value++
+    }
+    override suspend fun forget(accountId: Int, clientId: UUID) {
+        synchronized(lock) { rows.remove(accountId to clientId) }
         changes.value++
     }
     override fun unsynced(accountId: Int): Flow<List<LocalPendingTransaction>> = changes.map {

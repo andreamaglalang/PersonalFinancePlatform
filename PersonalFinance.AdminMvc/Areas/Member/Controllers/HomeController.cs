@@ -19,7 +19,7 @@ public sealed class HomeController(ReportsApiClient reports, TransactionApiClien
     [HttpGet]
     public async Task<IActionResult> Index([FromQuery] string? month, [FromQuery] string? period, CancellationToken ct)
     {
-        var monthDate = ParseMonth(month) ?? new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var monthDate = ParseMonth(month) ?? new DateOnly(BudgetPlanSummary.PhilippineToday.Year, BudgetPlanSummary.PhilippineToday.Month, 1);
         if (!string.IsNullOrWhiteSpace(period)
             && !string.Equals(period, "month", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(period, "all-time", StringComparison.OrdinalIgnoreCase))

@@ -58,3 +58,8 @@
 - Updated: OWLI verification limits and architectural decisions
 - Approved D1–D5, D7–D9, D11, D12; D6 and D10 remain owner-confirmation items.
 - Disposable Hangfire test storage isolated; R4+R5 integrate on one branch; essential BLOCKED/NOT TESTED rows remain incomplete.
+
+## [2026-11-26] update | R2 independent worker
+- Disposition: Update
+- Updated: OWLI architecture and worker decision
+- API Hangfire hosting and DevJobsController removed; PersonalFinance.Worker implemented; HangfireTests 20/20 on disposable catalogs. Operational cutover not approved.

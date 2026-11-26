@@ -13,21 +13,34 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 
+/** Contract C1 transaction concurrency token: uppercase SHA-256 hex. */
+internal val TRANSACTION_VERSION = Regex("[0-9A-F]{64}")
+
 /** Explicit wire mapping: strict JSON types and decimals never pass through Double. */
 internal object FinanceJson {
-    fun createdTransaction(body: String, request: CreateTransactionRequest): Transaction {
-        val row = root(body)
+    fun createdTransaction(body: String, request: CreateTransactionRequest): Transaction = single(body).also {
+        val draft = request.draft
+        require(it.clientId == request.clientId && it.type == draft.type && it.categoryId == draft.categoryId &&
+            it.amount.compareTo(draft.amount) == 0 && it.currencyCode == draft.currencyCode &&
+            it.transactionDate == draft.transactionDate && it.description == draft.description &&
+            it.billId == null && it.billDueDate == null)
+    }
+    /** One TransactionResponse, validated with the same rules as a list row. */
+    private fun single(body: String): Transaction {
         val envelope = JsonObject().apply {
-            add("items", JsonArray().apply { add(row) })
+            add("items", JsonArray().apply { add(root(body)) })
             addProperty("page", 1); addProperty("pageSize", 20); addProperty("totalCount", 1)
         }
-        return transactions(envelope.toString(), TransactionQuery()).items.single().also {
-            val draft = request.draft
-            require(it.clientId == request.clientId && it.type == draft.type && it.categoryId == draft.categoryId &&
-                it.amount.compareTo(draft.amount) == 0 && it.currencyCode == draft.currencyCode &&
-                it.transactionDate == draft.transactionDate && it.description == draft.description &&
-                it.billId == null && it.billDueDate == null)
-        }
+        return transactions(envelope.toString(), TransactionQuery()).items.single()
+    }
+    /** GET api/transactions/{id}: must be the requested row and carry the version an edit needs. */
+    fun transaction(body: String, transactionId: Int): Transaction = single(body).also {
+        require(it.transactionId == transactionId && it.version != null)
+    }
+    /** DELETE api/transactions/{id} answer: {transactionId, deleted: true, affectedBudgets}. */
+    fun deletedTransaction(body: String, transactionId: Int) {
+        val row = root(body)
+        require(row.int("transactionId") == transactionId && row.bool("deleted"))
     }
     private fun root(body: String): JsonObject {
         val reader = JsonReader(StringReader(body)).apply { strictness = Strictness.STRICT }
@@ -134,19 +147,14 @@ internal object FinanceJson {
      * PUT api/transactions/{id} response: must be the edited row with exactly the submitted values, not bill-linked,
      * and its rate snapshot must be self-consistent under the API's rule (base = round(amount × rate, 2)).
      */
-    fun updatedTransaction(body: String, transactionId: Int, draft: TransactionDraft): Transaction {
-        val envelope = JsonObject().apply {
-            add("items", JsonArray().apply { add(root(body)) })
-            addProperty("page", 1); addProperty("pageSize", 20); addProperty("totalCount", 1)
-        }
-        return transactions(envelope.toString(), TransactionQuery()).items.single().also {
-            require(it.transactionId == transactionId && it.type == draft.type && it.categoryId == draft.categoryId &&
-                it.amount.compareTo(draft.amount) == 0 && it.currencyCode == draft.currencyCode &&
-                it.transactionDate == draft.transactionDate && it.description == draft.description &&
-                it.billId == null && it.billDueDate == null)
-            require(it.amount.multiply(it.fxRate).setScale(2, java.math.RoundingMode.HALF_UP).compareTo(it.amountBase) == 0)
-            require(it.fxRateDate <= it.transactionDate)
-        }
+    fun updatedTransaction(body: String, transactionId: Int, draft: TransactionDraft): Transaction = single(body).also {
+        require(it.transactionId == transactionId && it.type == draft.type && it.categoryId == draft.categoryId &&
+            it.amount.compareTo(draft.amount) == 0 && it.currencyCode == draft.currencyCode &&
+            it.transactionDate == draft.transactionDate && it.description == draft.description &&
+            it.billId == null && it.billDueDate == null)
+        require(it.amount.multiply(it.fxRate).setScale(2, java.math.RoundingMode.HALF_UP).compareTo(it.amountBase) == 0)
+        require(it.fxRateDate <= it.transactionDate)
+        require(it.version != null) // the next edit must be able to send it
     }
     fun transactions(body: String, query: TransactionQuery): TransactionPage {
         val e = envelope(root(body), query.page, query.pageSize)
@@ -159,7 +167,9 @@ internal object FinanceJson {
                 r.number("fxRate"), r.date("fxRateDate"), r.money("amountBase"), r.date("transactionDate"),
                 r.nullableText("description"), r.createdAtUtc(),
                 if (r.field("billId").isJsonNull) null else r.int("billId"),
-                if (r.field("billDueDate").isJsonNull) null else r.date("billDueDate")).also {
+                if (r.field("billDueDate").isJsonNull) null else r.date("billDueDate"),
+                // Absent only on servers before contract C1; a present value must be well formed.
+                version = if (r.has("version")) r.text("version").also { v -> require(v.matches(TRANSACTION_VERSION)) } else null).also {
                 require(it.transactionId > 0 && it.categoryId > 0 && it.categoryName.isNotBlank())
                 require(it.amount.signum() > 0 && it.currencyCode.matches(Regex("[A-Z]{3}")))
                 require(it.fxRate.signum() > 0 && it.fxRate <= BigDecimal("9999999999.99999999"))
