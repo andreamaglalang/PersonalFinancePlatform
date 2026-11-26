@@ -87,8 +87,8 @@ internal sealed class FinanceFixture : IAsyncDisposable
         app.UseExceptionHandler();
         app.UseMiddleware<AuthTransportMiddleware>(); app.UseMiddleware<FinanceTransportMiddleware>();
         app.UseRouting();
-        app.UseRateLimiter();
         app.UseAuthentication();
+        app.UseRateLimiter();
         app.UseAuthorization();
         app.UseEndpoints(endpoints => endpoints.MapControllers());
         pipeline = app.Build();

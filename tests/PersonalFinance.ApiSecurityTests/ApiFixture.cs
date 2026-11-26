@@ -59,8 +59,8 @@ internal sealed class ApiFixture : IAsyncDisposable
         app.UseExceptionHandler();
         app.UseMiddleware<AuthTransportMiddleware>();
         app.UseRouting();
-        app.UseRateLimiter();
         app.UseAuthentication();
+        app.UseRateLimiter();
         app.UseAuthorization();
         app.UseEndpoints(endpoints => endpoints.MapControllers());
         pipeline = app.Build();
@@ -95,16 +95,17 @@ internal sealed class ApiFixture : IAsyncDisposable
         return new ApiReply(context.Response.StatusCode, text, context.Response.Headers.CacheControl);
     }
 
-    public async Task<int> RegisterAsync()
+    public string SecondEmail => "second.person@example.test";
+    public async Task<int> RegisterAsync(string email = "person@example.test")
     {
-        var reply = await SendAsync("POST", "/api/auth/register", new { fullName = "Test Person", email = "person@example.test", password = Fixture.Password, confirmPassword = Fixture.Password });
+        var reply = await SendAsync("POST", "/api/auth/register", new { fullName = "Test Person", email, password = Fixture.Password, confirmPassword = Fixture.Password });
         if (reply.Status != 201) throw new InvalidOperationException("Test registration returned " + reply.Status + ": " + reply.Body);
         return JsonDocument.Parse(reply.Body).RootElement.GetProperty("id").GetInt32();
     }
-    public async Task<string> LoginAsync()
+    public async Task<string> LoginAsync(string email = "person@example.test")
     {
-        await RegisterAsync();
-        var reply = await SendAsync("POST", "/api/auth/login", new { email = "person@example.test", password = Fixture.Password });
+        await RegisterAsync(email);
+        var reply = await SendAsync("POST", "/api/auth/login", new { email, password = Fixture.Password });
         if (reply.Status != 200) throw new InvalidOperationException("Test login returned " + reply.Status);
         return JsonDocument.Parse(reply.Body).RootElement.GetProperty("accessToken").GetString()!;
     }

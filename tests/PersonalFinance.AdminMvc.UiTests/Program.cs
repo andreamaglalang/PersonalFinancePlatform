@@ -23,6 +23,7 @@ MemberAreaChecks.Run();
 RegistrationChecks.Run();
 ManilaDateChecks.Run();
 await RegistrationChecks.RunStatusContractAsync();
+await SessionVerificationChecks.RunAsync();
 MemberShellChecks.Run();
 DesignTokenChecks.Run();
 MemberLayoutChecks.Run();
