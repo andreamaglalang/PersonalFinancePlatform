@@ -1,11 +1,12 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Infrastructure.Finance.Contracts;
 
 namespace PersonalFinance.FinanceTests;
 
-/// <summary>Read-only notifications API and the Development-only job trigger (in-memory EF, real JWT/MVC pipeline).</summary>
+/// <summary>Read-only notifications API and the FinanceJobs behavior (in-memory EF, real JWT/MVC pipeline).</summary>
 internal static class NotificationDevJobTests
 {
     private static void Assert(bool condition, string detail = "Assertion failed") { if (!condition) throw new Exception(detail); }
@@ -78,43 +79,39 @@ internal static class NotificationDevJobTests
             await f.DbAsync(async db => Assert(await db.Notifications.CountAsync() == 1 && !(await db.Notifications.SingleAsync()).IsRead));
         });
 
-        // ---------- Development-only job trigger ----------
-        await check("Dev job trigger does not exist outside Development (404 even for administrators)", async f =>
+        // ---------- Direct job execution path removed; jobs run only in PersonalFinance.Worker ----------
+        await check("The former API job endpoint no longer exists in any environment", async f =>
         {
             Assert((await Run(f, "budget-alerts")).Status == 404);
             Assert((await Run(f, "monthly-summaries", user: null)).Status == 404, "anonymous callers learn nothing either");
             await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync() && !await db.MonthlySummaries.AnyAsync()));
         });
-        await check("Dev job trigger requires authentication and the Administrator role", InDevelopment(async f =>
+        await check("The former API job endpoint is gone in Development too, even for administrators", InDevelopment(async f =>
         {
-            Assert((await Run(f, "budget-alerts", user: null)).Status == 401);
-            Assert((await Run(f, "budget-alerts", user: 1)).Status == 403);
-            Assert((await Run(f, "budget-alerts", user: 3, scheme: "http")).Status == 400);
-            Assert((await Run(f, "bill-reminders")).Status == 404, "bill reminders are not offered");
-            Assert((await Run(f, "anything")).Status == 404);
+            Assert((await Run(f, "budget-alerts")).Status == 404);
+            Assert((await Run(f, "monthly-summaries")).Status == 404);
+            await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync() && !await db.MonthlySummaries.AnyAsync()));
         }));
-        await check("Dev trigger runs budget alerts once per transition and the owner can read them", InDevelopment(async f =>
+        await check("Budget alerts job notifies once per transition and only the owner can read it", async f =>
         {
             Assert((await f.SendAsync("POST", "/api/budgets", new { categoryId = 2, periodMonth = "2026-11-01", limitAmount = 100m, alertThresholdPct = 80 }, f.Issue(1))).Status == 201);
             var tx = await f.SendAsync("POST", "/api/transactions", new CreateTransactionRequest { ClientId = Guid.NewGuid(), CategoryId = 2, Type = "Expense",
                 Amount = 90m, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 11, 2), Description = "t" }, f.Issue(1));
             Assert(tx.Status == 201, tx.Body);
-            var first = await Run(f, "budget-alerts");
-            Assert(first.Status == 200 && Json(first).GetProperty("created").GetInt32() == 1, first.Body);
-            var second = await Run(f, "budget-alerts");
-            Assert(Json(second).GetProperty("created").GetInt32() == 0, "no duplicate alert for the same status");
+            Assert(await Job(f, j => j.SendBudgetAlertsAsync(default)) == 1);
+            Assert(await Job(f, j => j.SendBudgetAlertsAsync(default)) == 0, "no duplicate alert for the same status");
             var mine = Json(await List(f, 1));
             Assert(mine.GetProperty("totalCount").GetInt64() == 1 && mine.GetProperty("items")[0].GetProperty("type").GetString() == "BudgetAlert");
             Assert(Json(await List(f, 2)).GetProperty("totalCount").GetInt64() == 0);
-            Assert(Json(await List(f, 3)).GetProperty("totalCount").GetInt64() == 0, "the administrator who ran the job sees no member data");
-        }));
-        await check("Dev trigger generates last month's summary once", InDevelopment(async f =>
+            Assert(Json(await List(f, 3)).GetProperty("totalCount").GetInt64() == 0, "administrators see no member data");
+        });
+        await check("Monthly summary job generates last month's summary once (immutable, D1)", async f =>
         {
             var tx = await f.SendAsync("POST", "/api/transactions", new CreateTransactionRequest { ClientId = Guid.NewGuid(), CategoryId = 2, Type = "Expense",
                 Amount = 25m, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 10, 10), Description = "t" }, f.Issue(1));
             Assert(tx.Status == 201, tx.Body);
-            Assert(Json(await Run(f, "monthly-summaries")).GetProperty("created").GetInt32() == 1);
-            Assert(Json(await Run(f, "monthly-summaries")).GetProperty("created").GetInt32() == 0, "existing summaries are left unchanged");
+            Assert(await Job(f, j => j.GenerateMonthlySummariesAsync(default)) == 1);
+            Assert(await Job(f, j => j.GenerateMonthlySummariesAsync(default)) == 0, "existing summaries are left unchanged");
             await f.DbAsync(async db =>
             {
                 var s = await db.MonthlySummaries.SingleAsync();
@@ -122,13 +119,12 @@ internal static class NotificationDevJobTests
             });
             var mine = Json(await List(f, 1));
             Assert(mine.GetProperty("items")[0].GetProperty("type").GetString() == "MonthlySummary");
-        }));
-        await check("Dev trigger response contains only the job name and a count", InDevelopment(async f =>
-        {
-            var r = await Run(f, "monthly-summaries");
-            Assert(r.Status == 200 && r.CacheControl == "no-store", r.Body);
-            var props = Json(r).EnumerateObject().Select(p => p.Name).OrderBy(n => n).ToArray();
-            Assert(props.SequenceEqual(new[] { "created", "job" }), string.Join(",", props));
-        }));
+        });
+    }
+
+    private static async Task<int> Job(FinanceFixture f, Func<PersonalFinance.Infrastructure.Jobs.FinanceJobs, Task<int>> run)
+    {
+        await using var scope = f.Services.CreateAsyncScope();
+        return await run(scope.ServiceProvider.GetRequiredService<PersonalFinance.Infrastructure.Jobs.FinanceJobs>());
     }
 }
