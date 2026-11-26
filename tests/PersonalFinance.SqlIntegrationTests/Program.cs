@@ -141,6 +141,53 @@ await using (var target = await DisposableSqlTarget.CreateAsync(server))
         Assert(receipts == 1, $"{receipts} payment transactions stored");
     });
 
+    await Check("C1 on SQL Server: two concurrent edits from the same version -> exactly one wins, the other 409, no lost update", async () =>
+    {
+        currentUser.Id = userA;
+        var created = await InScope(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(Expense(expenseCategory, Guid.NewGuid(), 100m), default));
+        Assert(created.Succeeded, created.Error ?? "");
+        var id = created.Value!.TransactionId; var seen = created.Value.Version;
+        UpdateTransactionRequest Edit(decimal amount) => new() { Type = "Expense", CategoryId = expenseCategory, Amount = amount, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 11, 3), Version = seen };
+        for (var round = 0; round < 5; round++)
+        {
+            var results = await Task.WhenAll(new[] { 111m + round, 222m + round }.Select(a =>
+                InScope(sp => sp.GetRequiredService<ITransactionService>().UpdateAsync(id, Edit(a), default))));
+            Assert(results.Count(r => r.Succeeded) == 1 && results.Count(r => r.StatusCode == 409) == 1,
+                "statuses " + string.Join(",", results.Select(r => r.StatusCode)));
+            var winner = results.Single(r => r.Succeeded).Value!;
+            var stored = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Transactions.AsNoTracking().SingleAsync(t => t.TransactionId == id));
+            Assert(stored.Amount == winner.Amount, $"stored {stored.Amount} != winner {winner.Amount}");
+            seen = winner.Version;
+        }
+    });
+
+    await Check("Concurrent edit vs delete: one outcome only, never a half-applied row", async () =>
+    {
+        currentUser.Id = userA;
+        var created = await InScope(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(Expense(expenseCategory, Guid.NewGuid(), 50m), default));
+        var id = created.Value!.TransactionId;
+        var edit = new UpdateTransactionRequest { Type = "Expense", CategoryId = expenseCategory, Amount = 60m, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 11, 3), Version = created.Value.Version };
+        var update = InScope(sp => sp.GetRequiredService<ITransactionService>().UpdateAsync(id, edit, default));
+        var delete = InScope(sp => sp.GetRequiredService<ITransactionService>().DeleteAsync(id, default));
+        await Task.WhenAll(update, delete);
+        var rows = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Transactions.AsNoTracking().Where(t => t.TransactionId == id).Select(t => t.Amount).ToListAsync());
+        Assert(delete.Result.Succeeded || update.Result.Succeeded, "neither operation succeeded");
+        if (delete.Result.Succeeded) Assert(rows.Count == 0 && (update.Result.Succeeded || update.Result.StatusCode is 404 or 409), "deleted but row remains or update misreported");
+        else Assert(rows.Single() == 60m && delete.Result.StatusCode is 409 or 404, "update won but state inconsistent");
+    });
+
+    await Check("Rollback: a failed write inside the financial lock leaves no partial change", async () =>
+    {
+        currentUser.Id = userA;
+        var before = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Transactions.CountAsync());
+        // Category of the wrong type is rejected inside the locked write; nothing may be stored.
+        var income = await InScope(sp => sp.GetRequiredService<ICategoryService>().CreateAsync(new CategoryWriteRequest { Name = "Salary", Type = "Income" }, false, default));
+        var bad = await InScope(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(Expense(income.Value!.CategoryId, Guid.NewGuid(), 10m), default));
+        Assert(!bad.Succeeded && bad.StatusCode is 400 or 409, "mismatched category accepted: " + bad.StatusCode);
+        var after = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Transactions.CountAsync());
+        Assert(after == before, $"rows {before} -> {after}");
+    });
+
     await Check("Ownership isolation: user B cannot read user A transactions", async () =>
     {
         currentUser.Id = userB;
