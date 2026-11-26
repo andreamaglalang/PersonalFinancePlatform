@@ -29,7 +29,10 @@ alongside it. Preserve job type/signature/serializer compatibility during cutove
 Keep detailed target responsibilities in [worker preparation](../../../worker-config/README.md)
 rather than duplicating an implementation plan. HTTP current-user dependencies,
 the API's direct Development job endpoint, summary policy and portable SQL tests
-remain audit concerns. No architecture correction has been implemented.
+remain audit concerns. **Superseded by R2 (Phase 3):** the API no longer hosts Hangfire or
+`DevJobsController`; `PersonalFinance.Worker` hosts processing and recurring registration
+(see [worker preparation](../../../worker-config/README.md#implementation-and-verification-r2)).
+The worker is verified on disposable catalogs only; operational cutover is not approved.
 
 ## Phase 1 audit findings (dev `e15d859`)
 

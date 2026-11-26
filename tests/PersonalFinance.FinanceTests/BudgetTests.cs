@@ -257,7 +257,7 @@ internal static class BudgetTests
             await ExpectUsage(f, await CreateBudget(f), 10, "OK");
         });
         foreach (var refType in new[] { "Budget", "budget", "BUDGET" })
-            await check("Notification history blocks budget deletion regardless read/delivery " + refType, async f =>
+            await check("Budget deletion keeps alert notification history unchanged (D5) " + refType, async f =>
             {
                 var id = await CreateBudget(f);
                 await f.DbAsync(async db =>
@@ -267,8 +267,12 @@ internal static class BudgetTests
                         IsRead = true, EmailSentAtUtc = DateTime.UtcNow });
                     await db.SaveChangesAsync();
                 });
-                Assert((await f.SendAsync("DELETE", $"/api/budgets/{id}", bearer: f.Issue(1))).Status == 409);
-                await f.DbAsync(async db => Assert(await db.Budgets.CountAsync() == 1 && await db.Notifications.CountAsync() == 1));
+                Assert((await f.SendAsync("DELETE", $"/api/budgets/{id}", bearer: f.Issue(1))).Status == 204);
+                await f.DbAsync(async db =>
+                {
+                    var note = await db.Notifications.SingleAsync();
+                    Assert(await db.Budgets.CountAsync() == 0 && note.Message == "History" && note.ReferenceId == id && note.IsRead && note.EmailSentAtUtc is not null);
+                });
             });
         await check("Unrelated notification reference does not prevent budget deletion", async f =>
         {
@@ -318,7 +322,7 @@ internal static class BudgetTests
             Assert((await Budget(f)).Status == 400);
             await f.DbAsync(async db => Assert(!await db.Budgets.AnyAsync()));
         });
-        await check("Canonical budget-transition deduplication key also protects notification history", async f =>
+        await check("Budget with transition-keyed alert history can be deleted and the history is kept (D5)", async f =>
         {
             var id = await CreateBudget(f);
             await f.DbAsync(async db =>
@@ -327,8 +331,8 @@ internal static class BudgetTests
                     DeduplicationKey = NotificationKeys.BudgetTransition(id, BudgetAlertStatus.Warning, Guid.NewGuid()) });
                 await db.SaveChangesAsync();
             });
-            Assert((await f.SendAsync("DELETE", $"/api/budgets/{id}", bearer: f.Issue(1))).Status == 409);
-            await f.DbAsync(async db => Assert(await db.Notifications.CountAsync() == 1 && await db.Budgets.CountAsync() == 1));
+            Assert((await f.SendAsync("DELETE", $"/api/budgets/{id}", bearer: f.Issue(1))).Status == 204);
+            await f.DbAsync(async db => Assert(await db.Notifications.CountAsync() == 1 && await db.Budgets.CountAsync() == 0));
         });
         await check("Repeated Warning to OK to Warning never writes delivery markers or notifications", async f =>
         {

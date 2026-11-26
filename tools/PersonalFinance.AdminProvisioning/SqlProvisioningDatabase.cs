@@ -6,17 +6,21 @@ namespace PersonalFinance.AdminProvisioning;
 
 public sealed class SqlProvisioningDatabase(ApplicationDbContext db) : IProvisioningDatabase
 {
+    public string Catalog => ProvisioningSafety.RequireTarget(db.Database.GetConnectionString() ?? "");
+
     public async Task VerifyAsync(CancellationToken ct)
     {
-        ProvisioningSafety.RequireTarget(db.Database.GetConnectionString() ?? "");
+        var catalog = Catalog;
         await db.Database.OpenConnectionAsync(ct);
         try
         {
             await using var command = db.Database.GetDbConnection().CreateCommand();
             command.CommandText = "SELECT DB_NAME(), CONVERT(int, SERVERPROPERTY('IsLocalDB'));";
             await using var reader = await command.ExecuteReaderAsync(ct);
-            if (!await reader.ReadAsync(ct) || reader.GetString(0) != "PersonalFinanceDb" ||
-                reader.IsDBNull(1) || reader.GetInt32(1) != 1)
+            if (!await reader.ReadAsync(ct) || reader.GetString(0) != catalog)
+                throw new ProvisioningException("The connected database is not the configured development database.");
+            // PersonalFinanceDb is only ever provisioned on Windows LocalDB; disposable runtime catalogs may live elsewhere.
+            if (!ProvisioningSafety.IsRuntimeCatalog(catalog) && (reader.IsDBNull(1) || reader.GetInt32(1) != 1))
                 throw new ProvisioningException("The connected database is not the expected LocalDB development database.");
         }
         finally { await db.Database.CloseConnectionAsync(); }

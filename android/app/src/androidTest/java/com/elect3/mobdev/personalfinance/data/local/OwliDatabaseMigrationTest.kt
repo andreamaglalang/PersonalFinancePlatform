@@ -29,7 +29,7 @@ class OwliDatabaseMigrationTest {
         while(it.moveToNext()) rows+= (0 until it.columnCount).map{n->if(it.isNull(n))null else it.getString(n)}
         rows
     }
-    @Test fun roomOneToTwoPreservesEveryTransactionFieldAndValidatesNewSchema()=runBlocking{
+    @Test fun roomOneToThreePreservesEveryTransactionFieldAndValidatesNewSchema()=runBlocking{
         val legacy=context.openOrCreateDatabase(name,Context.MODE_PRIVATE,null)
         listOf(
             "CREATE TABLE IF NOT EXISTS `local_transactions` (`accountId` INTEGER NOT NULL, `clientId` TEXT NOT NULL, `transactionId` INTEGER, `type` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `categoryName` TEXT, `amount` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `amountBase` TEXT, `transactionDate` TEXT NOT NULL, `description` TEXT, `syncState` TEXT NOT NULL, `updatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `clientId`))",
@@ -54,12 +54,17 @@ class OwliDatabaseMigrationTest {
         legacy.version=1
         val before=snapshot(legacy.rawQuery("SELECT * FROM local_transactions ORDER BY accountId,clientId",null))
         legacy.close()
-        val db=Room.databaseBuilder(context,OwliDatabase::class.java,name).addMigrations(MIGRATION_1_2).build()
+        val db=Room.databaseBuilder(context,OwliDatabase::class.java,name).addMigrations(MIGRATION_1_2,MIGRATION_2_3).build()
         migrated=db
         val after=snapshot(db.openHelper.writableDatabase.query("SELECT * FROM local_transactions ORDER BY accountId,clientId"))
         assertEquals(before,after)
         assertEquals(listOf("Pending","Rejected"),db.transactions().history(1,100).map{it.syncState}.sorted())
         assertEquals("Synced",db.transactions().history(2,100).single().syncState)
         assertTrue(db.categories().read(1,null,true).isEmpty())
+        // 2 -> 3 adds an empty pending_requests table that Room validated against schema v3 on open.
+        assertTrue(db.pendingRequests().paths("ns#1").isEmpty())
+        db.pendingRequests().upsert(PendingRequestEntity("ns#1","recurring-bills/7/payments","{\"clientId\":\"c\"}",1))
+        assertEquals(listOf("recurring-bills/7/payments"),db.pendingRequests().paths("ns#1"))
+        assertTrue(db.pendingRequests().paths("ns#2").isEmpty())
     }
 }

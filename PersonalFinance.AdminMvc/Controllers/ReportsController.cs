@@ -15,7 +15,7 @@ public sealed class ReportsController(ReportsApiClient reports, AdminSessionStor
     [HttpGet]
     public async Task<IActionResult> Index([FromQuery] string? month, CancellationToken ct)
     {
-        var selectedMonth = month ?? DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        var selectedMonth = month ?? BudgetPlanSummary.PhilippineToday.ToString("yyyy-MM", CultureInfo.InvariantCulture);
         if (!DateOnly.TryParseExact(selectedMonth + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out var requestedMonth) || requestedMonth.Year is < 2000 or > 9998)
         {
