@@ -130,3 +130,4 @@ appsettings.*.Local.json
 # Private OWLI knowledge working notes and future-worker connection settings
 /.local/karpathy-wiki/
 /.local/worker/
+/.local/runtime/

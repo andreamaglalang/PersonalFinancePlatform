@@ -30,6 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.ui.auth.LoginRoute
+import com.elect3.mobdev.personalfinance.ui.auth.RegisterRoute
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.elect3.mobdev.personalfinance.ui.auth.EntryMode
 import com.elect3.mobdev.personalfinance.ui.auth.LoginViewModel
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
@@ -98,6 +102,17 @@ fun OwliEntryGate(
             }
         }
     } else {
-        LoginRoute(viewModel, modifier, onExploreMockDemo = viewModel::exploreMockDemo)
+        var registering by rememberSaveable { mutableStateOf(false) }
+        if (registering) {
+            RegisterRoute(
+                viewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModel.registrationFactory()),
+                onRegistered = { email -> viewModel.registrationCompleted(email); registering = false },
+                onBack = { registering = false },
+                modifier = modifier,
+            )
+        } else {
+            LoginRoute(viewModel, modifier, onExploreMockDemo = viewModel::exploreMockDemo,
+                onCreateAccount = { registering = true })
+        }
     }
 }

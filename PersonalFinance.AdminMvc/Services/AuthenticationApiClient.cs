@@ -21,12 +21,13 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
     public Task<ApiResult<bool>> ChangePasswordAsync(ChangePasswordRequest request, string accessToken, CancellationToken ct) =>
         SendAsync<bool>(HttpMethod.Post, "api/auth/change-password", request, accessToken, ct);
     public Task<ApiResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct) =>
-        SendAsync<CurrentUserResponse>(HttpMethod.Post, "api/auth/register", request, null, ct);
+        // The API creates the member and returns 201 Created (H6).
+        SendAsync<CurrentUserResponse>(HttpMethod.Post, "api/auth/register", request, null, ct, HttpStatusCode.Created);
     public Task<ApiResult<bool>> LogoutAsync(RefreshRequest request, CancellationToken ct) =>
         SendAsync<bool>(HttpMethod.Post, "api/auth/logout", request, null, ct);
 
     private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string route, object? body,
-        string? bearer, CancellationToken ct)
+        string? bearer, CancellationToken ct, HttpStatusCode alsoAccepted = HttpStatusCode.OK)
     {
         try
         {
@@ -48,7 +49,7 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
             if (typeof(T) == typeof(bool))
                 return response.StatusCode == HttpStatusCode.NoContent
                     ? ApiResult<T>.Success((T)(object)true) : ApiResult<T>.Fail(ApiFailure.InvalidResponse);
-            if (response.StatusCode != HttpStatusCode.OK
+            if ((response.StatusCode != HttpStatusCode.OK && response.StatusCode != alsoAccepted)
                 || response.Content.Headers.ContentType?.MediaType != "application/json")
                 return ApiResult<T>.Fail(ApiFailure.InvalidResponse);
             var value = await response.Content.ReadFromJsonAsync<T>(Json, ct);

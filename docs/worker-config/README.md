@@ -1,7 +1,9 @@
 # Independent worker architecture and local storage preparation
 
 This records the owner-approved target and Phase 0 preparation, 26 November 2026.
-The worker is **not implemented**, built, started or runtime-verified. Approved
+**Update (Phase 3, R2):** `PersonalFinance.Worker` is implemented; see
+[Implementation and verification](#implementation-and-verification-r2) below.
+Operational activation remains disabled until a controlled cutover is approved. Approved
 requirements are in [PRODUCT.md](../../PRODUCT.md); current client contracts are
 in [backend integration](../backend-integration.md). Preserve the historical
 [handoff database guidance](../handoff/DATABASE.md); it is not authorization to
@@ -119,4 +121,38 @@ start/stop/restart and cancellation; correct three schedules and timezone across
 supported hosts; schema preparation stays disabled; SQL retry/concurrent-write
 safety; finance results and notifications accessible to the right user; no
 cross-client regressions; useful sanitized logs and explicit failures. These
-are NOT TESTED by this preparation. No actual worker project exists yet.
+are NOT TESTED by this preparation.
+
+## Implementation and verification (R2)
+
+- **Composition:** `AddFinanceCore` (Infrastructure) registers only SQL persistence, clock, write scope,
+  budget usage and `FinanceJobs`, with no HTTP or `ICurrentUser`. The API calls `AddInfrastructure`
+  (core plus member services) and has no Hangfire hosting. `PersonalFinance.Worker/WorkerSetup.cs`
+  alone adds Hangfire storage (`PrepareSchemaIfNecessary=false`, same serializer settings), the
+  server and startup `AddOrUpdate` of the three IDs. `DevJobsController` and the competing job family
+  (`FinanceAutomationJobs`, `HangfireJobRegistration`) are removed. Operational `OWLI_Hangfire` was
+  checked read-only first: 0 servers, jobs, recurring entries or queued items, so nothing persisted
+  referenced the removed family.
+- **Storage guard:** `OWLI_Hangfire` (operational) or `OWLI_HangfireTests_*` (disposable). A
+  disposable Hangfire catalog must be paired with a disposable finance catalog (`OWLI_Runtime_*` or
+  `PersonalFinanceSqlTests_*`), on the same instance and in a different catalog.
+- **Configuration:** optional `OWLI_WORKER_SETTINGS` JSON file, then environment variables, then
+  command line. When `Hangfire:Enabled` is not `true`, the worker exits 0 without opening a connection.
+  An invalid pairing exits 2. The service graph is validated on build.
+- **Run:** `OWLI_WORKER_SETTINGS=<file> dotnet run --project PersonalFinance.Worker`. Stop it with SIGTERM
+  or Ctrl+C in a terminal. Background jobs started from a non-interactive shell ignore SIGINT, so
+  supervisors should send SIGTERM.
+
+Evidence, 26 November 2026, on a local SQL container with synthetic data:
+
+| Check | Result |
+| --- | --- |
+| `HangfireTests` offline (IDs, Manila crons, job identity, retry/concurrency attributes, guard, worker DI without `ICurrentUser`) | PASS 7/7 |
+| `HangfireTests` live on disposable catalogs (registration, forced-failure retry then success, processing, repeated/concurrent triggers without duplicates, stop deregisters, no processing while stopped, restart drains backlog) | PASS 13/13 |
+| FinanceTests acceptance A (API registers no Hangfire services with `Enabled` false/true; API source has no Hangfire/job controller) | PASS |
+| Runtime A: real API with `Hangfire__Enabled=true` and storage configured | 0 servers, 0 recurring, 0 jobs; former `/api/dev/jobs/*` returns 404 |
+| Runtime B: worker executable beside the API | 1 server `owli-worker:*`, 3 recurring jobs with `0 7 * * *`, `0 * * * *`, `30 0 1 * *` in `Asia/Manila`; SIGTERM stops it in about 2 s and deregisters; restart re-registers the same 3 |
+| Worker with the private operational settings (`Enabled=false`) | exits 0, no connection |
+
+NOT TESTED: controlled cutover to operational `OWLI_Hangfire` with `PersonalFinanceDb` (not approved),
+and wall-clock schedule firing (jobs were triggered).

@@ -39,6 +39,8 @@ data class LoginUiState(
     val accountNotice: String? = null,
     val isExploringDemo: Boolean = false,
     val isLoggingOut: Boolean = false,
+    /** Set after a confirmed registration: shows the "account ready" notice and prefills Login. Never a session. */
+    val registeredEmail: String? = null,
     // UI restoration identity only; never an authentication token or persisted session.
     val authenticatedContentKey: String? = null,
 ) {
@@ -197,6 +199,14 @@ class LoginViewModel(
     /** Signed-in user's display profile from the in-memory session; null in Mock Demo or without a session. */
     fun accountProfile(): com.elect3.mobdev.personalfinance.data.auth.AccountProfile? =
         if (mutableState.value.isSignedIn) (repository as? com.elect3.mobdev.personalfinance.data.auth.InMemoryAuthRepository)?.accountProfile() else null
+
+    /** Registration screen for this account repository; creating an account never signs in. */
+    fun registrationFactory(): ViewModelProvider.Factory = RegisterViewModel.Factory(repository)
+
+    fun registrationCompleted(email: String) {
+        if (mutableState.value.entryMode != EntryMode.SignedOut || mutableState.value.isLoading) return
+        mutableState.value = LoginUiState(registeredEmail = email)
+    }
 
     fun returnToLogin() {
         if (mutableState.value.isExploringDemo) mutableState.value = LoginUiState()

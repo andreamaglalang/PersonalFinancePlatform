@@ -23,6 +23,8 @@ import kotlin.coroutines.resume
 enum class AuthFailure {
     NotConfigured, InvalidInput, InvalidCredentials, RateLimited, Timeout,
     SecureConnection, ConnectionFailed, Unavailable, InvalidResponse, AccessDenied, SessionExpired, RenewalUnconfirmed, SecureStorage,
+    /** Registration only: 409, the email already has an account. */
+    AlreadyRegistered,
 }
 
 internal enum class RequestDelivery { NotSent, Rejected, Unknown }
@@ -55,6 +57,25 @@ internal interface AuthApi {
     suspend fun logout(refreshToken: String): ApiResult<Unit>
     /** Rotates the refresh token. Default fails closed (no request) for hosts without a refresh transport. */
     suspend fun refresh(refreshToken: String): ApiResult<AuthPayload> = ApiResult.Failure(AuthFailure.NotConfigured)
+    /** Creates a member account; returns the new profile, never a session. Default fails closed (no request). */
+    suspend fun register(fullName: String, email: String, password: String, confirmPassword: String): ApiResult<AuthUser> =
+        ApiResult.Failure(AuthFailure.NotConfigured)
+}
+
+/** Validates the 201 current-user body from register (Gson, so it is JVM-testable). Throws on anything out of contract. */
+internal fun parseCurrentUser(body: String): AuthUser {
+    val user = com.google.gson.JsonParser.parseString(body).asJsonObject
+    fun text(key: String): String = user.get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+        ?: error("Invalid response")
+    val id = user.get("id")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asBigDecimal?.intValueExact()
+        ?: error("Invalid response")
+    val roles = user.getAsJsonArray("roles").map { it.asString }
+    val name = text("fullName")
+    val emailValue = text("email")
+    val currency = text("baseCurrency")
+    require(id > 0 && name.isNotBlank() && emailValue.isNotBlank())
+    require(currency.matches(Regex("[A-Z]{3}")))
+    return AuthUser(id, name, emailValue, currency, roles)
 }
 
 /**
@@ -90,11 +111,25 @@ internal class AuthApiClient(
 ) : AuthApi {
     private val diagnosticId = AuthDiagnosticIds.next()
     override suspend fun login(email: String, password: String): ApiResult<AuthPayload> =
-        payload(post("login", JSONObject().put("email", email).put("password", password)))
+        payload(post("login", JSONObject().put("email", email).put("password", password).toString()))
 
     /** POST api/auth/refresh. One attempt only; the caller never retries the same token automatically. */
     override suspend fun refresh(refreshToken: String): ApiResult<AuthPayload> =
-        payload(post("refresh", JSONObject().put("refreshToken", refreshToken)))
+        payload(post("refresh", JSONObject().put("refreshToken", refreshToken).toString()))
+
+    /** POST api/auth/register. One attempt; the API answers 201 with the profile and issues no tokens. */
+    override suspend fun register(fullName: String, email: String, password: String, confirmPassword: String): ApiResult<AuthUser> =
+        when (val response = post("register", com.google.gson.JsonObject().apply {
+            addProperty("fullName", fullName); addProperty("email", email)
+            addProperty("password", password); addProperty("confirmPassword", confirmPassword)
+        }.toString())) {
+            is ApiResult.Failure -> response
+            is ApiResult.Success -> try {
+                ApiResult.Success(parseCurrentUser(response.value))
+            } catch (_: Exception) {
+                ApiResult.Failure(AuthFailure.InvalidResponse)
+            }
+        }
 
     private fun payload(response: ApiResult<String>): ApiResult<AuthPayload> = when (response) {
         is ApiResult.Failure -> response
@@ -107,14 +142,14 @@ internal class AuthApiClient(
 
     override suspend fun logout(refreshToken: String): ApiResult<Unit> {
         return when (val response = observeLogoutRequest(diagnostics, diagnosticId) {
-            post("logout", JSONObject().put("refreshToken", refreshToken))
+            post("logout", JSONObject().put("refreshToken", refreshToken).toString())
         }) {
             is ApiResult.Failure -> response
             is ApiResult.Success -> ApiResult.Success(Unit)
         }
     }
 
-    private suspend fun post(operation: String, body: JSONObject): ApiResult<String> {
+    private suspend fun post(operation: String, body: String): ApiResult<String> {
         val url = configuration.authUrl(operation) ?: return ApiResult.Failure(AuthFailure.NotConfigured)
         return withContext<ApiResult<String>>(Dispatchers.IO) {
             currentCoroutineContext().ensureActive()
@@ -136,7 +171,7 @@ internal class AuthApiClient(
                     connection.doOutput = true
                     connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                     connection.setRequestProperty("Accept", "application/json, application/problem+json")
-                    val bytes = body.toString().toByteArray(Charsets.UTF_8)
+                    val bytes = body.toByteArray(Charsets.UTF_8)
                     connection.setFixedLengthStreamingMode(bytes.size)
                     try {
                         connection.outputStream.use { bodyStarted = true; it.write(bytes) }
@@ -144,11 +179,13 @@ internal class AuthApiClient(
                         bytes.fill(0)
                     }
                     val status = connection.responseCode
-                    // login and refresh return credentials (200 + body); logout acknowledges with 204.
-                    val returnsCredentials = operation == "login" || operation == "refresh"
-                    if (status == (if (returnsCredentials) 200 else 204)) {
+                    // login and refresh return credentials (200 + body); register returns the profile (201 + body);
+                    // logout acknowledges with 204.
+                    val returnsBody = operation != "logout"
+                    val expected = when (operation) { "logout" -> 204; "register" -> 201; else -> 200 }
+                    if (status == expected) {
                         val output = ByteArrayOutputStream()
-                        if (returnsCredentials) connection.inputStream.use { input ->
+                        if (returnsBody) connection.inputStream.use { input ->
                             val buffer = ByteArray(4096)
                             while (true) {
                                 if (!continuation.isActive) throw CancellationException()
@@ -166,6 +203,7 @@ internal class AuthApiClient(
                             400 -> AuthFailure.InvalidInput
                             401 -> if (operation == "login") AuthFailure.InvalidCredentials else AuthFailure.SessionExpired
                             403 -> AuthFailure.AccessDenied
+                            409 -> if (operation == "register") AuthFailure.AlreadyRegistered else AuthFailure.InvalidResponse
                             429 -> AuthFailure.RateLimited
                             in 500..599 -> AuthFailure.Unavailable
                             else -> AuthFailure.InvalidResponse

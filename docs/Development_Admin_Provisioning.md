@@ -31,8 +31,9 @@ The tool references Infrastructure, not the API executable. It calls AddInfrastr
 - DOTNET_ENVIRONMENT must be exactly Development. ASPNETCORE_ENVIRONMENT, if set, must also be Development.
 - Run from the solution root in an interactive terminal. Redirected input/output and command-line arguments are rejected.
 - Configuration precedence is API appsettings.json, appsettings.Development.json, the API project's existing user-secret store if configured, then environment variables.
-- The resolved EF connection must point to (localdb)\MSSQLLocalDB and PersonalFinanceDb using Windows Authentication. SQL credentials and AttachDbFilename are rejected. The full connection string is never printed.
-- A read-only live query verifies DB_NAME() is PersonalFinanceDb and SERVERPROPERTY('IsLocalDB') is 1. No server-name assumption is substituted for this connected database check.
+- The resolved EF connection must point either to (localdb)\MSSQLLocalDB and PersonalFinanceDb using Windows Authentication, or to a disposable `OWLI_Runtime_*` catalog on any server (SQL or Windows authentication; see [portable runtime](runtime/README.md)). AttachDbFilename is always rejected. The full connection string is never printed.
+- The confirmation phrase names the verified catalog: `CREATE DEVELOPMENT ADMINISTRATOR IN <catalog>`.
+- A read-only live query verifies DB_NAME() matches the configured catalog; for PersonalFinanceDb it also requires SERVERPROPERTY('IsLocalDB') = 1. No server-name assumption is substituted for this connected database check.
 - This read-only target check occurs before the write confirmation and is repeated immediately before the provisioning transaction.
 - The operator supplies email, full name, password, and password confirmation interactively. Passwords are masked, not accepted in process arguments or configuration, and never logged.
 - Exact confirmation text is required before writes: CREATE DEVELOPMENT ADMINISTRATOR IN PersonalFinanceDb

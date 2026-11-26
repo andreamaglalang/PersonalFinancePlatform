@@ -14,11 +14,15 @@ internal static class MemberNotificationChecks
             || controller.Contains("MemberSessionGate.RejectAsync") is false)
             throw new InvalidOperationException("The inbox must resolve and reject through MemberSessionGate.");
 
-        // Read-only: no mark-as-read endpoint is invented, and no HTTP method other than GET is used.
-        if (client.Contains("HttpMethod.Post") || client.Contains("HttpMethod.Put")
-            || client.Contains("HttpMethod.Delete") || client.Contains("mark-as-read")
-            || client.Contains("MarkAsRead"))
-            throw new InvalidOperationException("The notification client must stay read-only (GET only).");
+        // C3 read state only: the client never creates, edits or deletes notifications.
+        if (client.Contains("HttpMethod.Put") || client.Contains("HttpMethod.Delete")
+            || !client.Contains("api/notifications/{id}/read") || !client.Contains("api/notifications/read-all"))
+            throw new InvalidOperationException("The notification client must use exactly the C3 read-state contract.");
+        if (!controller.Contains("public Task<IActionResult> MarkRead") || !controller.Contains("public Task<IActionResult> MarkAllRead")
+            || controller.Split("[HttpPost, ValidateAntiForgeryToken]").Length - 1 != 2)
+            throw new InvalidOperationException("Mark-read actions must be antiforgery-protected POSTs.");
+        if (!view.Contains("asp-action=\"MarkRead\"") || !view.Contains("asp-action=\"MarkAllRead\"") || !view.Contains("aria-label=\"Mark as read:"))
+            throw new InvalidOperationException("Unread items need an accessible mark-read control and a mark-all control.");
         if (client.Contains("api/notifications") is false || client.Contains("UnreadOnly=") is false
             || client.Contains("Page=") is false)
             throw new InvalidOperationException("The client must use the existing api/notifications contract.");
@@ -51,6 +55,6 @@ internal static class MemberNotificationChecks
         if (layout.Split("data-nav=").Length - 1 != 5)
             throw new InvalidOperationException("The Member primary navigation must also expose Account as its fifth destination.");
 
-        Console.WriteLine("PASS: the member notification inbox is read-only, member-scoped, filtered, paged and accessible.");
+        Console.WriteLine("PASS: the member notification inbox is member-scoped, filtered, paged, accessible and shares read state (C3).");
     }
 }

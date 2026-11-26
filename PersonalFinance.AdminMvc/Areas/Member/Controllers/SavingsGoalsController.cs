@@ -175,7 +175,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         var result = await goals.GetAsync(id, token!, ct);
         if (!result.Succeeded) return RedirectToIndex(result.Status);
         ViewData["Goal"] = result.Value!;
-        return View(new MemberContributionFormModel { ContributedOn = DateOnly.FromDateTime(DateTime.Today) });
+        return View(new MemberContributionFormModel { ContributedOn = BudgetPlanSummary.PhilippineToday });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
