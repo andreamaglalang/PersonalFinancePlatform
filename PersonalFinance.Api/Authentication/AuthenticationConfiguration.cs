@@ -69,8 +69,12 @@ public static class AuthenticationConfiguration
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            // Anonymous calls (login, register, refresh, probes) are limited per client IP. Signed-in calls are limited
+            // per user: MVC proxies every member from one server IP, so an IP partition throttled all members together.
             options.AddPolicy(AuthRateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
-                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                context.User.Identity?.IsAuthenticated == true && context.User.FindFirst("sub")?.Value is { } user
+                    ? "user:" + user
+                    : "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
