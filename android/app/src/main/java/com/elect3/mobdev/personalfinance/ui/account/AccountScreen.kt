@@ -97,10 +97,12 @@ fun AccountDialog(
     onPasswordChanged: (Boolean) -> Unit = {},
     currencyPreferences: com.elect3.mobdev.personalfinance.domain.currency.AccountCurrencyPreferences? = null,
     isCurrent: () -> Boolean = { true },
+    /** Called when a profile/password sheet closes so the owner re-reads the signed-in name. */
+    onProfileChanged: () -> Unit = {},
 ) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            AccountScreen(mode, appearance, onAppearance, onManageCategories, onLogout, onClose, onOpenCurrencyConverter, live, onSessionEnded, onPasswordChanged, currencyPreferences, isCurrent)
+            AccountScreen(mode, appearance, onAppearance, onManageCategories, onLogout, onClose, onOpenCurrencyConverter, live, onSessionEnded, onPasswordChanged, currencyPreferences, isCurrent, onProfileChanged)
         }
     }
 }
@@ -120,6 +122,7 @@ fun AccountScreen(
     onPasswordChanged: (Boolean) -> Unit = {},
     currencyPreferences: com.elect3.mobdev.personalfinance.domain.currency.AccountCurrencyPreferences? = null,
     isCurrent: () -> Boolean = { true },
+    onProfileChanged: () -> Unit = {},
 ) {
     val sheetNavigation = remember(currencyPreferences, live, mode is AccountMode.Demo) { AccountSheetNavigation() }
     val sheet = sheetNavigation.current
@@ -189,7 +192,7 @@ fun AccountScreen(
     }
 
     if (!demo && live != null && (sheet == AccountSheet.Profile || sheet == AccountSheet.Password)) {
-        LiveAccountEditor(live, sheet == AccountSheet.Password, onClose = { sheetNavigation.dismiss() }, onSessionEnded = onSessionEnded, onPasswordChanged = onPasswordChanged)
+        LiveAccountEditor(live, sheet == AccountSheet.Password, onClose = { sheetNavigation.dismiss(); onProfileChanged() }, onSessionEnded = onSessionEnded, onPasswordChanged = onPasswordChanged)
     }
     if (!demo && sheet == AccountSheet.Currency && currencyPreferences != null) {
         CurrencyPreferencesEditor(currencyPreferences, profile?.baseCurrency, isCurrent) { sheetNavigation.dismiss() }
