@@ -43,10 +43,11 @@ fun LoginRoute(
     viewModel: LoginViewModel,
     modifier: Modifier = Modifier,
     onExploreMockDemo: (() -> Unit)? = null,
+    onCreateAccount: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     DisposableEffect(viewModel) { onDispose { viewModel.cancelLogin() } }
-    LoginScreen(state, viewModel::login, modifier, onExploreMockDemo)
+    LoginScreen(state, viewModel::login, modifier, onExploreMockDemo, onCreateAccount)
 }
 
 @Composable
@@ -55,9 +56,10 @@ fun LoginScreen(
     onLogin: (String, String) -> Unit,
     modifier: Modifier = Modifier,
     onExploreMockDemo: (() -> Unit)? = null,
+    onCreateAccount: (() -> Unit)? = null,
 ) {
     // Never saved to instance state. Password is removed from the field on submission/disposal.
-    var email by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(state.registeredEmail ?: "") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val typography = LocalOwliTypography.current
@@ -152,6 +154,10 @@ fun LoginScreen(
                         LoginNotice(stringResource(authErrorResource(it)), isError = true)
                     }
                     state.accountNotice?.let { LoginNotice(it, isError = false) }
+                    if (state.registeredEmail != null) {
+                        Spacer(Modifier.height(14.dp))
+                        LoginNotice(stringResource(R.string.register_success), isError = false)
+                    }
                     if (state.revocationUnconfirmed) {
                         Spacer(Modifier.height(14.dp))
                         LoginNotice(stringResource(R.string.auth_logout_unconfirmed), isError = false)
@@ -171,6 +177,15 @@ fun LoginScreen(
                             state.isSignedIn -> R.string.auth_signed_in
                             else -> R.string.auth_sign_in
                         }), style = typography.button)
+                    }
+                    onCreateAccount?.let { create ->
+                        TextButton(
+                            onClick = { password = ""; passwordVisible = false; focus.clearFocus(); create() },
+                            enabled = enabled,
+                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp).heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.register_entry), style = typography.label, color = owli.accent)
+                        }
                     }
                     onExploreMockDemo?.let { explore ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically,
@@ -217,7 +232,7 @@ fun LoginScreen(
 
 /** Error (container colors) or neutral notice, announced politely. */
 @Composable
-private fun LoginNotice(message: String, isError: Boolean) {
+internal fun LoginNotice(message: String, isError: Boolean) {
     val scheme = MaterialTheme.colorScheme
     val owli = LocalOwliColors.current
     Row(
@@ -269,4 +284,5 @@ private fun authErrorResource(failure: AuthFailure): Int = when (failure) {
     AuthFailure.RenewalUnconfirmed -> R.string.auth_renewal_unconfirmed
     AuthFailure.SecureStorage -> R.string.auth_secure_storage
     AuthFailure.SessionExpired -> R.string.auth_session_expired
+    AuthFailure.AlreadyRegistered -> R.string.register_error_duplicate
 }

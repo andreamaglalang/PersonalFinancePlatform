@@ -8,7 +8,7 @@ class ApiConfiguration private constructor(private val base: URI?) {
     internal fun sessionNamespace(): String = base?.toASCIIString() ?: "unconfigured"
 
     internal fun authUrl(operation: String): URL? {
-        require(operation == "login" || operation == "logout" || operation == "refresh")
+        require(operation in setOf("login", "logout", "refresh", "register"))
         return base?.resolve("api/auth/$operation")?.toURL()
     }
 
