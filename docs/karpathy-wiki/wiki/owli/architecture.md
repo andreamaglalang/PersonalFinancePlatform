@@ -39,7 +39,11 @@ has no HTTP or `ICurrentUser` dependency. Other shared finance services require
 between shared and HTTP-scoped registrations; otherwise host build validation is
 expected to fail (suspected, not executed). Client parity gaps:
 
+- MVC registration rejects the API's 201 Created success (it accepts only 200),
+  so it reports failure after creating the account (High; runtime pending).
 - Android lacks registration, transaction deletion and a notifications inbox.
+- Android release builds have no configured API endpoint (debug only).
+- Administrator provisioning works only with LocalDB and Windows Authentication.
 - Android computes reports locally, without savings or budget data.
 - Stored monthly summaries have no API reader.
 - MVC administrator budgets and reports are user-scoped.

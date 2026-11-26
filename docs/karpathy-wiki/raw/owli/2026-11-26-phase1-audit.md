@@ -33,6 +33,18 @@
 - Android Room holds only local_transactions and local_categories (OwliDatabase.kt:122).
 - A budget referenced by an alert notification cannot be deleted (BudgetService.cs:97-104).
 - MVC admin budgets/reports use user-scoped endpoints, so admins see only their own data.
+- Review amendment (H6, High): API register returns 201 Created
+  (AuthenticationService.cs:51), but MVC AuthenticationApiClient.SendAsync accepts
+  only 200 for JSON (AuthenticationApiClient.cs:51). MVC therefore reports failure
+  after the account is created. Runtime reproduction pending.
+- Release Android ApiEnvironment returns an unconfigured endpoint. Admin provisioning
+  is LocalDB/Windows Authentication only.
+
+## Carried into Phase 2 planning
+
+MVC registration status (H6); Android release endpoint configuration; portable
+Administrator provisioning; transaction idempotency payload mismatch (L1);
+savings contribution retry integrity (M4).
 
 ## Completion estimate (judgement, not measured)
 

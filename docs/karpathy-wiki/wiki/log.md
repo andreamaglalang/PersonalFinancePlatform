@@ -40,3 +40,10 @@
 - Updated: OWLI verification limits and architectural decisions
 - Baseline dev e15d859; offline .NET and Android debug unit suites PASS; SQL/API/device/cross-client/worker NOT TESTED.
 - Full record: docs/audits/OWLI_Phase1_Audit.md. No application change or roadmap.
+
+## [2026-11-26] ingest | Phase 1 review amendment
+- Disposition: Update
+- Raw: raw/owli/2026-11-26-phase1-audit.md
+- Updated: OWLI architecture and worker decision
+- Added H6: MVC registration requires 200 but the API returns 201 (source-confirmed; runtime pending).
+- Carried into Phase 2: Android release endpoint, portable admin provisioning, transaction payload mismatch, contribution retry integrity.

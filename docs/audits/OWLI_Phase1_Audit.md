@@ -48,7 +48,7 @@ Passing builds and offline tests do not establish functional acceptance (PRODUCT
 ## 1. Executive summary
 
 - **Backend: strongest layer (Confirmed, source).** It has per-user ownership filtering, serializable transactions with `sp_getapplock` user/category locks, ClientId idempotency, bill-payment receipts and contribution ledgers, decimal(18,2) money and decimal(18,8) rates with AwayFromZero rounding, stored per-transaction FX snapshots, and a database guard on base-currency changes.
-- **MVC Member is broad.** It covers transactions, categories, budgets, savings goals, bills, currency, reports, notifications, account and registration.
+- **MVC Member is broad.** It covers transactions, categories, budgets, savings goals, bills, currency, reports, notifications, account and registration. However, MVC registration rejects the API's success response (H6).
 - **Android has real parity gaps against MVC:** no registration, no notifications, no transaction deletion, a locally computed report, and offline support limited to transaction creation.
 - **The mandatory `PersonalFinance.Worker` is Missing.** If Hangfire were enabled today, it would run its server and recurring registration inside the API.
 - **No requirement is runtime-verified end to end.** All automated evidence is offline or in-memory.
@@ -57,7 +57,7 @@ Passing builds and offline tests do not establish functional acceptance (PRODUCT
 
 | Capability (PRODUCT.md) | API | MVC Member | Android | Status |
 | --- | --- | --- | --- | --- |
-| Registration | `POST /api/auth/register` | Yes | **Missing** | Partial (Android Missing) |
+| Registration | `POST /api/auth/register` (201 Created) | Form exists, but the success response is rejected (H6) | **Missing** | Partial (MVC defect, Android Missing) |
 | Login / refresh / logout | Yes | Yes | Yes | Implemented–unverified |
 | Profile / password | Two contracts: `/api/auth/*` and `/api/account/*` | Uses `auth/*` | Uses `account/*` | Implemented–unverified; contract split is a known deferred decision |
 | Transactions: create / list / edit | Yes | Yes | Yes, plus Room offline create | Implemented–unverified |
@@ -87,6 +87,7 @@ Passing builds and offline tests do not establish functional acceptance (PRODUCT
 | H3 | Notifications are read-only everywhere. No code sets `IsRead` to true, so the `unreadOnly` filter returns everything. Android has no inbox | `PersonalFinance.Infrastructure/Finance/NotificationService.cs`; `NotificationsController.cs`; no Android `notifications` reference | Confirmed (source) |
 | H4 | Android cannot delete transactions. MVC and the API can | `android/.../domain/repository/TransactionUpdateRepository.kt:10-11` (update only) | Confirmed (source) |
 | H5 | No runtime acceptance evidence for SQL Server, the live API, rendered clients, cross-client behavior or the worker | Verification table above | Blocked / Not tested |
+| H6 | MVC registration rejects a successful registration. The API returns **201 Created** with a `CurrentUserResponse`. For JSON results, MVC `AuthenticationApiClient.SendAsync` accepts only **200 OK** and maps anything else to `InvalidResponse`. The account is created, but `AccountController` shows "Registration is temporarily unavailable" with HTTP 400, and a retry reports "already registered". The offline UI tests did not catch this | `PersonalFinance.Infrastructure/Authentication/AuthenticationService.cs:51` (`Success(..., 201)`), returned by `AuthController.Respond` (`AuthController.cs:20-22, 78-81`); `PersonalFinance.AdminMvc/Services/AuthenticationApiClient.cs:51`; `Controllers/AccountController.cs:29-46` | Confirmed (source); runtime reproduction pending |
 
 ### Medium
 
@@ -187,6 +188,7 @@ This is a priority outline, not the implementation roadmap.
 
 - **P0:** A disposable SQL target with migrations applied from an empty database. This gates all runtime evidence. Then the worker DI split and host (H1, M7).
 - **P1:**
+  - MVC registration status contract (H6): accept 201 for register, with a regression test. Then confirm that an MVC-registered account can sign in on Android.
   - Android registration and transaction deletion (H2, H4). No API change is needed.
   - Notification mark-read and summary-read contracts (H3, M1), then client inboxes.
 - **P2:**
@@ -203,7 +205,7 @@ This is a priority outline, not the implementation roadmap.
 Follows the default ownership in AGENTS.md.
 
 - **Codex:** worker and DI split, `DevJobsController` retirement, notification mark-read and summary endpoints, server-side transaction version token, budget-deletion policy, ClientId mismatch handling, SQL harness, alternative-family cleanup, CI trigger.
-- **Claude Code:** Android registration, deletion, inbox and summaries, report parity, durable uncertain-write identities, goals/bills UI and strings; MVC inbox mark-read, dashboard performance, Manila defaults, session-store hardening; rendered and accessibility verification.
+- **Claude Code:** MVC registration status fix (H6), Android release endpoint configuration, Android registration, deletion, inbox and summaries, report parity, durable uncertain-write identities, goals/bills UI and strings; MVC inbox mark-read, dashboard performance, Manila defaults, session-store hardening; rendered and accessibility verification.
 - **Joint contract agreements:** notification and summary DTOs, transaction version token, account contract.
 
 ## 11. Completion estimate
@@ -218,6 +220,18 @@ These are judgement-based, not measured.
 | Android | ~65% | ~0% (unit tests only) |
 | Worker | 0% | 0% |
 | **Overall** | **~70%** | **~0–10%** (offline/unit evidence only) |
+
+## Items explicitly carried into Phase 2 planning
+
+Phase 2 planning must include each item below. None is fixed here.
+
+| Item | Current state (Confirmed, source) | Refs |
+| --- | --- | --- |
+| MVC registration status mismatch | Register returns 201; MVC requires 200 and reports failure after creating the account. Runtime reproduction pending | H6 |
+| Android release endpoint configuration | The release `ApiEnvironment` returns `ApiConfiguration.unconfigured()`. Only the debug source set selects an HTTPS endpoint, so a release build cannot reach any API. An approved release endpoint and its selection mechanism are needed | `android/app/src/release/.../ApiEnvironment.kt:5`; `src/debug/.../ApiEnvironment.kt:19` |
+| Portable Administrator provisioning | `tools/PersonalFinance.AdminProvisioning` accepts only `(localdb)\MSSQLLocalDB` with Windows Authentication, so Administrator bootstrap is Windows-only. A portable approved target is needed | [Development admin provisioning](../Development_Admin_Provisioning.md) |
+| Transaction idempotency payload mismatch | A replayed ClientId with a different payload returns the original silently | L1 |
+| Savings contribution retry integrity | Android's uncertain contribution identity is memory-only, and contributions have no natural unique key (unlike bill payments' `(BillId, DueDate)`) | M4 |
 
 ## Unresolved decisions carried forward
 
