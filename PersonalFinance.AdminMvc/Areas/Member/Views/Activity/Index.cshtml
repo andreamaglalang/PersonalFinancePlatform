@@ -82,7 +82,7 @@
                     </form>
                 </details>
                 @if (!nextIsCurrentOrFuture) { <a class="activity-month-arrow" aria-label="Next month" href="@Url.Action("Index", new { Period = "Month", Month = nextMonth, Type = Model.Type, Model.CategoryId, Model.Search, Model.AmountOrder })"><partial name="_NavIcon" model='"chev"' /></a> }
-                else { <span class="activity-month-arrow is-disabled" aria-disabled="true" aria-label="Next month"><partial name="_NavIcon" model='"chev"' /></span> }
+                else { <span class="activity-month-arrow is-disabled" role="link" aria-disabled="true" aria-label="Next month"><partial name="_NavIcon" model='"chev"' /></span> }
             </nav>
         }
         else if (Model.Period == "Range")
