@@ -63,3 +63,6 @@
 - Disposition: Update
 - Updated: OWLI architecture and worker decision
 - API Hangfire hosting and DevJobsController removed; PersonalFinance.Worker implemented; HangfireTests 20/20 on disposable catalogs. Operational cutover not approved.
+## [2026-11-27] update | Phase 3 acceptance record
+- Updated: OWLI verification limits and architectural decisions
+- Linked docs/audits/OWLI_Phase3_Acceptance.md; PRs #4-#17 pending review; incomplete essential rows recorded, D6/D10 pending.

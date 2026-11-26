@@ -57,6 +57,22 @@ The audit estimates source implementation at about 70% and runtime-verified
 functionality at about 0–10%. See the
 [Phase 1 audit](../../../audits/OWLI_Phase1_Audit.md).
 
+## Phase 3 runtime evidence
+
+Phase 3 changes are on review-pending PRs #4–#17; none is merged. On disposable catalogs
+with synthetic accounts, these were verified at runtime:
+- Android ↔ MVC create, edit and conflict, and delete.
+- Registration in both directions.
+- Durable contribution retry after a real outage.
+- Notification read state in both directions.
+- Same-cent report parity.
+- Worker lifecycle, retry and API isolation.
+- Admin role checks.
+- MVC WCAG AA checks in both themes.
+
+The two defects R12 found (the shared auth rate limit, and contrast/overflow) are fixed in #16 and #17.
+Incomplete essential rows are listed in the [Phase 3 acceptance record](../../../audits/OWLI_Phase3_Acceptance.md).
+
 ## Decisions and remaining acceptance work
 
 The independent console requirement and initial selection of `FinanceJobs` are
