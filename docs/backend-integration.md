@@ -63,8 +63,8 @@ Transport middleware returns 400 ProblemDetails with title `HTTPS is required.`
 for plain-HTTP financial-route requests; this is a transport rejection, not a
 field-validation result. It also sets no-store headers. Preserve rate limits,
 validation and HTTPS; expose no bearer/refresh tokens in browser scripts.
-Outside Development, `/api/dev` returns 404 before that transport check; its
-manual-job endpoint is an audit/cutover concern, not a public client contract.
+The former Development-only `/api/dev/jobs/*` manual-job endpoint is removed (D3).
+Finance jobs run only in `PersonalFinance.Worker`.
 
 Money maps to SQL decimal(18,2); FX rates to decimal(18,8). Server validation
 rounds accepted rates to 8 decimal places and converted amounts to 2 using

@@ -38,6 +38,9 @@ jobs:
       - run: dotnet run --project tests/PersonalFinance.SqlIntegrationTests
         env:
           OWLI_SQL_TEST_SERVER: Server=localhost,1433;Database=master;User ID=sa;Password=OwliCi_${{ github.run_id }}_Aa;Encrypt=True;TrustServerCertificate=True
+      - run: dotnet run --project tests/PersonalFinance.HangfireTests
+        env:
+          OWLI_SQL_TEST_SERVER: Server=localhost,1433;Database=master;User ID=sa;Password=OwliCi_${{ github.run_id }}_Aa;Encrypt=True;TrustServerCertificate=True
   android:
     runs-on: ubuntu-latest
     steps:
