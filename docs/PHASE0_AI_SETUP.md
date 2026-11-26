@@ -283,3 +283,48 @@ reported no concrete blockers. Its remaining non-blocking wording suggestions
 were checked against source: job-family versus processor-overlap prohibitions
 are now explicit, and the non-Development `/api/dev` 404 precedence is recorded.
 No application change or runtime retest was needed for these clarifications.
+
+## PR #1 CI portability correction — 26 November 2026
+
+The owner authorized focused CI/test corrections on the existing Phase 0 branch.
+The initial finalization head `a7427ca811e98ce51503454201c7a0ae900910b9`
+had failing Android and .NET jobs in
+[run 45812659812](https://github.com/andreamaglalang/PersonalFinancePlatform/actions/runs/45812659812).
+Earlier instruction/storage checks did not establish passing CI; the previous
+PR-ready statement was premature and is superseded by this acceptance gate.
+
+Confirmed causes and corrections:
+
+- The official `android-actions/setup-android@v3` manifest defaults to obsolete
+  `tools platform-tools`. Explicit `packages: 'platform-tools'` retains default
+  license acceptance, Java 17, SDK 36, Build Tools 36.0.0, and all Gradle tasks.
+- The transaction-edit security assertion matched an LF-only source fragment.
+  It now reflects the exact POST Edit overload and requires both HttpPost and
+  ValidateAntiForgeryToken metadata. Production controller behavior is unchanged.
+- Nearby MemberShellChecks had the only other escaped-newline assertion in this
+  test project. Its stale-label rejection was demonstrated to miss CRLF input;
+  normalizing the loaded layout preserves that assertion on both platforms.
+
+Local verification with these corrections:
+
+| Check | Result |
+| --- | --- |
+| Full solution `dotnet build PersonalFinancePlatform.slnx` | PASS, zero warnings/errors |
+| Complete `tools/Test-Handoff.ps1`, actual seven-project allowlist | PASS, including the complete MVC UI entry point |
+| Original transaction assertion with CRLF fixture | Expected failure reproduced |
+| Fixed transaction/shell checks with LF and CRLF source fixtures | PASS |
+| Isolated removal of POST Edit antiforgery metadata | Corrected security assertion failed as required |
+| Stale shell label with LF and CRLF fixtures | Corrected assertion rejected both; original CRLF bypass reproduced |
+| Android `assembleDebug testDebugUnitTest testReleaseUnitTest --no-daemon` with Java 17 | PASS; debug 596 tests, release 599 tests, zero failures/errors/skips |
+
+PowerShell and Java 17 used checksum-verified temporary portable distributions;
+installed tool versions and project dependencies were not changed. Mutation and
+source fixtures stayed outside the repository. Focused C# mutation runs excluded
+Razor compilation; the actual full solution and complete handoff/UI suite above
+ran with normal Razor verification. No database access, processing-server startup,
+recurring registration or application/runtime configuration change was initiated.
+
+The local checks do not establish hosted CI acceptance. Both Android and .NET
+jobs must pass on the latest published PR head; record exact commit/run results
+in PR #1 before final approval. Do not merge or infer application-wide runtime
+readiness from these offline checks.

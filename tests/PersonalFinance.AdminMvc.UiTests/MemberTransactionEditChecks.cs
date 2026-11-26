@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.AdminMvc.Areas.Member.Controllers;
 using PersonalFinance.AdminMvc.Services;
+using PersonalFinance.AdminMvc.ViewModels;
 
 internal static class MemberTransactionEditChecks
 {
@@ -9,7 +12,10 @@ internal static class MemberTransactionEditChecks
         var controller = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Controllers", "ActivityController.cs"));
         var form = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Views", "Activity", "Create.cshtml"));
         var rows = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Views", "Activity", "Index.cshtml"));
-        Check(controller.Contains("[HttpPost, ValidateAntiForgeryToken]\n    public async Task<IActionResult> Edit"),
+        var edit = typeof(ActivityController).GetMethod(nameof(ActivityController.Edit),
+            new[] { typeof(int), typeof(MemberTransactionDraftViewModel), typeof(CancellationToken) });
+        Check(edit?.IsDefined(typeof(HttpPostAttribute), inherit: true) == true
+            && edit.IsDefined(typeof(ValidateAntiForgeryTokenAttribute), inherit: true),
             "The transaction edit POST must be antiforgery protected.");
         Check(controller.Contains("rateIdentityChanged") && controller.Contains("original.CurrencyCode")
             && controller.Contains("original.TransactionDate") && controller.Contains("UpdateTransactionRequest"),

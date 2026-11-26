@@ -1,7 +1,7 @@
 # OWLI verification limits and architectural decisions
 
 > Sources: Project owner, 2026-11-26; guarded Phase 0 SQL preparation, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md)
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md)
 > Updated: 2026-11-26
 
 ## Verified preparation
@@ -23,6 +23,22 @@ Both coding agents discovered and loaded the LLM Wiki through native catalogs,
 used the single configured index, and recognized ownership and activation limits.
 The other four engineering/design skills remained visible. This is instruction
 verification, not execution of all optional skill engines or application behavior.
+
+## CI portability acceptance
+
+The initial Phase 0 finalization head had two confirmed hosted CI failures:
+obsolete Android SDK `tools` selection and an LF-only MVC antiforgery assertion.
+The accompanying corrections explicitly select supported SDK packages and check
+actual POST Edit metadata. A demonstrated equivalent shell source assertion now
+normalizes line endings. No production controller was changed.
+
+Local full solution build, all seven Test-Handoff projects, focused LF/CRLF and
+negative-security checks, and all three Android tasks passed. Debug/release unit
+runs counted 596/599 tests without failures or skips. See the new raw CI evidence
+for scope, temporary fixture details and original failed-run links. Earlier
+instruction/storage readiness did not prove passing CI; that PR-ready claim was
+premature. Final acceptance requires both hosted jobs passing on the latest PR
+head, with exact commit/run evidence recorded in PR #1. No merge is authorized.
 
 ## Decisions and remaining acceptance work
 
