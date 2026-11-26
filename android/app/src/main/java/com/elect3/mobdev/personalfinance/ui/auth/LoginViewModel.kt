@@ -73,6 +73,9 @@ class LoginViewModel(
     /** Authenticated read-only exchange-rate quotes; exposed only to authenticated content, never to Mock Demo. */
     val authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
     val authenticatedLive: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
+    /** Authenticated notifications inbox and server reports; exposed only to authenticated content, never to Mock Demo. */
+    val authenticatedNotifications: com.elect3.mobdev.personalfinance.domain.repository.NotificationRepository? = null,
+    val authenticatedReports: com.elect3.mobdev.personalfinance.domain.reports.ReportRepository? = null,
 ) : ViewModel() {
     val diagnosticId = AuthDiagnosticIds.next()
     private fun record(event: AuthDiagnosticEvent) = diagnostics.record(event, diagnosticId, null)
@@ -294,6 +297,8 @@ class LoginViewModel(
         private val authenticatedUpdates: com.elect3.mobdev.personalfinance.domain.repository.TransactionUpdateRepository? = null,
         private val authenticatedQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository? = null,
         private val authenticatedLive: com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository? = null,
+        private val authenticatedNotifications: com.elect3.mobdev.personalfinance.domain.repository.NotificationRepository? = null,
+        private val authenticatedReports: com.elect3.mobdev.personalfinance.domain.reports.ReportRepository? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == LoginViewModel::class.java)
@@ -303,7 +308,8 @@ class LoginViewModel(
                 authenticatedCurrency = authenticatedCurrency, authenticatedCreation = authenticatedCreation,
                 authenticatedCategoryWrites = authenticatedCategoryWrites, authenticatedAccountId = authenticatedAccountId,
                 authenticatedBudgets = authenticatedBudgets, authenticatedUpdates = authenticatedUpdates,
-                authenticatedQuotes = authenticatedQuotes, authenticatedLive = authenticatedLive) as T
+                authenticatedQuotes = authenticatedQuotes, authenticatedLive = authenticatedLive,
+                authenticatedNotifications = authenticatedNotifications, authenticatedReports = authenticatedReports) as T
         }
     }
 }

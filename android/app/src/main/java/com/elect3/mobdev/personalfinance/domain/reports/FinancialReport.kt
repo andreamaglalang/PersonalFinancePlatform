@@ -8,8 +8,9 @@ import java.util.Collections
 /**
  * Financial report for one selected month plus a short monthly trend that ends at that month.
  *
- * Every money value is in [currency], the signed-in account's base currency, and is a sum of the server's
- * stored `amountBase` snapshots. The app never fetches, estimates or re-applies an exchange rate.
+ * Every money value is in [currency], the signed-in account's base currency. Signed in, every month is the server's
+ * own report (`GET api/reports/monthly`, C6); Mock Demo totals its sample ledger's stored `amountBase` snapshots.
+ * The app never fetches, estimates or re-applies an exchange rate.
  */
 class FinancialReport internal constructor(
     val currency: String,
@@ -37,9 +38,15 @@ class MonthlyReport internal constructor(
     val transactionCount: Int,
     expenseCategories: List<ReportCategoryTotal>,
     /** Rows in this month recorded in a currency other than [currency]; their totals use the stored base amount. */
-    val foreignCurrencyCount: Int,
-    foreignCurrencies: Collection<String>,
+    val foreignCurrencyCount: Int = 0,
+    foreignCurrencies: Collection<String> = emptyList(),
+    /** Server report only (C6): goal contributions in the month, in [currency]. Null when not provided (Mock Demo). */
+    val savingsContributed: BigDecimal? = null,
+    /** Server report only (C6): the month's budgets exactly as the server computed them. */
+    budgets: List<com.elect3.mobdev.personalfinance.domain.repository.Budget> = emptyList(),
 ) {
+    val budgets: List<com.elect3.mobdev.personalfinance.domain.repository.Budget> = Collections.unmodifiableList(ArrayList(budgets))
+
     val netBalance: BigDecimal get() = totalIncome.subtract(totalExpenses)
     val isEmpty: Boolean get() = transactionCount == 0
 

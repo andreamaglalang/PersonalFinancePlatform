@@ -62,8 +62,9 @@ internal object FinanceJson {
         require(it.signum() >= 0 && it <= BigDecimal("9999999999999999.99"))
         it.setScale(2, java.math.RoundingMode.UNNECESSARY)
     }
-    private fun JsonObject.createdAtUtc(): Instant {
-        val raw = text("createdAtUtc")
+    private fun JsonObject.createdAtUtc(): Instant = utc("createdAtUtc")
+    private fun JsonObject.utc(key: String): Instant {
+        val raw = text(key)
         // SQL datetime2 does not retain DateTime.Kind. The backend writes UTC and names
         // this field CreatedAtUtc, but SQL-loaded DateTimes can serialize without a Z.
         // Interpret that explicit contract as UTC, never the Android device time zone.
@@ -173,5 +174,59 @@ internal object FinanceJson {
         }
         require(items.map { it.transactionId }.distinct().size == items.size)
         return TransactionPage(items, query.page, query.pageSize, e.total)
+    }
+    /** C6 `GET api/reports/monthly`: must describe [month] and add up exactly (net, category totals, counts). */
+    fun monthlyReport(body: String, month: java.time.YearMonth): com.elect3.mobdev.personalfinance.domain.reports.MonthlyReport {
+        val r = root(body)
+        require(r.date("month") == month.atDay(1))
+        val currency = r.text("baseCurrency").also { require(it.matches(Regex("[A-Z]{3}"))) }
+        val income = r.money("totalIncome")
+        val expenses = r.money("totalExpenses")
+        require(r.number("netCashFlow").compareTo(income.subtract(expenses)) == 0)
+        val count = r.int("transactionCount").also { require(it >= 0) }
+        val expenseRows = r.categoryTotals("expenseByCategory")
+        val incomeRows = r.categoryTotals("incomeByCategory")
+        require(expenseRows.fold(BigDecimal.ZERO) { a, c -> a.add(c.total) }.compareTo(expenses) == 0)
+        require(incomeRows.fold(BigDecimal.ZERO) { a, c -> a.add(c.total) }.compareTo(income) == 0)
+        require((expenseRows + incomeRows).sumOf { it.transactionCount } == count)
+        val budgets = r.field("budgets").asJsonArray.map { it.asJsonObject.toBudget() }
+        require(budgets.all { it.periodMonth == month && it.baseCurrency == currency })
+        require(budgets.map { it.budgetId }.distinct().size == budgets.size)
+        return com.elect3.mobdev.personalfinance.domain.reports.MonthlyReport(month, currency, income, expenses, count, expenseRows,
+            savingsContributed = r.money("savingsContributed"), budgets = budgets)
+    }
+    private fun JsonObject.categoryTotals(key: String) = field(key).asJsonArray.map { item ->
+        val c = item.asJsonObject
+        com.elect3.mobdev.personalfinance.domain.reports.ReportCategoryTotal(c.int("categoryId").also { require(it > 0) },
+            c.text("categoryName").also { require(it.isNotBlank()) }, c.money("total"), c.int("transactionCount").also { require(it > 0) })
+    }.also { rows -> require(rows.map { it.categoryId }.distinct().size == rows.size) }
+
+    /** C4 `GET api/reports/summaries`: stored snapshots, strictly newest month first. */
+    fun summaries(body: String, page: Int, size: Int): List<com.elect3.mobdev.personalfinance.domain.reports.MonthlySnapshot> {
+        val items = envelope(root(body), page, size).rows.map { item ->
+            val r = item.asJsonObject
+            val month = r.date("summaryMonth").also { require(it.dayOfMonth == 1) }
+            val income = r.money("totalIncome")
+            val expense = r.money("totalExpense")
+            val net = r.number("netCashFlow").also { require(it.compareTo(income.subtract(expense)) == 0) }
+            com.elect3.mobdev.personalfinance.domain.reports.MonthlySnapshot(java.time.YearMonth.from(month), income, expense, net,
+                r.money("savingsAllocated"), r.utc("generatedAtUtc"), r.text("baseCurrency").also { require(it.matches(Regex("[A-Z]{3}"))) })
+        }
+        require(items.zipWithNext().all { (a, b) -> a.month > b.month })
+        return items
+    }
+
+    /** `GET api/notifications`: owner-scoped, newest first; an unread-only page never contains a read item. */
+    fun notifications(body: String, unreadOnly: Boolean, page: Int, size: Int): NotificationPage {
+        val e = envelope(root(body), page, size)
+        val items = e.rows.map { item ->
+            val r = item.asJsonObject
+            AppNotification(r.int("notificationId").also { require(it > 0) }, NotificationKind.fromWire(r.text("type")),
+                r.text("message").also { require(it.isNotBlank()) }, r.bool("isRead"), r.utc("createdAtUtc"))
+        }
+        require(!unreadOnly || items.none { it.isRead })
+        require(items.map { it.notificationId }.distinct().size == items.size)
+        require(items.zipWithNext().all { (a, b) -> a.createdAtUtc >= b.createdAtUtc })
+        return NotificationPage(items, page, size, e.total)
     }
 }

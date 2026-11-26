@@ -20,8 +20,8 @@ sealed interface FinancialReportResult {
 }
 
 /**
- * Builds a [FinancialReport] from the API's only reporting-capable contract, `GET api/transactions`, using its
- * server-side `fromDate`/`toDate` filter over the selected month's trend window. Every page is read and checked
+ * Mock Demo only: builds a [FinancialReport] from a transaction repository's `fromDate`/`toDate` filter over the
+ * selected month's trend window. Signed-in accounts use [LoadServerReport] (the server's own monthly report). Every page is read and checked
  * (page numbers, stable `totalCount`, no duplicate or missing rows) before anything is totalled, so a partial
  * read is never shown as a month's figures. Unexpected repository exceptions and cancellation propagate.
  */

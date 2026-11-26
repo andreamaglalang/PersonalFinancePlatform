@@ -84,6 +84,8 @@ class MainActivity : ComponentActivity() {
                         authenticatedBudgets = finance.budgets,
                         authenticatedUpdates = finance.transactionUpdates,
                         authenticatedQuotes = finance.exchangeRateQuotes,
+                        authenticatedNotifications = finance.notifications,
+                        authenticatedReports = finance.reports,
                         authenticatedLive = com.elect3.mobdev.personalfinance.data.remote.LiveAccountPlanRepository(authConfiguration, repository),
                     ).create(modelClass)
                 }
@@ -183,6 +185,8 @@ class MainActivity : ComponentActivity() {
                         onAppearance = appearanceStore::set,
                         accountProfile = loginViewModel::accountProfile,
                         authenticatedBudgets = loginViewModel.authenticatedBudgets,
+                        authenticatedNotifications = loginViewModel.authenticatedNotifications,
+                        authenticatedReports = loginViewModel.authenticatedReports,
                         // Room (app-private, this device): signed-in offline-first recording and pending sync.
                         offlineLedger = offlineLedger,
                         offlineCategoryCache = categoryCache,

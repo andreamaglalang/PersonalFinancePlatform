@@ -22,6 +22,8 @@ class FinanceRepositories private constructor(
     val budgets: BudgetRepository,
     /** Authenticated PUT api/transactions/{id}. Online only; never handed to Mock Demo. */
     val transactionUpdates: TransactionUpdateRepository,
+    /** Authenticated api/notifications reads and C3 mark-read. Never handed to Mock Demo. */
+    val notifications: NotificationRepository,
 ) {
     constructor(configuration: ApiConfiguration, auth: InMemoryAuthRepository) : this(
         AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()),
@@ -31,6 +33,7 @@ class FinanceRepositories private constructor(
         { auth.accountId() },
         RemoteBudgetRepository(AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()), configuration, auth, PlatformFinanceWriteEngine()),
         RemoteTransactionUpdateRepository(configuration, auth, PlatformFinanceWriteEngine()),
+        RemoteNotificationRepository(AuthenticatedFinanceTransport(configuration, auth, PlatformFinanceHttpEngine()), configuration, auth, PlatformFinanceWriteEngine()),
     )
     /** Test hosts: fake engines only. The default POST engine refuses to send, so no socket can open. */
     internal constructor(
@@ -47,12 +50,15 @@ class FinanceRepositories private constructor(
         { auth.accountId() },
         RemoteBudgetRepository(AuthenticatedFinanceTransport(configuration, auth, engine), configuration, auth, writeEngine),
         RemoteTransactionUpdateRepository(configuration, auth, writeEngine),
+        RemoteNotificationRepository(AuthenticatedFinanceTransport(configuration, auth, engine), configuration, auth, writeEngine),
     )
     val categories: CategoryRepository = RemoteCategoryRepository(transport)
     val transactions: RemoteTransactionRepository = RemoteTransactionRepository(transport)
     /** Authenticated read-only GET api/exchange-rates/quote (no writes). Never handed to Mock Demo. */
     val exchangeRateQuotes: com.elect3.mobdev.personalfinance.domain.currency.ExchangeRateQuoteRepository = RemoteExchangeRateQuoteRepository(transport)
     val baseCurrency: () -> String? = currency
+    /** Authenticated read-only C6 monthly report and C4 stored summaries. Never handed to Mock Demo. */
+    val reports: com.elect3.mobdev.personalfinance.domain.reports.ReportRepository = RemoteReportRepository(transport)
 }
 internal fun queryString(vararg pairs: Pair<String, Any?>) = pairs.filter { it.second != null }.joinToString("&") {
     URLEncoder.encode(it.first, "UTF-8") + "=" + URLEncoder.encode(it.second.toString(), "UTF-8")
