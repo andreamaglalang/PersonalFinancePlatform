@@ -16,6 +16,10 @@ For AI-assisted work, read [shared AI development standards](AI_DEVELOPMENT.md)
 and the [Phase 0 environment and skill verification](PHASE0_AI_SETUP.md).
 These do not certify application functionality or authorize application changes.
 
+The [Phase 1 system audit](audits/OWLI_Phase1_Audit.md) records the current
+requirements/parity matrix, source-confirmed defects and verification gaps at
+`dev` `e15d859`. It is an assessment, not an implementation roadmap.
+
 Follow the [Git development workflow](DEVELOPMENT_WORKFLOW.md),
 [shared agent instructions](../AGENTS.md), and [Claude Code instructions](../CLAUDE.md).
 `dev` is the permanent development/integration branch, initialized from the

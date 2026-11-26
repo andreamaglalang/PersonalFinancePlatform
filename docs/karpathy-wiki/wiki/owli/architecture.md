@@ -1,7 +1,7 @@
 # OWLI architecture and worker decision
 
 > Sources: Project owner, 2026-11-26; OWLI application source, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md)
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md)
 > Updated: 2026-11-26
 
 ## Confirmed implementation
@@ -30,6 +30,26 @@ Keep detailed target responsibilities in [worker preparation](../../../worker-co
 rather than duplicating an implementation plan. HTTP current-user dependencies,
 the API's direct Development job endpoint, summary policy and portable SQL tests
 remain audit concerns. No architecture correction has been implemented.
+
+## Phase 1 audit findings (dev `e15d859`)
+
+These were confirmed from source; none is runtime-verified. `FinanceJobs` itself
+has no HTTP or `ICurrentUser` dependency. Other shared finance services require
+`ICurrentUser`, which only the API registers. A worker therefore needs a split
+between shared and HTTP-scoped registrations; otherwise host build validation is
+expected to fail (suspected, not executed). Client parity gaps:
+
+- MVC registration rejects the API's 201 Created success (it accepts only 200),
+  so it reports failure after creating the account (High; runtime pending).
+- Android lacks registration, transaction deletion and a notifications inbox.
+- Android release builds have no configured API endpoint (debug only).
+- Administrator provisioning works only with LocalDB and Windows Authentication.
+- Android computes reports locally, without savings or budget data.
+- Stored monthly summaries have no API reader.
+- MVC administrator budgets and reports are user-scoped.
+
+Details, severities and line references are in the
+[Phase 1 audit](../../../audits/OWLI_Phase1_Audit.md).
 
 ## See Also
 

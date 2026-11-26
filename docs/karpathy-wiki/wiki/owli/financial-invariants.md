@@ -1,7 +1,7 @@
 # OWLI financial invariants and storage boundaries
 
 > Sources: Project owner, 2026-11-26; OWLI application source, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md)
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md)
 > Updated: 2026-11-26
 
 ## Required invariants
@@ -21,6 +21,17 @@ key, and monthly summaries have a unique user/month key. Selected budget/summary
 jobs use the shared financial write scope. These mechanisms are implemented;
 actual SQL race, rollback and cross-client behavior still needs runtime evidence.
 Retry/concurrency attributes alone do not prove exactly-once financial effects.
+
+The Phase 1 audit (source-confirmed, not reproduced) found these integrity gaps:
+
+- Transaction PUT carries no client version token, so concurrent cross-client
+  edits are last-writer-wins.
+- A replayed transaction ClientId with a different payload returns the original
+  without a mismatch check.
+- Android keeps uncertain savings/bill write identities in memory only. After
+  process death, a retried contribution can receive a new ClientId. Bill
+  payments are also guarded by unique `(BillId, DueDate)`; contributions are not.
+- A budget referenced by an alert notification cannot be deleted.
 
 `PersonalFinanceDb` is the finance catalog; `OWLI_Hangfire` is separate operational
 storage on the same SQL instance. Preserve that guard and disabled automatic
