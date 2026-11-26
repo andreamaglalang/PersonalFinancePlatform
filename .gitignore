@@ -126,3 +126,7 @@ appsettings.*.Local.json
 **/test-output/
 **/login-fix-output/
 **/login-badge-test-output/
+
+# Private OWLI knowledge working notes and future-worker connection settings
+/.local/karpathy-wiki/
+/.local/worker/

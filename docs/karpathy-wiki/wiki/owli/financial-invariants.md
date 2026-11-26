@@ -1,0 +1,35 @@
+# OWLI financial invariants and storage boundaries
+
+> Sources: Project owner, 2026-11-26; OWLI application source, 2026-11-26
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md)
+> Updated: 2026-11-26
+
+## Required invariants
+
+Preserve monetary precision, historical FX, account isolation, authentication and
+authorization, atomic writes, concurrency, idempotency, contribution ledgers,
+bill-payment receipts, budget transitions, financial history and offline recovery.
+Never remove constraints or migration guards to make tests pass. Both clients
+must agree through the shared backend; expected scope is in
+[PRODUCT.md](../../../../PRODUCT.md).
+
+## Observed safeguards and their limits
+
+Source maps money to decimal precision and supplies transaction-owned user locks
+inside a serializable write scope. Notifications have a unique user/deduplication
+key, and monthly summaries have a unique user/month key. Selected budget/summary
+jobs use the shared financial write scope. These mechanisms are implemented;
+actual SQL race, rollback and cross-client behavior still needs runtime evidence.
+Retry/concurrency attributes alone do not prove exactly-once financial effects.
+
+`PersonalFinanceDb` is the finance catalog; `OWLI_Hangfire` is separate operational
+storage on the same SQL instance. Preserve that guard and disabled automatic
+schema preparation. No separate worker financial database is required.
+Use approved disposable targets for mutating tests; preserve the existing
+finance database and migration history. Private diagnostics and real financial
+records do not belong in this wiki's raw sources.
+
+## See Also
+
+- [Architecture and worker decision](architecture.md)
+- [Verification and decisions](verification-and-decisions.md)

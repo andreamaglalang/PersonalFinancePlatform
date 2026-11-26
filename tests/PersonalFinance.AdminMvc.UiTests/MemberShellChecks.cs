@@ -3,7 +3,7 @@ internal static class MemberShellChecks
     public static void Run()
     {
         var layout = File.ReadAllText(MvcProject.FindFile(
-            "Areas", "Member", "Views", "Shared", "_MemberLayout.cshtml"));
+            "Areas", "Member", "Views", "Shared", "_MemberLayout.cshtml")).ReplaceLineEndings("\n");
         foreach (var marker in new[]
         {
             "asp-area=\"\"", "asp-controller=\"Account\"", "asp-action=\"Logout\"", "method=\"post\"",
