@@ -122,7 +122,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
             throw new FinanceException(400, "A nonempty client-generated ClientId is required.");
         var clientId = request.ClientId.Value;
         var now = clock.GetUtcNow().UtcDateTime;
-        var today = DateOnly.FromDateTime(now);
+        var today = PhilippineToday(now);
         try
         {
             return await Writes.ExecuteAsync([FinanceValidation.UserLock(userId)], async token =>
@@ -198,7 +198,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
         UpdateGoalContributionRequest request, string? expectedVersion, CancellationToken ct) => SavingsGuard(async () =>
     {
         var userId = UserId;
-        var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        var today = PhilippineToday(clock.GetUtcNow().UtcDateTime);
         return await Writes.ExecuteAsync([FinanceValidation.UserLock(userId)], async token =>
         {
             var goal = await OwnedGoalAsync(goalId, userId, token);
@@ -411,9 +411,12 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
         FinanceValidation.ValidateMoney(request.Amount!.Value);
     }
 
+    // The Philippine calendar (UTC+8), the same rule as bill payments; both clients default to this date.
+    private static DateOnly PhilippineToday(DateTime utcNow) => DateOnly.FromDateTime(utcNow.AddHours(8));
+
     private static void ValidateContributionDate(DateOnly date, DateOnly today)
     {
-        if (date > today) throw new FinanceException(400, "Contribution dates cannot be later than today in UTC.");
+        if (date > today) throw new FinanceException(400, "Contribution dates cannot be later than today (Philippine time).");
     }
 
     private static FinanceException GoalNotFound() => new(404, "Savings goal not found.");
