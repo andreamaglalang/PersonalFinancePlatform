@@ -11,6 +11,16 @@ namespace PersonalFinance.Infrastructure.Finance.Contracts
         public DateOnly? Month { get; set; }
     }
 
+    public sealed class MonthlySummaryQuery
+    {
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 12;
+    }
+
+    /// <summary>C4: a stored, immutable monthly snapshot written by the worker (D1). EmailSentAtUtc is not exposed.</summary>
+    public sealed record MonthlySummaryResponse(DateOnly SummaryMonth, decimal TotalIncome, decimal TotalExpense,
+        decimal NetCashFlow, decimal SavingsAllocated, DateTime GeneratedAtUtc, string BaseCurrency);
+
     public sealed record ReportCategoryTotal(int CategoryId, string CategoryName, decimal Total, int TransactionCount);
 
     /// <summary>All amounts are base-currency (AmountBase) totals, so mixed source currencies are never added up.</summary>
@@ -27,6 +37,7 @@ namespace PersonalFinance.Infrastructure.Finance
     public interface IReportService
     {
         Task<FinanceResult<MonthlyReportResponse>> MonthlyAsync(MonthlyReportQuery query, CancellationToken ct);
+        Task<FinanceResult<PagedResponse<MonthlySummaryResponse>>> SummariesAsync(MonthlySummaryQuery query, CancellationToken ct);
     }
 
     /// <summary>Monthly totals for one user. Shared with the monthly-summary job so both report identical figures.</summary>
@@ -52,6 +63,23 @@ namespace PersonalFinance.Infrastructure.Finance
     public sealed class ReportService(ApplicationDbContext db, ICurrentUser current, IFinancialWriteScope writes, IBudgetUsageService budgets)
         : FinanceServiceBase(db, current, writes), IReportService
     {
+        public Task<FinanceResult<PagedResponse<MonthlySummaryResponse>>> SummariesAsync(MonthlySummaryQuery query, CancellationToken ct) => Guard(async () =>
+        {
+            var userId = UserId;
+            if (!FinanceValidation.ValidPage(query.Page, query.PageSize))
+                throw new FinanceException(400, "Invalid summary pagination.");
+            var currency = await FinanceData.BaseCurrencyAsync(Db, userId, false, ct)
+                ?? throw new FinanceException(401, "Account unavailable.");
+            var rows = Db.MonthlySummaries.AsNoTracking().Where(s => s.UserId == userId);
+            var total = await rows.LongCountAsync(ct);
+            var items = await rows.OrderByDescending(s => s.SummaryMonth)
+                .Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
+                .Select(s => new MonthlySummaryResponse(s.SummaryMonth, s.TotalIncome, s.TotalExpense, s.NetCashFlow,
+                    s.SavingsAllocated, s.GeneratedAtUtc, currency))
+                .ToListAsync(ct);
+            return FinanceResult<PagedResponse<MonthlySummaryResponse>>.Success(new(items, query.Page, query.PageSize, total));
+        });
+
         public Task<FinanceResult<MonthlyReportResponse>> MonthlyAsync(MonthlyReportQuery query, CancellationToken ct) => Guard(async () =>
         {
             var userId = UserId;

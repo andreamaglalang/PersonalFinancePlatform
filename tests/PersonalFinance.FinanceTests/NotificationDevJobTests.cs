@@ -70,12 +70,61 @@ internal static class NotificationDevJobTests
                 && page2.GetProperty("items")[0].GetProperty("message").GetString() == "a");
             Assert((await List(f, 1, "?pageSize=101")).Status == 400 && (await List(f, 1, "?page=0")).Status == 400);
         });
-        await check("Notifications API is read-only", async f =>
+        await check("Notifications cannot be created, replaced or deleted through the API", async f =>
         {
             await Seed(f, Note(1, "x"));
             foreach (var method in new[] { "POST", "PUT", "DELETE", "PATCH" })
                 Assert((await f.SendAsync(method, "/api/notifications", new { }, f.Issue(1))).Status is 404 or 405, method);
             await f.DbAsync(async db => Assert(await db.Notifications.CountAsync() == 1 && !(await db.Notifications.SingleAsync()).IsRead));
+        });
+        // ---------- C4 stored monthly summaries ----------
+        await check("C4 summaries are owner-scoped, newest first, empty-safe and expose no delivery metadata", async f =>
+        {
+            Assert((await f.SendAsync("GET", "/api/reports/summaries")).Status == 401);
+            var empty = Json(await f.SendAsync("GET", "/api/reports/summaries", bearer: f.Issue(1)));
+            Assert(empty.GetProperty("totalCount").GetInt64() == 0 && empty.GetProperty("items").GetArrayLength() == 0);
+            await f.DbAsync(async db =>
+            {
+                db.MonthlySummaries.AddRange(
+                    new() { UserId = 1, SummaryMonth = new DateOnly(2026, 9, 1), TotalIncome = 100m, TotalExpense = 40m, NetCashFlow = 60m, SavingsAllocated = 5m, EmailSentAtUtc = DateTime.UtcNow },
+                    new() { UserId = 1, SummaryMonth = new DateOnly(2026, 10, 1), TotalIncome = 200m, TotalExpense = 50.25m, NetCashFlow = 149.75m, SavingsAllocated = 0m },
+                    new() { UserId = 2, SummaryMonth = new DateOnly(2026, 10, 1), TotalIncome = 9m, TotalExpense = 9m, NetCashFlow = 0m, SavingsAllocated = 0m });
+                await db.SaveChangesAsync();
+            });
+            var r = await f.SendAsync("GET", "/api/reports/summaries", bearer: f.Issue(1));
+            Assert(r.Status == 200 && r.CacheControl == "no-store", r.Body);
+            var page = Json(r);
+            Assert(page.GetProperty("totalCount").GetInt64() == 2, "another user's summary visible");
+            var first = page.GetProperty("items")[0];
+            Assert(first.GetProperty("summaryMonth").GetString() == "2026-10-01" && first.GetProperty("totalExpense").GetDecimal() == 50.25m
+                && first.GetProperty("netCashFlow").GetDecimal() == 149.75m && first.GetProperty("baseCurrency").GetString() is { Length: 3 });
+            Assert(!r.Body.Contains("emailSent", StringComparison.OrdinalIgnoreCase) && !r.Body.Contains("userId", StringComparison.OrdinalIgnoreCase), r.Body);
+            Assert((await f.SendAsync("GET", "/api/reports/summaries?page=0", bearer: f.Issue(1))).Status == 400);
+            Assert(Json(await f.SendAsync("GET", "/api/reports/summaries?pageSize=1&page=2", bearer: f.Issue(1))).GetProperty("items")[0].GetProperty("summaryMonth").GetString() == "2026-09-01");
+        });
+        // ---------- C3 read state ----------
+        await check("C3 mark one notification read: owner only, idempotent, reflected in unreadOnly", async f =>
+        {
+            await Seed(f, Note(1, "a"), Note(1, "b", minutes: 1), Note(2, "theirs"));
+            var ids = new List<int>();
+            await f.DbAsync(async db => ids.AddRange(await db.Notifications.OrderBy(n => n.NotificationId).Select(n => n.NotificationId).ToListAsync()));
+            Assert((await f.SendAsync("POST", $"/api/notifications/{ids[0]}/read")).Status == 401, "anonymous");
+            Assert((await f.SendAsync("POST", $"/api/notifications/{ids[2]}/read", bearer: f.Issue(1))).Status == 404, "another user's notification");
+            Assert((await f.SendAsync("POST", $"/api/notifications/{ids[0]}/read", bearer: f.Issue(1), scheme: "http")).Status == 400, "plain HTTP");
+            for (var i = 0; i < 2; i++)
+                Assert((await f.SendAsync("POST", $"/api/notifications/{ids[0]}/read", bearer: f.Issue(1))).Status == 204, "idempotent mark read");
+            var unread = Json(await List(f, 1, "?unreadOnly=true"));
+            Assert(unread.GetProperty("totalCount").GetInt64() == 1 && unread.GetProperty("items")[0].GetProperty("message").GetString() == "b");
+            Assert(Json(await List(f, 2, "?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 1, "other user's read state changed");
+            Assert((await f.SendAsync("POST", "/api/notifications/999999/read", bearer: f.Issue(1))).Status == 404);
+        });
+        await check("C3 mark all read affects only the caller's notifications", async f =>
+        {
+            await Seed(f, Note(1, "a"), Note(1, "b"), Note(2, "theirs"));
+            Assert((await f.SendAsync("POST", "/api/notifications/read-all", bearer: f.Issue(1))).Status == 204);
+            Assert((await f.SendAsync("POST", "/api/notifications/read-all", bearer: f.Issue(1))).Status == 204, "idempotent");
+            Assert(Json(await List(f, 1, "?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 0);
+            Assert(Json(await List(f, 2, "?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 1);
         });
 
         // ---------- Development-only job trigger ----------
