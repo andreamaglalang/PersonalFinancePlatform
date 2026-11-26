@@ -7,6 +7,23 @@ public sealed record TransactionResponse(
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<BudgetResponse>? AffectedBudgets { get; init; }
+
+    /// <summary>Optimistic-concurrency token (C1): uppercase SHA-256 hex of the stored, editable state.</summary>
+    public string Version => TransactionVersion.Of(TransactionId, Type, CategoryId, Amount, CurrencyCode, FxRate, FxRateDate,
+        AmountBase, TransactionDate, Description);
+}
+
+public static class TransactionVersion
+{
+    public static string Of(int id, string type, int categoryId, decimal amount, string currency, decimal fxRate,
+        DateOnly fxRateDate, decimal amountBase, DateOnly date, string? description)
+    {
+        // Normalize scale so 90 and 90.00 hash identically (request vs SQL decimal(18,2)).
+        static string D(decimal value) => (value / 1.000000000000000000000000000000000m).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var state = string.Join('\u001F', id, type, categoryId, D(amount), currency, D(fxRate), fxRateDate.ToString("O"),
+            D(amountBase), date.ToString("O"), description ?? "\u0000");
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(state)));
+    }
 }
 
 public sealed record CategoryResponse(int CategoryId, string Name, string Type, string? ColorHEX, bool IsActive, bool IsSystemDefault);
