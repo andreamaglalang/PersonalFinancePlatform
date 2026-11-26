@@ -48,7 +48,7 @@ class RoomLedgerTest {
         assertTrue(ledger.pending(2).isEmpty())
         ledger.markRejected(1, request.clientId)
         assertTrue(ledger.unsynced(1).first().single().rejected)
-        ledger.discardRejected(1, request.clientId)
+        ledger.discardUnsynced(1, request.clientId)
         assertTrue(ledger.unsynced(1).first().isEmpty())
     }
 

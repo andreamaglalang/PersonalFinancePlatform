@@ -10,6 +10,14 @@ public sealed class CreateTransactionRequest : TransactionWriteRequest
     public Guid? ClientId { get; set; }
 }
 
+/// <summary>PUT body: the edit plus the <see cref="TransactionResponse.Version"/> the client last read (C1).</summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class UpdateTransactionRequest : TransactionWriteRequest
+{
+    // Validated in TransactionService after the 404 and bill-payment checks, so error precedence is unchanged.
+    public string? Version { get; set; }
+}
+
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public class TransactionWriteRequest
 {

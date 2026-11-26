@@ -29,12 +29,20 @@ internal static class MemberTransactionEditChecks
         using var handler = new UpdateHandler();
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.example.test/") };
         var client = new TransactionApiClient(http);
+        var seen = new string('A', 64);
         var result = await client.UpdateAsync(7, new UpdateTransactionRequest("Expense", 1, 12.50m, "PHP",
-            new DateOnly(2026, 11, 24), "Fixture edit"), "fixture-token", default);
+            new DateOnly(2026, 11, 24), "Fixture edit", seen), "fixture-token", default);
         Check(result is { Status: 200, Value.TransactionId: 7, Value.Amount: 12.50m }
             && handler.Method == HttpMethod.Put && handler.Path == "/api/transactions/7"
             && handler.Authorization == "Bearer fixture-token" && handler.Body!.Contains("12.50"),
             "The existing authenticated PUT transaction contract accepts and validates a successful update response.");
+        Check(handler.Body!.Contains("\"version\":\"" + seen + "\""), "C1: the PUT body carries the version the member read.");
+        Check(result.Value!.Version == new string('B', 64), "C1: the new version from the API response is surfaced.");
+        Check(form.Contains("<input type=\"hidden\" asp-for=\"Version\" />"), "C1: the edit form carries the version it was opened with.");
+        Check(controller.Contains("Version = result.Value.Version") && controller.Contains("model.Version!")
+            && !controller.Contains("original.Version"), "C1: POST sends the form's version, never the freshly re-read one.");
+        Check(controller.Contains("result.Status == 409") && controller.Contains("changed elsewhere"),
+            "C1: a stale edit (409) explains the cross-client conflict and asks for a reload.");
         Console.WriteLine("PASS: transaction edit route guards, FX behavior and API PUT transport.");
     }
 
@@ -56,7 +64,7 @@ internal static class MemberTransactionEditChecks
             Path = request.RequestUri!.PathAndQuery;
             Authorization = request.Headers.Authorization?.ToString();
             Body = await request.Content!.ReadAsStringAsync(ct);
-            const string response = """{"transactionId":7,"clientId":"6fab4ec4-9329-4e80-9c6a-57f32cf82b10","type":"Expense","categoryId":1,"categoryName":"Food","amount":12.50,"currencyCode":"PHP","fxRate":1,"fxRateDate":"2026-11-24","amountBase":12.50,"transactionDate":"2026-11-24","description":"Fixture edit","createdAtUtc":"2026-11-24T00:00:00Z","billId":null,"billDueDate":null}""";
+            const string response = """{"transactionId":7,"clientId":"6fab4ec4-9329-4e80-9c6a-57f32cf82b10","type":"Expense","categoryId":1,"categoryName":"Food","amount":12.50,"currencyCode":"PHP","fxRate":1,"fxRateDate":"2026-11-24","amountBase":12.50,"transactionDate":"2026-11-24","description":"Fixture edit","createdAtUtc":"2026-11-24T00:00:00Z","billId":null,"billDueDate":null,"version":"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"}""";
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(response, Encoding.UTF8, "application/json") };
         }
     }

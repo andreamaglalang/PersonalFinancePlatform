@@ -13,6 +13,9 @@ public sealed record TransactionResponse(
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<BudgetResponse>? AffectedBudgets { get; init; }
+
+    /// <summary>C1 optimistic-concurrency token returned by the API (uppercase 64-hex).</summary>
+    public string? Version { get; init; }
 }
 
 public sealed record TransactionPage(IReadOnlyList<TransactionResponse> Items, int Page, int PageSize, long TotalCount);
@@ -23,7 +26,7 @@ public sealed record CreateTransactionRequest(Guid? ClientId, string Type, int C
 
 // Mirrors Infrastructure TransactionWriteRequest.
 public sealed record UpdateTransactionRequest(string Type, int CategoryId, decimal Amount,
-    string CurrencyCode, DateOnly TransactionDate, string? Description);
+    string CurrencyCode, DateOnly TransactionDate, string? Description, string Version);
 
 // Mirrors Infrastructure TransactionDeletionResponse.
 public sealed record TransactionDeletionResponse(int TransactionId, bool Deleted,

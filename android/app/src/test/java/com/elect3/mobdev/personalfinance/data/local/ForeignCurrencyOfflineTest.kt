@@ -96,13 +96,19 @@ class ForeignCurrencyOfflineTest {
             day.minusDays(1), BigDecimal("581.23"), day, "Taxi", Instant.parse("2026-11-15T01:02:03Z"), null, null)
         ledger.recordSynced(account, listOf(original))
         val edited = original.copy(amount = BigDecimal("12.50"), amountBase = BigDecimal("726.54"))
-        val updates = LedgerRecordingUpdateRepository({ _, _ -> FinanceResult.Success(edited) }, ledger, { account })
-        assertTrue(updates.update(7, TransactionDraft(TransactionType.Expense, 2, BigDecimal("12.50"), "USD", day, "Taxi")) is FinanceResult.Success)
+        val updates = LedgerRecordingUpdateRepository(updatesReturning(FinanceResult.Success(edited)), ledger, { account })
+        assertTrue(updates.update(7, TransactionDraft(TransactionType.Expense, 2, BigDecimal("12.50"), "USD", day, "Taxi"), "A".repeat(64)) is FinanceResult.Success)
         val rows = ledger.history(account)
         assertEquals(1, rows.size); assertEquals(BigDecimal("12.50"), rows.single().draft.amount)
         // A failed edit never touches the local copy.
-        val failing = LedgerRecordingUpdateRepository({ _, _ -> FinanceResult.Failure(FinanceFailure.Unavailable) }, ledger, { account })
-        failing.update(7, TransactionDraft(TransactionType.Expense, 2, BigDecimal("99.00"), "USD", day, "Taxi"))
+        val failing = LedgerRecordingUpdateRepository(updatesReturning(FinanceResult.Failure(FinanceFailure.Unavailable)), ledger, { account })
+        failing.update(7, TransactionDraft(TransactionType.Expense, 2, BigDecimal("99.00"), "USD", day, "Taxi"), "A".repeat(64))
         assertEquals(BigDecimal("12.50"), ledger.history(account).single().draft.amount)
+    }
+
+    private fun updatesReturning(result: FinanceResult<Transaction>) = object : TransactionUpdateRepository {
+        override suspend fun update(transactionId: Int, draft: TransactionDraft, version: String) = result
+        override suspend fun get(transactionId: Int) = result
+        override suspend fun delete(transaction: Transaction): FinanceResult<Unit> = error("unused")
     }
 }
