@@ -20,6 +20,9 @@ import kotlinx.coroutines.launch
 
 /** Bounded, user-facing reasons an edit was not confirmed. */
 enum class EditFailure { Offline, Rejected, Conflict, NotFound, Unknown }
+/** Bounded reasons a delete was not confirmed; the transaction is kept in every case. */
+enum class DeleteFailure { BillPayment, Offline, Unknown }
+enum class DeleteOutcome { Deleted, AlreadyDeleted }
 
 data class EditTransactionUiState(
     val original: Transaction,
@@ -38,7 +41,18 @@ data class EditTransactionUiState(
     val saved: Transaction? = null,
     val failure: EditFailure? = null,
     val invalidated: Boolean = false,
+    /** The server answered 409: someone changed this transaction since it was read. Saving needs a reload first. */
+    val stale: Boolean = false,
+    val reloading: Boolean = false,
+    val deleting: Boolean = false,
+    val deleteFailure: DeleteFailure? = null,
+    val deleted: DeleteOutcome? = null,
 ) {
+    /** No usable version (stale, or a copy without one): the edit cannot be sent until the row is reloaded. */
+    val needsReload get() = !locked && (stale || original.version == null)
+    val busy get() = saving || reloading || deleting
+    val canReload get() = needsReload && !busy && saved == null && deleted == null && !invalidated
+    val canDelete get() = !locked && !busy && saved == null && deleted == null && !invalidated
     /** Bill-payment transactions cannot be edited (the API answers 409). */
     val locked get() = original.billId != null || original.billDueDate != null
     val amountValid get() = validAmount(amount)
@@ -56,8 +70,8 @@ data class EditTransactionUiState(
     val impact: RateImpact get() = rateImpact(original.currencyCode, original.transactionDate, original.amount, original.fxRate, original.fxRateDate,
         currency, date, parsedAmount, baseCurrency)
     val valid get() = !locked && amountValid && descriptionValid && dateValid && currencyOptions.any { it.code == currency } && !invalidated
-    val canSave get() = valid && changed && !saving && saved == null
-    val editable get() = !locked && !saving && saved == null && !invalidated
+    val canSave get() = valid && changed && !busy && saved == null && deleted == null && !needsReload
+    val editable get() = !locked && !busy && saved == null && deleted == null && !invalidated
 }
 
 /**
@@ -72,11 +86,15 @@ class EditTransactionViewModel(
     private val isSessionCurrent: () -> Boolean = { true },
     private val onSessionExpired: () -> Unit = {},
 ) : ViewModel() {
-    private val mutable = MutableStateFlow(EditTransactionUiState(original, baseCurrency?.takeIf { it.matches(Regex("[A-Z]{3}")) },
-        original.amount.setScale(2).toPlainString(), original.currencyCode, original.transactionDate, original.description.orEmpty(),
-        original.categoryId, original.categoryName))
+    private val mutable = MutableStateFlow(form(original, EditTransactionUiState(original, baseCurrency?.takeIf { it.matches(Regex("[A-Z]{3}")) },
+        "", "", original.transactionDate, "", 0, "")))
     val state = mutable.asStateFlow()
     private var save: Job? = null
+
+    /** The form showing [t] exactly as the server has it. */
+    private fun form(t: Transaction, s: EditTransactionUiState) = s.copy(original = t, amount = t.amount.setScale(2).toPlainString(),
+        currency = t.currencyCode, date = t.transactionDate, description = t.description.orEmpty(), categoryId = t.categoryId,
+        categoryName = t.categoryName, stale = false)
 
     init { loadCategories() }
 
@@ -117,12 +135,13 @@ class EditTransactionViewModel(
     fun submit() {
         val s = mutable.value
         if (!s.canSave || !isSessionCurrent()) { if (!isSessionCurrent()) invalidate(); return }
+        val version = s.original.version ?: return
         val draft = try {
             TransactionDraft(s.original.type, s.categoryId, checkNotNull(s.parsedAmount), s.currency, s.date, s.normalizedDescription)
         } catch (_: IllegalArgumentException) { mutable.value = s.copy(failure = EditFailure.Rejected); return }
         mutable.value = s.copy(saving = true, failure = null)
         save = viewModelScope.launch {
-            val result = try { updates.update(s.original.transactionId, draft) }
+            val result = try { updates.update(s.original.transactionId, draft, version) }
                 catch (cancelled: CancellationException) { mutable.value = mutable.value.copy(saving = false, failure = EditFailure.Unknown); throw cancelled }
                 catch (_: Exception) { FinanceResult.Failure(FinanceFailure.InvalidResponse) }
             if (!isSessionCurrent()) { invalidate(); return@launch }
@@ -130,14 +149,62 @@ class EditTransactionViewModel(
                 is FinanceResult.Success -> mutable.value.copy(saving = false, saved = result.value)
                 is FinanceResult.Failure -> {
                     if (result.reason == FinanceFailure.MissingSession || result.reason == FinanceFailure.SessionExpired) { expire(); return@launch }
-                    mutable.value.copy(saving = false, failure = failureOf(result.reason))
+                    // Never overwrite the other change: a 409 keeps the user's values but blocks saving until a reload.
+                    mutable.value.copy(saving = false, failure = failureOf(result.reason), stale = result.reason == FinanceFailure.Conflict)
                 }
             }
         }
     }
 
+    /** Re-reads the row (and its current version) from the server and shows it, replacing unsaved values. */
+    fun reload() {
+        val s = mutable.value
+        if (!isSessionCurrent()) { invalidate(); return }
+        if (!s.canReload) return
+        mutable.value = s.copy(reloading = true, failure = null, deleteFailure = null)
+        save = viewModelScope.launch {
+            val result = guarded({ it.copy(reloading = false, failure = EditFailure.Unknown) }) { updates.get(s.original.transactionId) }
+            if (!isSessionCurrent()) { invalidate(); return@launch }
+            mutable.value = when (result) {
+                is FinanceResult.Success -> form(result.value, mutable.value).copy(reloading = false)
+                is FinanceResult.Failure -> {
+                    if (result.reason == FinanceFailure.MissingSession || result.reason == FinanceFailure.SessionExpired) { expire(); return@launch }
+                    mutable.value.copy(reloading = false, failure = failureOf(result.reason))
+                }
+            }
+        }
+    }
+
+    /** Deletes the server transaction (after the screen's confirmation). A 404 means it is already gone. */
+    fun delete() {
+        val s = mutable.value
+        if (!isSessionCurrent()) { invalidate(); return }
+        if (!s.canDelete) return
+        mutable.value = s.copy(deleting = true, failure = null, deleteFailure = null)
+        save = viewModelScope.launch {
+            val result = guarded({ it.copy(deleting = false, deleteFailure = DeleteFailure.Unknown) }) { updates.delete(s.original) }
+            if (!isSessionCurrent()) { invalidate(); return@launch }
+            mutable.value = when (result) {
+                is FinanceResult.Success -> mutable.value.copy(deleting = false, deleted = DeleteOutcome.Deleted)
+                is FinanceResult.Failure -> when (result.reason) {
+                    FinanceFailure.MissingSession, FinanceFailure.SessionExpired -> { expire(); return@launch }
+                    FinanceFailure.NotFound -> mutable.value.copy(deleting = false, deleted = DeleteOutcome.AlreadyDeleted)
+                    FinanceFailure.Conflict -> mutable.value.copy(deleting = false, deleteFailure = DeleteFailure.BillPayment)
+                    FinanceFailure.Unavailable, FinanceFailure.SecureConnection -> mutable.value.copy(deleting = false, deleteFailure = DeleteFailure.Offline)
+                    // A timeout or unreadable answer may still have deleted it: say so rather than "nothing happened".
+                    else -> mutable.value.copy(deleting = false, deleteFailure = DeleteFailure.Unknown)
+                }
+            }
+        }
+    }
+
+    private suspend fun <T> guarded(onCancel: (EditTransactionUiState) -> EditTransactionUiState, call: suspend () -> FinanceResult<T>): FinanceResult<T> =
+        try { call() }
+        catch (cancelled: CancellationException) { mutable.value = onCancel(mutable.value); throw cancelled }
+        catch (_: Exception) { FinanceResult.Failure(FinanceFailure.InvalidResponse) }
+
     private fun expire() { invalidate(); onSessionExpired() }
-    fun invalidate() { save?.cancel(); mutable.value = mutable.value.copy(saving = false, invalidated = true) }
+    fun invalidate() { save?.cancel(); mutable.value = mutable.value.copy(saving = false, reloading = false, deleting = false, invalidated = true) }
     override fun onCleared() { save?.cancel(); super.onCleared() }
 
     companion object {

@@ -66,8 +66,11 @@ interface LocalTransactionDao {
     @Query("SELECT * FROM local_transactions WHERE accountId = :accountId AND clientId = :clientId")
     suspend fun find(accountId: Int, clientId: String): LocalTransactionEntity?
 
-    @Query("DELETE FROM local_transactions WHERE accountId = :accountId AND clientId = :clientId AND syncState = 'Rejected'")
-    suspend fun discardRejected(accountId: Int, clientId: String)
+    @Query("DELETE FROM local_transactions WHERE accountId = :accountId AND clientId = :clientId AND syncState != 'Synced'")
+    suspend fun discardUnsynced(accountId: Int, clientId: String)
+
+    @Query("DELETE FROM local_transactions WHERE accountId = :accountId AND clientId = :clientId")
+    suspend fun delete(accountId: Int, clientId: String)
 }
 
 /**

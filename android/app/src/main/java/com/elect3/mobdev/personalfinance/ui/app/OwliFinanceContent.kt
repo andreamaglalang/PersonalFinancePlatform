@@ -268,7 +268,7 @@ fun OwliFinanceContent(
                 baseCurrency = authenticatedCurrency() ?: "PHP",
                 offlineQueue = if (account != null && offlineLedger != null && accountId != null)
                     com.elect3.mobdev.personalfinance.ui.transactions.OfflineQueueUi(unsynced, syncing, runSync) { id ->
-                        syncScope.launch { offlineLedger.discardRejected(accountId, id) }
+                        syncScope.launch { offlineLedger.discardUnsynced(accountId, id) }
                     } else null,
                 onAddTransaction = openAdd?.let { add -> { add(null) } },
                 onEditTransaction = if (account != null && accountUpdates != null) ({ editing = it }) else null)

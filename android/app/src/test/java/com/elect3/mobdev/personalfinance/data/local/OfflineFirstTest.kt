@@ -88,7 +88,7 @@ class OfflineFirstTest {
         ledger.enqueue(42, q, "Food")
         assertEquals(SyncOutcome.Done(0, 1, 0), PendingTransactionSync(rejecting, ledger).sync(42) { true })
         assertTrue(ledger.unsynced(42).first().single().rejected)
-        ledger.discardRejected(42, q.clientId)
+        ledger.discardUnsynced(42, q.clientId)
         assertTrue(ledger.unsynced(42).first().isEmpty())
     }
 
