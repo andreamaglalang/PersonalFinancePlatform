@@ -34,7 +34,7 @@ public sealed class MemberDashboardViewModel
     public string PeriodOverviewLabel => IsAllTime ? "Your all-time overview" : "Your monthly overview";
     public DateOnly PreviousMonth => MonthDate.AddMonths(-1);
     public DateOnly NextMonth => MonthDate.AddMonths(1);
-    public bool IsCurrentMonth => MonthDate == new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+    public bool IsCurrentMonth => MonthDate == new DateOnly(BudgetPlanSummary.PhilippineToday.Year, BudgetPlanSummary.PhilippineToday.Month, 1);
     public string TopExpenseCategory => Expenses.Count > 0 ? Expenses[0].CategoryName : "—";
     public decimal TopExpenseShare => Expenses.Count > 0 ? Expenses[0].Share : 0;
     public string SignedNet => (NetCashFlow >= 0 ? "+" : "−")

@@ -21,6 +21,7 @@ RoleClaimsChecks.Run();
 OwliLandingChecks.Run();
 MemberAreaChecks.Run();
 RegistrationChecks.Run();
+ManilaDateChecks.Run();
 MemberShellChecks.Run();
 DesignTokenChecks.Run();
 MemberLayoutChecks.Run();

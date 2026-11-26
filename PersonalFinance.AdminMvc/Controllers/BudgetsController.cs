@@ -38,7 +38,7 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
 
     [HttpGet]
     public Task<IActionResult> Create(CancellationToken ct) =>
-        CreateViewAsync(new() { Month = DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture) }, ct);
+        CreateViewAsync(new() { Month = BudgetPlanSummary.PhilippineToday.ToString("yyyy-MM", CultureInfo.InvariantCulture) }, ct);
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([FromForm] BudgetCreateViewModel model, CancellationToken ct)

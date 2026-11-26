@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Home";
     Layout = "_MemberLayout";
-    var hour = DateTime.Now.Hour;
+    var hour = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8)).Hour; // greeting follows Asia/Manila, not the server clock
     var greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     var invariant = System.Globalization.CultureInfo.InvariantCulture;
     var currencyPrefix = string.Equals(Model.BaseCurrency, "PHP", StringComparison.OrdinalIgnoreCase)
