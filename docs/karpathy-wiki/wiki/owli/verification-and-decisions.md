@@ -1,0 +1,45 @@
+# OWLI verification limits and architectural decisions
+
+> Sources: Project owner, 2026-11-26; guarded Phase 0 SQL preparation, 2026-11-26
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md)
+> Updated: 2026-11-26
+
+## Verified preparation
+
+Dedicated `OWLI_Hangfire` storage was absent and then created on the verified
+existing local SQL target. The official Hangfire.SqlServer 1.8.25 installer
+prepared schema version 9 and 11 expected tables. Observed target server, job,
+recurring-definition and queue counts were zero. Authenticated connections to
+both intended catalogs succeeded. Private future-worker settings are ignored,
+owner-restricted and disabled; no existing app configuration changed.
+
+Finance schema/constraint, migration-history and row-count fingerprints matched
+before/after; existing container identity/start time/volume mapping matched too.
+This is bounded preservation evidence, not a full financial-row checksum or a
+claim about unrelated activity. No worker/server/job execution was initiated.
+The complete worker and application runtime remain NOT TESTED by preparation.
+
+Both coding agents discovered and loaded the LLM Wiki through native catalogs,
+used the single configured index, and recognized ownership and activation limits.
+The other four engineering/design skills remained visible. This is instruction
+verification, not execution of all optional skill engines or application behavior.
+
+## Decisions and remaining acceptance work
+
+The independent console requirement and initial selection of `FinanceJobs` are
+approved. No job activation or application correction is approved in Phase 0.
+Keep shared requirements/contracts as authoritative references, not duplicate
+wiki specifications. Clarify summary immutability/recomputation, direct Development
+job execution, persisted summary consumption, operational cutover and portable
+approved disposable tests during the audit. Require fresh SQL/retry/lifecycle,
+API, rendered-client and bidirectional consistency evidence for acceptance.
+
+Use Confirmed/Suspected/Proposed/Implemented/Fixed/Verified/Blocked/Not tested
+labels accurately. Preserve old evidence as historical when new source supersedes
+it. Runtime flags, production readiness and current client parity are not inferred
+from source, schema readiness or historical passing tests.
+
+## See Also
+
+- [Architecture and worker decision](architecture.md)
+- [Financial invariants](financial-invariants.md)

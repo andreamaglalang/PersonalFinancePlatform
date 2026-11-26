@@ -4,15 +4,18 @@ This is the single project-specific source for Claude Code, Codex, and ChatGPT
 coordination. [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md), and the
 [Git workflow](DEVELOPMENT_WORKFLOW.md) remain in effect. The goal is to
 stabilize and complete OWLI, preserving working implementations rather than
-rebuilding the system. Phase 0 sets up this environment only; audit, final
-roadmap, fixes, migrations, redesign, and deployment are subsequent work.
+rebuilding the system. Phase 0 prepares this environment, shared knowledge and dedicated local
+Hangfire storage only. Its explicitly approved storage exception excludes
+financial migrations/data changes and all background processing. Audit, final
+roadmap, fixes, redesign and deployment are subsequent work.
 
 ## Priority and engineering discipline
 
 Subject to mandatory platform and security policies, resolve guidance in this
-order: explicit user/academic requirements; security, financial integrity and
-correctness; verified architecture/business rules; shared OWLI instructions;
-task-relevant skill guidance; general agent preferences.
+order: explicit approved user/academic requirements; security, financial integrity
+and correctness; approved product requirements/architectural constraints;
+verified current architecture/behavior; shared OWLI instructions; task-relevant
+skill guidance; general agent preferences.
 
 State assumptions and observable success criteria, trace the affected flow,
 reuse existing code/platform capabilities, and make the smallest complete
@@ -43,7 +46,7 @@ new evidence warrants it. Keep essential financial/auth/database/sync tests.
 | Testing/verification | Superpowers verification before completion | Fresh command/results plus runtime limits; no inference from build alone |
 | Code review | Ponytail review or Superpowers review | Connected code, correctness/security/regressions, findings with evidence |
 
-Karpathy and Ponytail overlap: use one concise engineering discipline, rather
+Karpathy coding guidelines and Ponytail overlap: use one concise engineering discipline, rather
 than executing redundant full checklists. Superpowers supplies structure for
 risk/complexity. Impeccable applies only to interface work; OWLI screens are
 financial task interfaces, not a request for a decorative redesign. Its web
@@ -77,13 +80,17 @@ is evidence to investigate, not a license to infer completeness.
 - **Academic Hangfire requirement (user supplied): run the background job server
   in a separate console worker, rather than inside the Web API.** Upcoming bill
   reminders, monthly financial summaries and budget threshold alerts are required.
-  Current handoff describes in-API hosting; preserve that evidence as historical
-  implementation, not acceptance of the required architecture. Investigate the
-  mismatch during the audit. Do not refactor, activate jobs or change storage in
-  Phase 0, and never run both retained job families together.
-- Schema changes, migrations, provisioning, live financial writes, credential or
-  certificate regeneration, runtime configuration and deployment remain outside
-  Phase 0. Do not access the existing SQL container/database merely to test skills.
+  Source assessment confirmed the current in-API registration chain; the console
+  target is approved. The audit must address remaining correctness/cutover
+  questions. Phase 0 permits only the approved dedicated-storage preparation
+  exception below; no application refactor or job activation. Never schedule
+  both selected `FinanceJobs` and alternative `RunAsync` job families. During
+  cutover, also avoid overlapping old API processors and the future worker.
+- Finance schema changes/migrations, financial writes, certificate/credential
+  regeneration, existing app runtime changes and deployment remain outside
+  Phase 0. The finalization authorization permits only guarded dedicated
+  `OWLI_Hangfire` catalog/schema preparation and disabled private worker settings;
+  it does not permit processors, recurring registration or financial jobs.
 
 ## Collaboration and evidence
 
@@ -135,3 +142,20 @@ command hooks. Impeccable may download a checksum-verified engine on first use;
 review that separately when an interface task actually needs it. Ponytail's
 optional board/webhook is not required for engineering discipline. Existing
 unrelated global settings are preserved, not silently trusted or rewritten.
+
+## Approved knowledge cycle and ownership
+
+Karpathy LLM Wiki retrieves/maintains knowledge; it is not the coding-guidelines
+skill. Use [the single index](karpathy-wiki/wiki/index.md) and affected source,
+not a whole-wiki preload. After significant verified work, capture sanitized
+immutable evidence, update only affected articles, preserve outdated/disputed
+claims visibly, update the index/log, and run the read-only evidence checker
+against `docs/karpathy-wiki/`. See [wiki conventions](karpathy-wiki/README.md).
+Keep one plan/acceptance record for a substantial task; create `docs/superpowers/`
+artifacts only when an actual specification or execution plan needs them.
+
+Default backend ownership is Codex; default MVC/Android ownership is Claude.
+Both can cross-review and take reassigned tasks. Coordinate and verify API
+contracts before dependent client changes; never invent backend behavior.
+[PRODUCT.md](../PRODUCT.md) defines approved scope and unresolved decisions;
+[backend-integration.md](backend-integration.md) records current source contracts.

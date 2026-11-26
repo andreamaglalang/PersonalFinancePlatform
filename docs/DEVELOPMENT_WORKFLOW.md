@@ -19,7 +19,11 @@ features. Establishing `dev` from it makes no claim that those issues are fixed
 or that the baseline is release-ready. Old integration branches and `main` must
 not be used as the initial `dev` source.
 
-## Initial setup (once)
+## Historical initialization — completed
+
+The following records the completed initial branch setup. It is not a workflow
+to rerun or permission to write to preserved handoff. Current tasks, including
+`chore/*` documentation/setup branches, start from synchronized `dev`.
 
 1. Finish, review, commit, and publish approved documentation and project
    instructions on `handoff/owli-20261125`. Verify the remote commit and files.
@@ -88,3 +92,13 @@ setup task must not change application code, schemas, or runtime configuration.
 Claude Code to the shared rules. Future repository skills and development plans
 must use the same branch strategy. Do not change global agent settings to
 implement repository policy.
+
+## Shared knowledge and contract handoff
+
+Before a task, read [approved requirements](../PRODUCT.md), the relevant
+[wiki index entry](karpathy-wiki/wiki/index.md), and affected source/contracts.
+After significant verified changes, update only affected knowledge with commit
+and test evidence before reviewed integration into `dev`. Keep requirements,
+observed implementation, proposed changes and runtime verification distinct.
+Follow [AI development standards](AI_DEVELOPMENT.md) for flexible backend/frontend
+ownership and independent financial/auth/schema/synchronization review.

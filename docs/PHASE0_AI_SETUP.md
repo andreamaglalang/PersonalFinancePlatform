@@ -1,5 +1,11 @@
 # Phase 0 AI environment setup and verification
 
+The original record below describes initial setup commit
+`5b5b2756cb45ea347a8bcc1db6773468c94090ab`. Its no-database-operation statements
+apply to that earlier scope. The approved finalization section at the end
+records the later dedicated-storage exception and current evidence. Historical
+results are preserved rather than silently rewritten.
+
 Reviewed 26 November 2026. Scope: agent environment, skills and shared workflow
 only. Branch: `chore/ai-agent-skills-setup`, created from synchronized `dev` at
 `6687eb95ab3741a747da36d334aa3420c4ed7c23`. Nothing is approved for integration
@@ -192,3 +198,88 @@ The environment is ready to support a comprehensive system audit after this
 setup proposal is reviewed and explicitly approved for integration. No audit,
 application implementation, runtime tests, SQL operations or final roadmap were
 started. Keep Phase 0 changes isolated until that approval.
+
+## Approved Phase 0 finalization — 26 November 2026
+
+The owner approved the integrated assessment and authorized dedicated local
+Hangfire catalog/schema preparation, disabled private future-worker settings,
+shared knowledge and instruction completion. No finance database writes or
+application changes were authorized or performed.
+
+| Skill | Current version/source | Location and final evidence |
+| --- | --- | --- |
+| Karpathy LLM Wiki | [Astro-Han/karpathy-llm-wiki](https://github.com/Astro-Han/karpathy-llm-wiki); installed SKILL blob `82cb4e28b9ac8a7779d866091697e317bdd3d146` matches upstream; no semantic version declared | Existing Codex installation retained through `~/.agents/skills/karpathy-llm-wiki`; Claude project `.claude/skills/karpathy-llm-wiki` links the same existing source. Native discovery and body loading PASS in both fresh CLI tests. Project root adaptation is explicit, not an upstream code patch |
+| Karpathy Guidelines | 1.0.0; `multica-ai/andrej-karpathy-skills` | Existing Claude plugin and Codex repo-local instruction skill retained; both catalogs still expose it; earlier body-load evidence retained |
+| Superpowers | 7.0.2; `obra/superpowers` | Existing Claude project/Codex maintainer plugins unchanged, visible in both catalogs; no reinstallation |
+| Ponytail | 5.3.3; `DietrichGebert/ponytail` | Existing native user plugins unchanged and visible; no new hooks/telemetry enabled |
+| Impeccable | 4.8.0; `pbakaus/impeccable` | Existing standalone native skills retained/visible; local duplicate-plugin disabling preserved |
+
+The wiki skill is distinct from coding guidelines. Its supported Agent Skills
+format loads in both tools; the local-only Claude link avoids copying source.
+New machines/worktrees must register the skill if absent and verify discovery;
+local links/downloads are not committed. Claude first-party and Codex ChatGPT
+accounts completed the read-only tests without further authentication. Installed
+CLI versions remain Claude Code 2.1.332 and Codex 0.163.0. No agent upgrade or
+unrelated global settings replacement was performed.
+
+[PRODUCT.md](../PRODUCT.md) now centralizes approved requirements;
+[backend-integration.md](backend-integration.md) records current source contracts;
+[AI_DEVELOPMENT.md](AI_DEVELOPMENT.md) and AGENTS retain the shared methodology.
+CLAUDE is reduced to import/shared references and necessary Claude-specific rules.
+Default Codex backend and Claude frontend ownership is flexible; both review,
+coordinate contracts, test and maintain knowledge. No competing plan or empty
+`docs/superpowers/` directory was created.
+
+The shared root is `docs/karpathy-wiki/`, with `raw/`, `wiki/index.md`,
+`wiki/log.md` and three focused articles. Both agents actually navigated that
+single index to the architecture article, rather than loading the whole wiki.
+The installed evidence checker passed with zero fidelity suspects, evidence
+errors and unreferenced raw files, using existing Python 3.10.22. The checker's
+Python 3.10+ requirement was recorded; system Python was not upgraded.
+Private notes and worker configuration have exact tracked ignore protection.
+
+[Worker/storage preparation](worker-config/README.md) records the approved
+independent console architecture, selected family/IDs/schedules, HTTP current-user
+and Development endpoint concerns, stored-summary questions, job compatibility,
+portable SQL tests and future runtime acceptance. The worker remains unimplemented.
+
+Dedicated local storage was absent and created on the verified existing approved
+container/volume/SQL instance. The official cached 1.8.25 installer matched release
+source; guarded explicit provisioning completed at schema version 9 with 11
+expected tables. Target server/job/recurring/queue counts were zero. Both catalogs
+authenticated through the mapped local endpoint. Before/after finance schema,
+constraint, migration-history and row-count fingerprints matched; container
+identity/start time/volume mapping matched. This does not prove every financial
+row's content or exclude unrelated concurrent activity.
+
+The actual `.local/worker/appsettings.Worker.Local.json` is ignored, owner-only
+(file 600, directory 700), reuses existing local SQL credentials and keeps
+`Hangfire.Enabled=false`. A single [tracked template](worker-config/appsettings.Worker.template.json)
+contains placeholders only. No worker, processor, recurring registration or
+financial job was started. Existing API/MVC/Android runtime settings and security
+ignore rules were preserved. No finance migration, container restart, credential
+or certificate regeneration, deployment or production access occurred.
+
+Runtime worker lifecycle, job execution/retries, SQL financial race behavior,
+rendered clients and cross-platform acceptance remain NOT TESTED. Schema
+preparation and instruction discovery are not complete application verification.
+The environment/storage preparation is ready for the authorized audit after
+final PR review/approval; application completion is not measured by this status.
+
+Publish only reviewed instructions/docs/templates on existing branch/PR #1.
+Recheck CLI/plugin permission distinction and remote content before reporting
+publication. Never replace accounts or generate divergent duplicate commits.
+Keep `dev`, `main` and preserved handoff unchanged pending final review/approval.
+
+Independent read-only Claude review sampled source contracts and storage/worker
+claims. It found two low-severity instruction defects (stale handoff setup
+wording and an overbroad storage prohibition) plus an HTTP-400 documentation
+clarification; all were corrected against approved scope and actual middleware.
+The review did not access private settings or rerun SQL, and does not constitute
+runtime acceptance or permission to merge.
+
+A targeted independent follow-up confirmed the three review corrections and
+reported no concrete blockers. Its remaining non-blocking wording suggestions
+were checked against source: job-family versus processor-overlap prohibitions
+are now explicit, and the non-Development `/api/dev` 404 precedence is recorded.
+No application change or runtime retest was needed for these clarifications.
