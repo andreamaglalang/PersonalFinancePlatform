@@ -133,6 +133,26 @@ class CrossClientRuntimeTest {
         assertTrue("record cleared after a definitive answer", live(auth).pendingRequest(path) == null)
     }
 
+    /** R8: Android reads the worker-created inbox and marks one notification read (MVC must then show it read). */
+    @Test fun markOneNotificationRead(): Unit = runBlocking {
+        step("notifications")
+        val (_, finance) = signedIn()
+        val unread = (finance.notifications.list(true, 1, 20) as FinanceResult.Success).value
+        assertTrue("worker notifications visible on Android", unread.items.isNotEmpty())
+        val target = unread.items.first()
+        assertTrue(finance.notifications.markRead(target.notificationId) is FinanceResult.Success)
+        android.util.Log.i("OWLI-XC", "markedRead=${target.notificationId};unreadBefore=${unread.totalCount}")
+    }
+
+    /** R8/M2: Android's report for a month comes from the server (logged for comparison with MVC). */
+    @Test fun serverReportTotals(): Unit = runBlocking {
+        step("report")
+        val (_, finance) = signedIn()
+        val report = (finance.reports.monthly(java.time.YearMonth.parse(arg("owliMonth"))) as FinanceResult.Success).value
+        android.util.Log.i("OWLI-XC", "report=income:${report.totalIncome.toPlainString()};expenses:${report.totalExpenses.toPlainString()};" +
+            "net:${report.netBalance.toPlainString()};savings:${report.savingsContributed?.toPlainString()};budgets:${report.budgets.size};count:${report.transactionCount}")
+    }
+
     private fun draftOf(categoryId: Int, amount: String, date: LocalDate) =
         TransactionDraft(TransactionType.Expense, categoryId, BigDecimal(amount), "PHP", date, "edited-on-android")
 }
