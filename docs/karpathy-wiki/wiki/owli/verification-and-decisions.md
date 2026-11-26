@@ -1,7 +1,7 @@
 # OWLI verification limits and architectural decisions
 
 > Sources: Project owner, 2026-11-26; guarded Phase 0 SQL preparation, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md); [Hosted CI acceptance](../../raw/owli/2026-11-26-ci-hosted-acceptance.md)
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md); [Hosted CI acceptance](../../raw/owli/2026-11-26-ci-hosted-acceptance.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md)
 > Updated: 2026-11-26
 
 ## Verified preparation
@@ -43,6 +43,20 @@ superseding the earlier failed/pending evidence. Final acceptance still requires
 both jobs at the latest PR head, including the documentation-only evidence
 successor; PR #1 records the final commit/run. No merge is authorized.
 
+## Phase 1 audit verification
+
+At `dev` `e15d859`:
+
+- The solution build and all seven offline .NET harnesses passed.
+- Android `testDebugUnitTest` ran 596 tests with 0 failures.
+- `HangfireTests` was BLOCKED; it requires its disposable LocalDB target.
+- SQL Server, live API, rendered MVC, device, cross-client and worker behavior
+  remain NOT TESTED. No requirement is runtime-verified.
+
+The audit estimates source implementation at about 70% and runtime-verified
+functionality at about 0–10%. See the
+[Phase 1 audit](../../../audits/OWLI_Phase1_Audit.md).
+
 ## Decisions and remaining acceptance work
 
 The independent console requirement and initial selection of `FinanceJobs` are
@@ -50,7 +64,10 @@ approved. No job activation or application correction is approved in Phase 0.
 Keep shared requirements/contracts as authoritative references, not duplicate
 wiki specifications. Clarify summary immutability/recomputation, direct Development
 job execution, persisted summary consumption, operational cutover and portable
-approved disposable tests during the audit. Require fresh SQL/retry/lifecycle,
+approved disposable tests during the audit. The Phase 1 audit adds four
+decisions: overdue-bill reminders, budget deletion after alerts, administrator
+cross-user scope, and notification mark-read/summary read contracts. These are
+not approved scope. Require fresh SQL/retry/lifecycle,
 API, rendered-client and bidirectional consistency evidence for acceptance.
 
 Use Confirmed/Suspected/Proposed/Implemented/Fixed/Verified/Blocked/Not tested

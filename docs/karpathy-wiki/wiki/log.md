@@ -31,3 +31,12 @@
 - Updated: OWLI verification limits and architectural decisions
 - Run 45817931183: Windows .NET and Ubuntu Android both PASS at fix commit 39533657a0c930b93bfb2f38bab18dbf59280b4c.
 - Final documentation successor remains subject to the same latest-head CI gate and owner approval.
+
+## [2026-11-26] ingest | Phase 1 system audit
+- Disposition: Update
+- Raw: raw/owli/2026-11-26-phase1-audit.md
+- Updated: OWLI architecture and worker decision
+- Updated: OWLI financial invariants and storage boundaries
+- Updated: OWLI verification limits and architectural decisions
+- Baseline dev e15d859; offline .NET and Android debug unit suites PASS; SQL/API/device/cross-client/worker NOT TESTED.
+- Full record: docs/audits/OWLI_Phase1_Audit.md. No application change or roadmap.
