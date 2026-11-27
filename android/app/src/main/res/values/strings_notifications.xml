@@ -9,7 +9,7 @@
     <string name="notifications_filter_unread">Unread</string>
     <string name="notifications_mark_all">Mark all as read</string>
     <string name="notifications_mark_read">Mark read</string>
-    <string name="notifications_mark_read_description">Mark %1$s as read</string>
+    <string name="notifications_mark_read_description">Mark %1$s as read: %2$s</string>
     <string name="notifications_load_more">Load more</string>
     <string name="notifications_loading">Loading notifications…</string>
     <string name="notifications_type_bill">Bill reminder</string>
@@ -37,4 +37,5 @@
     <string name="notifications_dismiss">Dismiss</string>
     <string name="notifications_retry">Try again</string>
     <string name="notifications_session">Your session ended. Sign in again to see notifications.</string>
+    <string name="notifications_open_count">Notifications, %1$d unread</string>
 </resources>

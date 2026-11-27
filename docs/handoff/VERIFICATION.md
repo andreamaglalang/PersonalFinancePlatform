@@ -30,3 +30,12 @@ No SQL connection, migration execution, original database inspection, database e
 `tools/Test-Handoff.ps1` reproduces the seven default offline .NET suites. Additional policy checks use the exact offline flags shown above. GitHub Actions configuration is included for .NET and Android offline verification; remote CI results are independent of these local results.
 
 Before publication the candidate source was reviewed for private keys, token/JWT patterns, assigned long secrets, machine paths/identifiers and prohibited configuration/database/build files. The original Android debug certificate was removed and replaced by debug-localhost user-certificate trust. No original credentials, signing keys, Cloudflare tokens, local connection overlays, personal financial records, database backups or SDK paths were intentionally included. Synthetic credentials/financial fixtures in tests and demo implementations are not real accounts or records. The new branch does not rewrite existing public Git history.
+
+
+## Notification continuation verification, 28 November 2026
+
+The historical baseline above is retained. Current financial-notification enhancement
+checks and exact manual steps are in the [E2E continuation](../audits/OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026)
+and [notification testing guide](../NOTIFICATION_TESTING.md). Follow those dated results
+for this feature; the original handoff's “not executed” statements describe that earlier
+snapshot. No operational migration or production activation was performed.

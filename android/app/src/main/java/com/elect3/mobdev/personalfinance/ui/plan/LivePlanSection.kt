@@ -117,7 +117,7 @@ private fun SelectableOption(label: String, selected: Boolean, enabled: Boolean,
 }
 
 @Composable
-fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories: CategoryRepository?, onPaid: () -> Unit = {}) {
+fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories: CategoryRepository?, onPaid: () -> Unit = {}, onChanged: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val path = if (bills) "recurring-bills" else "savings-goals"
     val typography = LocalOwliTypography.current
@@ -212,8 +212,8 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
         }
     }
     if (create || editing != null) LivePlanEditor(live, bills, editing, categories,
-        onClose = { create = false; editing = null }, onSaved = { create = false; editing = null; scope.launch { reload() } })
-    contribution?.let { goal -> ContributionDialog(live, goal, onClose = { contribution = null; scope.launch { reload() } }) }
+        onClose = { create = false; editing = null }, onSaved = { onChanged(); create = false; editing = null; scope.launch { reload() } })
+    contribution?.let { goal -> ContributionDialog(live, goal, onChanged = onChanged, onClose = { contribution = null; scope.launch { reload() } }) }
     action?.let { (record, operation) ->
         val res = LocalContext.current.resources
         val paymentPath = billPaymentPath(record.id)
@@ -247,7 +247,7 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
                         message = if (operation == PlanAction.Pay) {
                             val receipt = runCatching { parsePaymentReceipt(result.value) }.getOrNull()
                             if (receipt != null && receipt.matches(body!!, record.id)) {
-                                onPaid(); res.getString(R.string.bill_payment_recorded, money(receipt.amount, receipt.currencyCode))
+                                onChanged(); onPaid(); res.getString(R.string.bill_payment_recorded, money(receipt.amount, receipt.currencyCode))
                             } else res.getString(R.string.bill_payment_unverified)
                         } else res.getString(R.string.plan_saved)
                         reload()
@@ -347,7 +347,7 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
 }
 
 @Composable
-private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoal, onClose: () -> Unit) {
+private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoal, onChanged: () -> Unit, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
     val res = LocalContext.current.resources
     val caption = LocalOwliTypography.current.caption
@@ -406,7 +406,7 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
                 busy = true
                 val item = selected!!
                 when(val result = live.save("$path/${item.id}", null, delete = true, version = item.version)) {
-                    is FinanceResult.Success -> { selected = null; amount = ""; load() }
+                    is FinanceResult.Success -> { onChanged(); selected = null; amount = ""; load() }
                     is FinanceResult.Failure -> error = planFailureText(res, result, true)
                 }
                 busy = false
@@ -426,6 +426,7 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
                         val receipt = if (item == null) runCatching { parseContributionReceipt(result.value) }.getOrNull() else null
                         val valid = item != null || (receipt != null && receipt.matches(body, goal.id))
                         error = res.getString(if (!valid) R.string.contribution_unverified else if (receipt?.deleted == true) R.string.contribution_previously_deleted else R.string.contribution_saved)
+                        if (valid) onChanged()
                         request = null; selected = null; amount = ""; note = ""; load()
                     }
                     is FinanceResult.Failure -> { error = planFailureText(res, result, true); if (result.reason in definitiveRejections) request = null }

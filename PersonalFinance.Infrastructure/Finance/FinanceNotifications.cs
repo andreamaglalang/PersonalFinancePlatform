@@ -27,17 +27,17 @@ public static class FinanceNotifications
         target <= 0 ? 0 : saved >= target ? 100 : saved * 4 >= target * 3 ? 75 : saved * 2 >= target ? 50 : saved * 4 >= target ? 25 : 0;
 
     /// <summary>
-    /// After a committed-with-this-save goal change: notify the highest milestone reached, but only when it is higher
+    /// After a committed-with-this-save upward crossing: notify the highest milestone reached, but only when it is higher
     /// than every milestone already notified for this goal. One contribution crossing several milestones therefore
     /// gives one notification (completion wins), and falling back and re-crossing (edits, deletions, a raised target)
     /// never repeats one. Completion is notified once per goal, even if the goal is later reopened and completed again.
     /// </summary>
-    public static async Task AddGoalProgressAsync(ApplicationDbContext db, SavingsGoal goal, decimal saved, string currency,
+    public static async Task AddGoalProgressAsync(ApplicationDbContext db, SavingsGoal goal, decimal saved, int previousMilestone, string currency,
         DateTime now, CancellationToken ct)
     {
         if (goal.Status == SavingsGoalStatus.Cancelled) return;
         var reached = Milestone(saved, goal.TargetAmount);
-        if (reached == 0) return;
+        if (reached <= previousMilestone) return;
         var prefix = FormattableString.Invariant($"goal:{goal.GoalId}:");
         var keys = await db.Notifications.AsNoTracking()
             .Where(n => n.UserId == goal.UserId && n.DeduplicationKey.StartsWith(prefix)).Select(n => n.DeduplicationKey).ToListAsync(ct);

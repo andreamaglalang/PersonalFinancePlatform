@@ -56,7 +56,13 @@ Bill currencies must be offered by the rate provider. See
 
 Event notifications (goal milestones and completion, payment confirmations, password changes) commit in the same
 transaction as their financial or authentication change; scheduled ones stay in the independent worker. Deduplication
-relies on the unique (UserId, DeduplicationKey) index. Policies: docs/NOTIFICATIONS.md.
+relies on the unique (UserId, DeduplicationKey) index. Goal notifications require an upward crossing
+against authoritative before/after totals and target, then highest-ever-notified suppression;
+legacy metadata/noncrossing edits are silent. Overdue insertion rechecks the unpaid active occurrence
+under the same user/bill locks as payments and deactivation. Notification-save failures roll back
+financial/authentication changes (19 real SQL checks in the continuation). Android restarts unread
+pagination after read mutations and clears its account-owned count on session changes. Policies:
+docs/NOTIFICATIONS.md; fresh source: raw/owli/2026-11-28-notification-continuation.md.
 
 ## See Also
 

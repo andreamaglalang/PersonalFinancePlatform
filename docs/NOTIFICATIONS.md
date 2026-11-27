@@ -28,7 +28,7 @@ The unique `(UserId, DeduplicationKey)` index is the final guard against duplica
 
 Progress is computed from the persisted contributions and target, in exact decimals.
 
-After each committed change (contribution add or edit, goal target edit), the highest milestone reached is notified, but only if it is higher than every milestone already notified for that goal. As a result:
+After each committed change (contribution add or edit, goal target edit), compare authoritative progress before and after the change. Notify only a newly crossed highest milestone that is also higher than every milestone already notified for that goal. Renames, note-only edits and downward/noncrossing changes do not replay progress on goals that predate notifications. As a result:
 - one contribution that crosses several milestones produces a single notification, the highest;
 - completion takes priority over milestones;
 - overfunding is allowed and simply completes the goal;
@@ -70,11 +70,19 @@ Both clients show:
 - the time in Manila;
 - unread state, stated in text (an "Unread" chip on MVC; "Unread" in the TalkBack description and a bold label on Android) as well as by colour.
 
-Lists are newest first, paged, with an unread filter, Mark read and Mark all as read. References (`ReferenceType`/`ReferenceId`) are stored but not linked from either client, so a deleted goal or bill never produces a broken link.
+Lists are newest first, paged, with an unread filter, Mark read and Mark all as read. Android restarts paging after confirmed read mutations so unread-list offsets cannot skip rows. Mark all remains available when unread records are beyond the loaded page. References (`ReferenceType`/`ReferenceId`) are stored but not linked from either client, so a deleted goal or bill never produces a broken link.
+
+The Android account owns the inbox model and unread total (including records beyond page one).
+Successful goal/contribution changes and confirmed bill payments refresh it immediately. Opening
+the inbox, visiting Dashboard or returning to the foreground rereads shared state. Confirmed read
+actions refresh both list and count. Logout/account changes dispose this state and reject late responses.
+MVC reads the shared unread total in the member header on each page load, including the redirect
+after a successful form/read action. Failed count reads do not invent a zero count. Another client's
+changes appear on the next navigation/open/refresh; there is no background push or polling.
 
 ## Worker responsibilities
 
-The independent `PersonalFinance.Worker` console runs only the three scheduled jobs, with their existing IDs, schedules, retry and concurrency attributes. Overdue detection was added to the existing daily reminder job; no new recurring job was registered. The API still hosts no Hangfire server.
+The independent `PersonalFinance.Worker` console runs only the three scheduled jobs, with their existing IDs, schedules, retry and concurrency attributes. Overdue detection was added to the existing daily reminder job; no new recurring job was registered. The API still hosts no Hangfire server. Overdue candidates are rechecked inside the same user/bill financial write locks as payment and deactivation. A paid, advanced or inactive candidate cannot create a stale overdue notice. Backlogs are bounded in the message at “99 or more” later occurrences.
 
 ## Configuration and deployment
 
@@ -86,3 +94,7 @@ There are no schema changes, migrations, settings, dependencies or services. The
 - Notifications do not link to the referenced record.
 - Overdue notices depend on the worker's daily run. With no worker running, they are created on the next run.
 - The password-change notice is created inside the existing authentication transaction. If the database rejected the notification, the password change would roll back with it and report failure, never success.
+
+## Verification and independent testing
+
+See the [manual notification guide](NOTIFICATION_TESTING.md) for exact amounts, dates, both clients, worker triggers and limitations. The dated [acceptance record](audits/OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026) distinguishes fresh verification from historical claims.

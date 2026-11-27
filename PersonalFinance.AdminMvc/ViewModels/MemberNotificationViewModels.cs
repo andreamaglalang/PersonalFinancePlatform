@@ -4,8 +4,7 @@ using PersonalFinance.AdminMvc.Services;
 namespace PersonalFinance.AdminMvc.ViewModels;
 
 /// <summary>
-/// Member notification inbox state. Read-only: there is no mark-as-read endpoint, so the only control is the
-/// unread-only filter plus paging.
+/// Member notification inbox state with shared read actions, unread filtering and paging.
 /// </summary>
 public sealed class MemberNotificationIndexViewModel
 {

@@ -50,6 +50,8 @@ await using (var target = await DisposableSqlTarget.CreateAsync(server))
     services.AddLogging();
     services.AddInfrastructure(configuration);
     services.AddDataProtection();
+    var notificationFailure = new FailNotificationSave();
+    services.ConfigureDbContext<ApplicationDbContext>(options => options.AddInterceptors(notificationFailure));
     services.AddSingleton<ICurrentUser>(currentUser);
     services.RemoveAll<IFrankfurterClient>();
     services.AddSingleton<IFrankfurterClient>(new FixedFx());
@@ -188,6 +190,69 @@ await using (var target = await DisposableSqlTarget.CreateAsync(server))
         Assert(after == before, $"rows {before} -> {after}");
     });
 
+    await Check("Notification save failure rolls back contribution and goal status on SQL Server", async () =>
+    {
+        currentUser.Id = userA;
+        var goal = await InScope(sp => sp.GetRequiredService<ISavingsGoalService>().CreateAsync(
+            new CreateSavingsGoalRequest { Name = "Rollback goal", TargetAmount = 100m }, default));
+        notificationFailure.Armed = true;
+        try
+        {
+            await InScope(sp => sp.GetRequiredService<ISavingsGoalService>().CreateContributionAsync(goal.Value!.GoalId,
+                new CreateGoalContributionRequest { ClientId = Guid.NewGuid(), Amount = 100m, ContributedOn = new DateOnly(2026, 11, 3) }, default));
+            throw new Exception("injected failure was not reached");
+        }
+        catch (IOException) { }
+        await InScope(async sp =>
+        {
+            var db = sp.GetRequiredService<ApplicationDbContext>(); var id = goal.Value!.GoalId;
+            Assert(!await db.GoalContributions.AnyAsync(c => c.GoalId == id) && !await db.GoalContributionRequests.AnyAsync(c => c.GoalId == id), "partial contribution/receipt");
+            Assert(!await db.Notifications.AnyAsync(n => n.ReferenceType == "SavingsGoal" && n.ReferenceId == id), "false success notice");
+            Assert((await db.SavingsGoals.SingleAsync(g => g.GoalId == id)).Status == PersonalFinance.Domain.Enums.SavingsGoalStatus.Active, "partial goal status");
+            return 0;
+        });
+    });
+
+    await Check("Notification save failure rolls back recorded payment and occurrence advance on SQL Server", async () =>
+    {
+        currentUser.Id = userA;
+        var bill = await InScope(sp => sp.GetRequiredService<IRecurringBillService>().CreateAsync(
+            new CreateRecurringBillRequest { Name = "Rollback bill", CategoryId = expenseCategory, Amount = 100m, CurrencyCode = "PHP", Frequency = "Monthly", FirstDueDate = new DateOnly(2026, 11, 20), ReminderDaysBefore = 3 }, default));
+        notificationFailure.Armed = true;
+        try
+        {
+            await InScope(sp => sp.GetRequiredService<IBillPaymentService>().PayAsync(bill.Value!.BillId,
+                new PayBillRequest { ClientId = Guid.NewGuid(), DueDate = new DateOnly(2026, 11, 20) }, default));
+            throw new Exception("injected failure was not reached");
+        }
+        catch (IOException) { }
+        await InScope(async sp =>
+        {
+            var db = sp.GetRequiredService<ApplicationDbContext>(); var id = bill.Value!.BillId;
+            Assert(!await db.Transactions.AnyAsync(t => t.BillId == id) && !await db.BillPaymentReceipts.AnyAsync(r => r.BillId == id), "partial payment/receipt");
+            Assert(!await db.Notifications.AnyAsync(n => n.ReferenceType == "RecurringBill" && n.ReferenceId == id), "false success notice");
+            Assert((await db.RecurringBills.SingleAsync(b => b.BillId == id)).NextDueDate == new DateOnly(2026, 11, 20), "partial occurrence advance");
+            return 0;
+        });
+    });
+
+    await Check("Notification save failure rolls back password and security stamp on SQL Server", async () =>
+    {
+        currentUser.Id = userA;
+        var before = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Users.AsNoTracking().SingleAsync(u => u.Id == userA));
+        notificationFailure.Armed = true;
+        try
+        {
+            await InScope(sp => sp.GetRequiredService<IAccountService>().ChangePasswordAsync(userA,
+                new PersonalFinance.Infrastructure.Authentication.Contracts.AccountChangePasswordRequest { CurrentPassword = "Synthetic!Pass123", NewPassword = "Changed!Pass456", ConfirmPassword = "Changed!Pass456" }, default));
+            throw new Exception("injected failure was not reached");
+        }
+        catch (IOException) { }
+        var after = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Users.AsNoTracking().SingleAsync(u => u.Id == userA));
+        Assert(before.PasswordHash == after.PasswordHash && before.SecurityStamp == after.SecurityStamp, "partial credential update");
+        Assert(!await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Notifications.AnyAsync(n => n.UserId == userA && n.Type == "PasswordChanged")), "false security notice");
+    });
+
     await Check("Ownership isolation: user B cannot read user A transactions", async () =>
     {
         currentUser.Id = userB;
@@ -226,4 +291,16 @@ internal sealed class FixedFx : IFrankfurterClient
     public Task<bool> SupportsAsync(string code, CancellationToken ct) => Task.FromResult(code is "USD" or "PHP" or "EUR");
     public Task<FxQuote> GetRateAsync(string source, string target, DateOnly date, CancellationToken ct) =>
         Task.FromResult(new FxQuote(source, target, date, Rate));
+}
+
+internal sealed class FailNotificationSave : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+{
+    public bool Armed;
+    public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+        Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken cancellationToken = default)
+    {
+        if (Armed && eventData.Context!.ChangeTracker.Entries<PersonalFinance.Domain.Entities.Notification>().Any(e => e.State == EntityState.Added))
+        { Armed = false; throw new IOException("Injected notification persistence failure"); }
+        return ValueTask.FromResult(result);
+    }
 }

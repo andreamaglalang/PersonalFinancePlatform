@@ -34,6 +34,7 @@ import java.time.LocalTime
 fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, source: DashboardSource = DashboardSource.Demo) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val shell = LocalOwliShellActions.current
+    androidx.compose.runtime.LaunchedEffect(shell.refreshNotifications) { shell.refreshNotifications?.invoke() }
     DashboardScreen(
         state, viewModel::retry, viewModel::refresh, modifier, source,
         onAddExpense = shell.addTransaction?.let { add -> { add(TransactionType.Expense) } },
@@ -43,6 +44,7 @@ fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier,
         onOpenCategories = shell.openCategories,
         onOpenAccount = shell.openAccount,
         onOpenNotifications = shell.openNotifications,
+        notificationUnreadCount = shell.notificationUnreadCount,
     )
 }
 
@@ -66,6 +68,7 @@ fun DashboardScreen(
     onOpenCategories: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
     onOpenNotifications: (() -> Unit)? = null,
+    notificationUnreadCount: Long? = null,
 ) {
     val copy = dashboardCopy(source)
     val typography = LocalOwliTypography.current
@@ -101,8 +104,15 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.semantics { heading() })
                         }
                         if (onOpenNotifications != null) IconButton(onClick = onOpenNotifications, modifier = Modifier.size(48.dp)) {
-                            Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_owli_bell), stringResource(R.string.notifications_open),
-                                modifier = Modifier.size(22.dp))
+                            androidx.compose.material3.BadgedBox(badge = {
+                                if (notificationUnreadCount != null && notificationUnreadCount > 0) androidx.compose.material3.Badge {
+                                    Text(if (notificationUnreadCount > 99) "99+" else notificationUnreadCount.toString())
+                                }
+                            }) {
+                                Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_owli_bell),
+                                    if (notificationUnreadCount == null) stringResource(R.string.notifications_open)
+                                    else stringResource(R.string.notifications_open_count, notificationUnreadCount), modifier = Modifier.size(22.dp))
+                            }
                         }
                         if (state is DashboardUiState.Content) DashboardPillAction(stringResource(R.string.dashboard_refresh), onRefresh, !state.isRefreshing)
                     }

@@ -100,3 +100,16 @@ consumption of persisted summary snapshots by MVC/Android remains unverified.
 No contract changed during Phase 0. Prove both clients' eventual shared-account,
 financial/report/currency/notification consistency with runtime evidence on
 approved synthetic/disposable targets before claiming integration complete.
+
+
+### Notification enhancement continuation (28 November 2026)
+
+The notification endpoints and DTOs are unchanged. `GET /api/notifications?unreadOnly=true`
+returns the server-wide unread total in `totalCount`, independent of page size. Android's
+account-owned inbox rereads after confirmed event/read actions, Dashboard entry, foreground
+return and inbox open/refresh; MVC rereads the header count on each page/PRG. A confirmed
+read mutation restarts Android pagination so unread-filter offset changes do not skip items.
+Cross-client reads are pull-based; no polling/push was added. See the dated
+[acceptance continuation](audits/OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026)
+and [manual guide](NOTIFICATION_TESTING.md) for current runtime evidence and limits rather
+than the historical Phase 0 verification status above.

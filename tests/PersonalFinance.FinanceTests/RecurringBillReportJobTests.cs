@@ -186,6 +186,27 @@ internal static class RecurringBillReportJobTests
                 Assert(n.UserId == 1 && n.Type == FinanceJobs.BillReminderType && n.DeduplicationKey == "bill:1:due:2026-11-05", n.DeduplicationKey);
             });
         });
+        foreach (var deactivate in new[] { false, true })
+        await check("Overdue bills recheck after concurrent " + (deactivate ? "deactivation" : "payment"), async f =>
+        {
+            var id = await Created(f, Bill(first: "2026-11-02"));
+            var writes = (MemoryWriteScope)f.Services.GetRequiredService<PersonalFinance.Infrastructure.Finance.IFinancialWriteScope>();
+            var interleaved = false;
+            writes.BeforeWrite = async () =>
+            {
+                interleaved = true;
+                await f.DbAsync(async db =>
+                {
+                    var bill = await db.RecurringBills.SingleAsync(b => b.BillId == id);
+                    if (deactivate) bill.IsActive = false;
+                    else bill.NextDueDate = new DateOnly(2026, 12, 2); // persisted payment has advanced this occurrence
+                    await db.SaveChangesAsync();
+                });
+            };
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 0, "stale overdue snapshot must not be published");
+            Assert(interleaved, "job must coordinate with the existing financial write scope");
+            await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync()));
+        });
         await check("Overdue bills: one notice per unpaid oldest occurrence, later ones counted; paid and inactive bills none", async f =>
         {
             // Manila today is 2026-11-03. Monthly bill first due Aug 3: Aug 3 is the oldest unpaid, Sep 3 and Oct 3 also past.

@@ -430,6 +430,21 @@ internal static class SavingsGoalTests
                 .Select(n => n.Type + "|" + n.DeduplicationKey + "|" + n.ReferenceType + ":" + n.ReferenceId + "|" + n.Message).ToArrayAsync());
             return rows;
         }
+        await check("Goal notifications: legacy progress needs a new upward crossing", async f =>
+        {
+            var id = await Goal(f, 1000m);
+            var c = ContributionId(await Contribute(f, id, 600m));
+            // Simulate a goal predating event notifications, preserving its ledger and receipt.
+            await f.DbAsync(async db => { db.Notifications.RemoveRange(db.Notifications); await db.SaveChangesAsync(); });
+            Expect(await Send(f, "PUT", Path(id), GoalBody(1000m, "Renamed"), tag: Tag(await Read(f, id))));
+            Assert((await Inbox(f)).Length == 0, "a rename must not replay historical progress");
+            Expect(await Edit(f, id, c, 600m, note: "Note only"));
+            Expect(await Edit(f, id, c, 550m));
+            await Contribute(f, id, 10m);
+            Assert((await Inbox(f)).Length == 0, "unchanged, downward and noncrossing progress must stay silent");
+            Expect(await Edit(f, id, c, 740m)); // plus 10 = exactly 75%
+            Assert((await Inbox(f)).Single().Contains(":milestone:75|"));
+        });
         await check("Goal notifications: each milestone once, in order, then completion", async f =>
         {
             var id = await Goal(f, 100m, name: "New Laptop");

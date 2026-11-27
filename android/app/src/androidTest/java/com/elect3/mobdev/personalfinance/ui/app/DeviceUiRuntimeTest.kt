@@ -632,10 +632,27 @@ class DeviceUiRuntimeTest {
         waitFor(entry); compose.onNode(entry).performScrollTo().performClick()
         waitFor(field(text(R.string.cur_amount)))
         exercise("Converter amount", field(text(R.string.cur_amount)))
+    }
+
+    private fun signInToNotificationFixture() {
+        val login = field(text(R.string.auth_email))
+        compose.waitUntil(30_000) { exists(login) || exists(logOut) }
+        if (exists(logOut)) { compose.onNode(logOut).performClick(); waitFor(login) }
+        signIn()
+    }
+
+    private fun captureNotificationEvidence(name: String = "notification-inbox") {
+        val file = java.io.File(compose.activity.getExternalFilesDir(null), "$name.png")
+        InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().let { bitmap ->
+            file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            bitmap.recycle()
+        }
+    }
+
     /** A contribution made on the device creates the 50% milestone in the shared inbox (unread), shown with its type. */
     @Test fun goalMilestoneNotificationThroughUi() {
         val name = "UI Notify $runId"
-        signIn()
+        signInToNotificationFixture()
         nav(R.string.navigation_plan)
         compose.onNode(planTab(R.string.plan_tab_goals)).performClick()
         val add = hasText(text(R.string.plan_add_goal)) and clickable
@@ -654,27 +671,92 @@ class DeviceUiRuntimeTest {
         waitFor(hasText(text(R.string.contribution_saved)))
         compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
         nav(R.string.navigation_dashboard)
-        compose.onNodeWithContentDescription(text(R.string.notifications_open)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.notifications_open), substring = true).performClick()
         val message = "You're halfway there! You've reached 50% of your $name savings goal."
-        val row = hasContentDescription(message, substring = true)
+        val row = hasContentDescription(message, substring = true) and !hasClickAction()
         waitFor(row)
         val description = compose.onNode(row).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString(" ").orEmpty()
         assertTrue(description, description.contains(text(R.string.notifications_type_goal_milestone)) && description.contains(text(R.string.notifications_unread)))
         log("notice created on device: '$message' shown as '${text(R.string.notifications_type_goal_milestone)}', unread")
+        captureNotificationEvidence()
         back()
     }
 
     /** Opt-in `owliNotice` (message text): after it was marked read on the MVC site, the device inbox shows it read. */
     @Test fun noticeReadElsewhereShowsReadAfterRefresh() {
         val message = requireNotNull(args.getString("owliNotice")) { "owliNotice missing" }
-        signIn()
+        signInToNotificationFixture()
         nav(R.string.navigation_dashboard)
-        compose.onNodeWithContentDescription(text(R.string.notifications_open)).performClick()
-        val row = hasContentDescription(message, substring = true)
+        compose.onNodeWithContentDescription(text(R.string.notifications_open), substring = true).performClick()
+        val row = hasContentDescription(message, substring = true) and !hasClickAction()
         waitFor(row)
         val description = compose.onNode(row).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString(" ").orEmpty()
         assertTrue(description, !description.contains(text(R.string.notifications_unread)) && description.contains(text(R.string.notifications_read)))
         log("device inbox after MVC mark-read: '$message' shown read")
+        captureNotificationEvidence()
+        back()
+    }
+
+    /** MVC-created notice: shared server count, Android read mutation, then updated bell without restarting. */
+    @Test fun mvcNoticeUpdatesUnreadCountAndCanBeReadThroughUi() {
+        val message = requireNotNull(args.getString("owliNotice"))
+        val count = requireNotNull(args.getString("owliUnread")).toLong()
+        signInToNotificationFixture()
+        nav(R.string.navigation_dashboard)
+        val bell = text(R.string.notifications_open_count, count)
+        waitFor(hasContentDescription(bell))
+        compose.onNodeWithContentDescription(bell).performClick()
+        val row = hasContentDescription(message, substring = true) and !hasClickAction()
+        waitFor(row)
+        val mark = hasContentDescription(text(R.string.notifications_mark_read_description,
+            text(R.string.notifications_type_goal_milestone), message))
+        compose.onNode(mark).performScrollTo().performClick()
+        compose.waitUntil(15_000) {
+            compose.onNode(row).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
+                ?.joinToString(" ")?.contains(text(R.string.notifications_unread)) == false
+        }
+        captureNotificationEvidence()
+        back()
+        waitFor(hasContentDescription(text(R.string.notifications_open_count, count - 1)))
+        log("MVC notice read on Android; bell updated from $count to ${count - 1} without restart")
+    }
+
+    /** Seed all eight supported persistent kinds with the API/test worker before this opt-in UI check. */
+    @Test fun everyNotificationKindRendersThroughUi() {
+        signInToNotificationFixture()
+        nav(R.string.navigation_dashboard)
+        compose.onNodeWithContentDescription(text(R.string.notifications_open), substring = true).performClick()
+        val kinds = com.elect3.mobdev.personalfinance.domain.repository.NotificationKind.entries.filter {
+            it != com.elect3.mobdev.personalfinance.domain.repository.NotificationKind.Other
+        }
+        kinds.forEach { kind ->
+            val label = text(com.elect3.mobdev.personalfinance.ui.notifications.notificationTypeLabel(kind))
+            val row = hasContentDescription(label, substring = true) and !hasClickAction()
+            waitFor(row)
+            compose.onAllNodes(row).onFirst().performScrollTo().assertIsDisplayed()
+            captureNotificationEvidence("notification-type-${kind.name}")
+            log("notification type visible: $kind ($label)")
+        }
+        if (args.getString("owliMarkAll") == "true") {
+            val markAll = hasText(text(R.string.notifications_mark_all)) and hasClickAction()
+            compose.onNode(hasScrollAction() and hasAnyAncestor(isDialog())).performScrollToIndex(0)
+            compose.onNode(markAll).performClick()
+            compose.waitUntil(15_000) { !exists(markAll) }
+            log("all shared notifications marked read on Android")
+        }
+        back()
+        if (args.getString("owliMarkAll") == "true") waitFor(hasContentDescription(text(R.string.notifications_open_count, 0L)))
+    }
+
+    /** Run with a second synthetic member that has no events: account A's inbox/count must not survive the switch. */
+    @Test fun secondAccountHasAnEmptyInboxThroughUi() {
+        signInToNotificationFixture()
+        nav(R.string.navigation_dashboard)
+        waitFor(hasContentDescription(text(R.string.notifications_open_count, 0L)))
+        compose.onNodeWithContentDescription(text(R.string.notifications_open_count, 0L)).performClick()
+        waitFor(hasText(text(R.string.notifications_empty_message)))
+        assertTrue("no prior account messages", !exists(hasText("UI Notify", substring = true)))
+        captureNotificationEvidence("notification-empty-account")
         back()
     }
 

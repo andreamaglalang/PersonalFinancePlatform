@@ -44,13 +44,14 @@ These are additions, not original requirements. Policies and triggers are docume
 
 | # | Enhancement | Trigger | Runtime evidence | Regression tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| N1 | Savings milestones (25/50/75%) | API, same save as the contribution or goal change | API + SQL: 25→50→75→completed in order. One contribution crossing three milestones gives only 75. Replay (200), a rejected future-dated contribution (400) and 4 concurrent contributions created no duplicates. Android contribution → MVC inbox shows "Savings milestone" (unread) | FinanceTests (7 goal-notification cases) | **PASS** |
+| N1 | Savings milestones (25/50/75%) | API, same save as the contribution or goal change | API + SQL: 25→50→75→completed in order. One contribution crossing three milestones gives only 75. Replay (200), a rejected future-dated contribution (400) and 4 concurrent contributions created no duplicates. Android contribution → MVC inbox shows "Savings milestone" (unread) | FinanceTests including legacy-progress/noncrossing regression | **PASS** |
 | N2 | Goal achieved | API, same save | API + SQL: exact target, overfunding, a lowered target. Reopened by edit and by deletion, then completed again: one completion | FinanceTests | **PASS** |
-| N3 | Overdue bills | Existing worker job `owli-bill-reminders` (07:00 Manila) | Real worker on disposable Hangfire storage (HangfireTests): one overdue notice. Concurrent and repeated triggers: still one. Paid and inactive bills: none | HangfireTests 14; FinanceTests overdue case | **PASS** (worker on disposable storage). Not run against the shared runtime catalog, whose test storage is used by the owner's worker |
+| N3 | Overdue bills | Existing worker job `owli-bill-reminders` (07:00 Manila) | Real worker on disposable Hangfire storage (HangfireTests): one overdue notice. Concurrent and repeated triggers: still one. Paid and inactive bills: none | HangfireTests 14; FinanceTests overdue case | **PASS**; continuation stopped the existing test worker, verified zero servers, then ran the notification-branch worker on approved shared disposable storage; active unpaid overdue notice and repeated-trigger deduplication verified |
 | N4 | Bill payment recorded | API, same save as the receipt | API + SQL: one notice with the recorded amount; replay and a rejected payment add none | FinanceTests `BillPaymentTests` | **PASS** |
 | N5 | Password updated | API, same transaction as the password change | API + SQL: a failed change creates none; success creates one; the old token is still rejected | AuthenticationTests | **PASS** |
 | N6 | Offline sync feedback (local only) | Android sync layer | Emulator: queued offline → reconnect → "You're all caught up" once with the count; a second sync shows nothing; SQL has one transaction | Device step `offlineExpenseSyncsOnceAfterReconnect` | **PASS** |
-| N7 | Cross-client read state | Shared API and rows | Milestone created on Android → marked read on MVC → shown read on Android after refresh (SQL `IsRead = 1`) | Device steps `goalMilestoneNotificationThroughUi`, `noticeReadElsewhereShowsReadAfterRefresh` | **PASS** |
+| N7 | Cross-client read state | Shared API and rows | Fresh continuation: Android → MVC mark-read → Android read; MVC contribution → Android mark-read and bell count → MVC read/count | Corrected device methods plus actual MVC forms; [dated acceptance](OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026) | **PASS** |
+| N8 | Account-wide unread refresh and safe paging | Existing unread-list total; account-owned Android model and MVC page/PRG header | MVC post-save count 11→12; Android confirmed-read count 13→12. No skipped row after marking one of 25 unread rows read; unloaded unread rows permit mark-all | NotificationsViewModel regressions; real Android/MVC count flow | **PASS** |
 
 ## Error handling, integrity and recovery (applies across rows)
 
@@ -69,7 +70,7 @@ These are additions, not original requirements. Policies and triggers are docume
 - **Merged in `dev`:** A1–A16 were implemented by PRs up to #27.
 - **Changed after #27:** the fixes in PR #28 (validation) and PR #29 (E1–E7, F1–F4, guide).
 - **Round 3:** the fixes R3-1 to R3-6 (end-to-end record, round 3). The final verified commit is recorded there after merge.
-- **Enhancements N1–N7** (financial notifications): pull request into `dev` from `feature/financial-notifications`.
+- **Enhancements N1–N8** (financial notifications): pull request into `dev` from `feature/financial-notifications`.
 
 ## Not claimed
 

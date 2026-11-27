@@ -165,3 +165,5 @@ found in history reachable from the available Git refs.
 - `docs/DevelopmentDatabaseVerification_TransactionBoundaries.md`
 - `docs/Initial_Project_Report_Personal_Finance_Platform_v3.1_Implementation_Ready.docx`
 - `docs/MonthlyBudgets_DevelopmentDatabaseVerification_Preparation.md`
+
+- [Notification manual testing](NOTIFICATION_TESTING.md) — exact amounts, dates, worker triggers and cross-client checks.

@@ -311,3 +311,54 @@ and failed.
 | Later commits | Documentation only (this record). Confirm with the command in the handoff guide §3 |
 | Not merged | `main` (owner approval required) |
 | Production | Not performed by this team (D10) |
+
+
+## Notification enhancement continuation — 28 November 2026
+
+Scope: continue Claude's `f7640d4` on `feature/financial-notifications`, based on
+synchronized `dev` `16990d0`. Preserve that implementation and commit; correct
+new-crossing eligibility, locked overdue eligibility, instrumentation structure,
+and client count/read refresh. No application schema, migration, operational
+configuration or production deployment changes. Existing worktrees/data/certificates
+were preserved. The final task PR records the publication commit.
+
+Historical notification claims are superseded by this continuation evidence for the
+changed paths. The original Android test source had a missing brace; its earlier
+method-level runtime claims were not accepted as evidence. An existing test worker
+was also found running during the first API rerun. It was stopped gracefully and
+**zero registered test servers** was verified before repeating event scenarios.
+No worker-off claim relies on that first run.
+
+| Check | Result | Evidence / limit |
+|---|---|---|
+| Solution build | **PASS** | 0 warnings/errors |
+| Finance regressions | **PASS** | 460/460; crossing and payment/deactivation interleavings reproduced RED, then GREEN; in-memory harness does not certify SQL locks |
+| Authentication / API security | **PASS** | 34/34 and 36/36 |
+| Category / schema / provisioning | **PASS** | 15/15, 65/65, 40/40 |
+| MVC UI regression harness | **PASS** | Existing harness exit 0; compiled Razor/source/contracts |
+| Live SQL integration | **PASS** | 19/19 on harness-owned throwaway catalog, then dropped. New injected notification-save failures roll back contribution/goal state, payment/receipt/occurrence, and password/security stamp |
+| Live independent worker harness | **PASS** | 14/14 on separate harness-owned finance/Hangfire catalogs: retries, overdue, repeated/concurrent triggers, stop/backlog/restart |
+| Android debug/release unit tests | **PASS** | 683/683 and 689/689; 0 failures/skips. Includes server-wide count, unloaded unread mark-all, and 25-unread-row pagination after mark-read |
+| Android instrumentation build | **PASS** | Corrected methods compile and are individually discoverable |
+| Events with verified worker stopped | **PASS** | 11 actual HTTPS API/SQL scenarios: 25/50/75/completion, highest-only/overfunding, replay/rejection/concurrency, reopen, payment receipt, failed/successful password + old token 401, ownership404, ordering, unique keys. SQL rows agree with API |
+| Actual Android milestone | **PASS** | `goalMilestoneNotificationThroughUi`: create goal/contribution in real app; shared inbox shows the typed unread milestone, with zero registered workers |
+| Android → MVC → Android | **PASS** | Android-created milestone shown in actual MVC inbox, marked read via MVC form, then `noticeReadElsewhereShowsReadAfterRefresh` shows read on device |
+| MVC → Android → MVC | **PASS** | MVC goal/contribution forms produce a notice and header count 11→12; Android reads the specific notice and bell 13→12 without restart; MVC subsequently shows it read/count12 |
+| Offline sync feedback | **PASS** | Real device UI: pending expense → restored connectivity → one confirmed row + local caught-up message; repeated empty sync gives no repeated feedback. Connectivity restored; Room retained |
+| Scheduled types on approved shared disposable runtime | **PASS** | Restarted notification-branch worker produced upcoming, overdue, warning800/1000, exceeded1050/1000 and October summary40 for a fresh synthetic member. Repeated all three jobs: inbox16→16 |
+| All eight types, icons and both themes | **PASS** | Actual Android API36 emulator: every type scrolled into view/asserted. Actual MVC at360/768/1280px in light/dark: no horizontal overflow or icon/text overlap after mobile padding correction; screenshots inspected |
+| Mark-all and account switch | **PASS** | Android mark-all → zero unread bell → actual MVC/API zero. A second synthetic member's inbox is empty/count0 in both actual interfaces; API marking another member's ID returns404 |
+| Hosted PR CI | **NOT TESTED** | Local verification complete; final published PR checks are authoritative for hosted results |
+| Physical device / spoken screen reader | **NOT TESTED** | Dedicated Android API36 emulator only; accessibility semantics asserted |
+| Production runtime / main merge / deployment | **NOT TESTED** | Outside this task |
+
+Manual independent steps, sample amounts/dates, worker IDs and delivery limitations:
+[notification testing guide](../NOTIFICATION_TESTING.md).
+
+
+Runtime safety: normal HTTPS validation remained enabled throughout the fresh continuation
+checks. Only the dedicated test emulator was updated with same-signer `adb install -r -t`;
+Room was retained. Its temporary network interruption was restored and device night mode
+was restored to its original value. The ordinary API/MVC checkout and other Git worktrees
+were preserved. Private screenshots, logs, fixture credentials, certificates and configuration
+are excluded from Git; only this sanitized evidence is published.

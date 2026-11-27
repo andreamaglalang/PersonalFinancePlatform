@@ -28,9 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,13 +43,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elect3.mobdev.personalfinance.R
 import com.elect3.mobdev.personalfinance.domain.repository.AppNotification
 import com.elect3.mobdev.personalfinance.domain.repository.NotificationKind
-import com.elect3.mobdev.personalfinance.domain.repository.NotificationRepository
 import com.elect3.mobdev.personalfinance.ui.components.OwliGroupCard
 import com.elect3.mobdev.personalfinance.ui.components.OwliGroupDivider
 import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliColors
@@ -94,14 +89,9 @@ fun notificationTypeIcon(kind: NotificationKind): Int = when (kind) {
     NotificationKind.Other -> R.drawable.ic_cat_info
 }
 
-/** Full-screen inbox over the app shell (signed in only). Its ViewModel lives while the dialog is open. */
+/** Full-screen inbox over the app shell. The account owns the model and its unread count. */
 @Composable
-fun NotificationsDialog(repository: NotificationRepository, isCurrent: () -> Boolean, onExpired: () -> Unit, onClose: () -> Unit) {
-    val store = remember { ViewModelStore() }
-    val model = remember {
-        ViewModelProvider(store, NotificationsViewModel.Factory(repository, isCurrent, onExpired))[NotificationsViewModel::class.java]
-    }
-    DisposableEffect(store) { onDispose { store.clear() } }
+fun NotificationsDialog(model: NotificationsViewModel, onClose: () -> Unit) {
     val state by model.state.collectAsStateWithLifecycle()
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -245,7 +235,7 @@ private fun NotificationRow(item: AppNotification, locale: Locale, marking: Bool
             Text(time, style = typography.caption, color = scheme.onSurfaceVariant)
         }
         if (!item.isRead) {
-            val label = stringResource(R.string.notifications_mark_read_description, type)
+            val label = stringResource(R.string.notifications_mark_read_description, type, item.message)
             TextButton(onClick = onMarkRead, enabled = !marking,
                 modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = label }) {
                 Text(stringResource(R.string.notifications_mark_read), style = typography.label)

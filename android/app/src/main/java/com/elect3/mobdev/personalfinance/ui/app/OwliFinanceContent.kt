@@ -87,6 +87,28 @@ fun OwliFinanceContent(
     var accountOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     var converterOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     var notificationsOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
+    // Account-owned inbox survives dialog navigation and is disposed on logout/account switch.
+    val notificationStore = remember(authenticatedContentKey) { androidx.lifecycle.ViewModelStore() }
+    DisposableEffect(notificationStore) { onDispose { notificationStore.clear() } }
+    val notificationModel = remember(authenticatedContentKey, authenticatedNotifications) {
+        val key = authenticatedContentKey
+        if (key == null || authenticatedNotifications == null) null else
+            androidx.lifecycle.ViewModelProvider(notificationStore,
+                com.elect3.mobdev.personalfinance.ui.notifications.NotificationsViewModel.Factory(authenticatedNotifications,
+                    isSessionCurrent = { isSessionCurrent(key) },
+                    onSessionExpired = { if (isSessionCurrent(key)) onSessionExpired(key) }))[
+                        com.elect3.mobdev.personalfinance.ui.notifications.NotificationsViewModel::class.java]
+    }
+    val refreshNotifications = remember(notificationModel) { notificationModel?.let { model -> { model.refresh() } } }
+    val notificationCount = notificationModel?.state?.collectAsStateWithLifecycle()?.value?.unreadCount
+    val notificationLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(notificationModel, notificationLifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) notificationModel?.refresh()
+        }
+        notificationLifecycle.addObserver(observer)
+        onDispose { notificationLifecycle.removeObserver(observer) }
+    }
     val demo = demoSession ?: remember { DemoSession() }
     val context = LocalContext.current
     // Signed-in icon/order choices: this device only, scoped to the account ID; never shared with Mock Demo.
@@ -253,9 +275,9 @@ fun OwliFinanceContent(
                             pendingLocalCount = pending)
                     }) else null,
                     budgetCount = budgetState?.budgets?.size ?: 0,
-                    goals = { if (authenticatedContentKey != null && authenticatedLive != null) com.elect3.mobdev.personalfinance.ui.plan.LivePlanSection(authenticatedLive, false, authenticatedCategories) else com.elect3.mobdev.personalfinance.ui.plan.GoalsSection(authenticatedContentKey == null, demoGoals, demo.plan::contribute) },
+                    goals = { if (authenticatedContentKey != null && authenticatedLive != null) com.elect3.mobdev.personalfinance.ui.plan.LivePlanSection(authenticatedLive, false, authenticatedCategories, onChanged = { notificationModel?.refresh() }) else com.elect3.mobdev.personalfinance.ui.plan.GoalsSection(authenticatedContentKey == null, demoGoals, demo.plan::contribute) },
                     goalCount = demoGoals.size,
-                    bills = { if (authenticatedContentKey != null && authenticatedLive != null) com.elect3.mobdev.personalfinance.ui.plan.LivePlanSection(authenticatedLive, true, authenticatedCategories, onPaid = { budgetsVm?.refresh(); account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard() }) else com.elect3.mobdev.personalfinance.ui.plan.BillsSection(authenticatedContentKey == null, demoBills, demo.plan::markPaid) },
+                    bills = { if (authenticatedContentKey != null && authenticatedLive != null) com.elect3.mobdev.personalfinance.ui.plan.LivePlanSection(authenticatedLive, true, authenticatedCategories, onChanged = { notificationModel?.refresh() }, onPaid = { budgetsVm?.refresh(); account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard() }) else com.elect3.mobdev.personalfinance.ui.plan.BillsSection(authenticatedContentKey == null, demoBills, demo.plan::markPaid) },
                     billCount = demoBills.size))
         }
     }
@@ -284,7 +306,7 @@ fun OwliFinanceContent(
     }
     // Stable per session so the shell's actions are not rebuilt on every recomposition.
     val openNotifications: (() -> Unit)? = remember(authenticatedContentKey, authenticatedNotifications) {
-        if (authenticatedContentKey != null && authenticatedNotifications != null) ({ notificationsOpen = true }) else null
+        if (authenticatedContentKey != null && authenticatedNotifications != null) ({ notificationModel?.refresh(); notificationsOpen = true }) else null
     }
     OwliApp(
         // Demo (no account scope) always uses the owner's sample Dashboard; it never reads account data.
@@ -313,12 +335,11 @@ fun OwliFinanceContent(
         dashboardRequests = dashboardRequests,
         insightsContent = insightsContent,
         onOpenNotifications = openNotifications,
+        notificationUnreadCount = notificationCount,
+        onRefreshNotifications = refreshNotifications,
     )
-    val notificationKey = authenticatedContentKey
-    if (notificationsOpen && notificationKey != null && authenticatedNotifications != null) {
-        com.elect3.mobdev.personalfinance.ui.notifications.NotificationsDialog(authenticatedNotifications,
-            isCurrent = { isSessionCurrent(notificationKey) },
-            onExpired = { if (isSessionCurrent(notificationKey)) onSessionExpired(notificationKey) },
+    if (notificationsOpen && notificationModel != null) {
+        com.elect3.mobdev.personalfinance.ui.notifications.NotificationsDialog(notificationModel,
             onClose = { notificationsOpen = false })
     }
     val editTarget = editing

@@ -57,18 +57,27 @@ public sealed class FinanceJobs(ApplicationDbContext db, IBudgetUsageService bud
             .Where(b => b.IsActive && b.NextDueDate < today)
             .Select(b => new { b.BillId, b.UserId, b.Name, b.Amount, b.CurrencyCode, b.NextDueDate, b.Frequency, b.IntendedDayOfMonth })
             .ToListAsync(ct);
-        foreach (var b in overdue)
+        foreach (var candidate in overdue)
         {
-            var later = 0;
-            for (var d = BillRecurrence.NextDueDate(b.NextDueDate, b.Frequency, b.IntendedDayOfMonth); d < today && later < 99;
-                 d = BillRecurrence.NextDueDate(d, b.Frequency, b.IntendedDayOfMonth)) later++;
-            var more = later switch { 0 => "", 1 => " 1 later occurrence is also past due.", _ => $" {later} later occurrences are also past due." };
-            if (await TryAddAsync(new Notification
+            created += await writes.ExecuteAsync([FinanceValidation.UserLock(candidate.UserId), $"finance:write:bill:{candidate.BillId}"], async token =>
             {
-                UserId = b.UserId, Type = FinanceNotifications.BillOverdueType, ReferenceType = "RecurringBill", ReferenceId = b.BillId,
-                Message = FormattableString.Invariant($"Your {b.Name} bill of {Money(b.Amount, b.CurrencyCode)} was due on {b.NextDueDate:MMM d, yyyy}.") + more,
-                DeduplicationKey = NotificationKeys.BillOverdue(b.BillId, b.NextDueDate), CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
-            }, ct)) created++;
+                // Payment and bill edits use these same locks. Never publish the detached candidate after it changed.
+                db.ChangeTracker.Clear();
+                var b = await db.RecurringBills.AsNoTracking().SingleOrDefaultAsync(b => b.BillId == candidate.BillId
+                    && b.UserId == candidate.UserId && b.IsActive && b.NextDueDate == candidate.NextDueDate && b.NextDueDate < today, token);
+                if (b is null) return 0;
+                var later = 0;
+                for (var d = BillRecurrence.NextDueDate(b.NextDueDate, b.Frequency, b.IntendedDayOfMonth); d < today && later < 99;
+                     d = BillRecurrence.NextDueDate(d, b.Frequency, b.IntendedDayOfMonth)) later++;
+                var more = later switch { 0 => "", 1 => " 1 later occurrence is also past due.",
+                    99 => " 99 or more later occurrences are also past due.", _ => $" {later} later occurrences are also past due." };
+                return await TryAddAsync(new Notification
+                {
+                    UserId = b.UserId, Type = FinanceNotifications.BillOverdueType, ReferenceType = "RecurringBill", ReferenceId = b.BillId,
+                    Message = FormattableString.Invariant($"Your {b.Name} bill of {Money(b.Amount, b.CurrencyCode)} was due on {b.NextDueDate:MMM d, yyyy}.") + more,
+                    DeduplicationKey = NotificationKeys.BillOverdue(b.BillId, b.NextDueDate), CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
+                }, token) ? 1 : 0;
+            }, ct);
         }
         return created;
     }
