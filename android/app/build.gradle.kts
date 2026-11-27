@@ -22,6 +22,19 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "OWLI_API_BASE_URL", "\"\"")
+    }
+
+    buildTypes {
+        release {
+            // Deployment endpoint (R11/D10): -PowliApiBaseUrl=https://host/ or ORG_GRADLE_PROJECT_owliApiBaseUrl.
+            // No default host: without it the release app stays explicitly unconfigured.
+            val endpoint = (project.findProperty("owliApiBaseUrl") as String?)?.trim().orEmpty()
+            require(endpoint.isEmpty() || Regex("^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?/([A-Za-z0-9._~-]+/)*$").matches(endpoint)) {
+                "owliApiBaseUrl must be an https:// origin with an optional path ending in '/', without credentials, query or fragment."
+            }
+            buildConfigField("String", "OWLI_API_BASE_URL", "\"$endpoint\"")
+        }
     }
 
     compileOptions {
@@ -31,6 +44,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
