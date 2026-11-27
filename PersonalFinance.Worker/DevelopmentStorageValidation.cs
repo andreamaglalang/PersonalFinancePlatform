@@ -18,6 +18,8 @@ public static class DevelopmentStorageValidation
         foreach (var value in new[] { finance, jobs })
         {
             var connection = new SqlConnectionStringBuilder(value);
+            if (!string.IsNullOrEmpty(connection.AttachDBFilename))
+                throw new InvalidOperationException("Development worker checks never attach database files.");
             if (connection.TrustServerCertificate || connection.Encrypt == SqlConnectionEncryptOption.Optional)
                 throw new InvalidOperationException("Development worker SQL connections require encryption and certificate validation.");
         }

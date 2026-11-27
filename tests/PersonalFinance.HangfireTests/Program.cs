@@ -127,6 +127,8 @@ await Sync("Development test profile rejects operational storage and SQL certifi
         (server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local;TrustServerCertificate=True"),
         (server + "Database=OWLI_Runtime_local;Encrypt=False", server + "Database=OWLI_HangfireTests_local"),
         (server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local;Encrypt=False"),
+        (server + "Database=OWLI_Runtime_local;AttachDbFilename=fixture.mdf", server + "Database=OWLI_HangfireTests_local"),
+        (server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local;AttachDbFilename=fixture.mdf"),
     })
     {
         var refused = false;

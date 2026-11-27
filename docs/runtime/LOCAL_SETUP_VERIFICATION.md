@@ -73,3 +73,8 @@ were preserved; no restart was required for this setup.
 Independent follow-up confirmed the two review findings are resolved: both native
 VS Code JSON files are explicitly included despite the unchanged local exclusion,
 and integrated-terminal launch profiles contain no unsupported serverReadyAction.
+
+Final storage guard regression: both finance and jobs connection strings with
+AttachDbFilename are rejected before opening SQL connections, so validation cannot
+implicitly attach/provision a database. Both refusal fixtures and the valid
+configuration case pass in the focused offline worker checks.
