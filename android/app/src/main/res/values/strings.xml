@@ -850,6 +850,7 @@
     <string name="register_error_unavailable">Registration is temporarily unavailable. Please try again later.</string>
     <!-- Password requirements (mirror the server policy; ASCII letters and digits) -->
     <string name="password_rules_title">Your password needs:</string>
+    <string name="password_rules_hint">12+ characters, upper and lower case, a number and a symbol.</string>
     <string name="password_rule_length">12 to 128 characters</string>
     <string name="password_rule_upper">An uppercase letter (A–Z)</string>
     <string name="password_rule_lower">A lowercase letter (a–z)</string>

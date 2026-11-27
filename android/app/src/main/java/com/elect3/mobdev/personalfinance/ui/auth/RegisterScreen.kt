@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -60,6 +63,9 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmVisible by rememberSaveable { mutableStateOf(false) }
+    var passwordFocused by remember { mutableStateOf(false) }
     val typography = LocalOwliTypography.current
     val shapes = LocalOwliShapes.current
     val owli = LocalOwliColors.current
@@ -93,15 +99,25 @@ fun RegisterScreen(
     @Composable
     fun field(
         value: String, onChange: (String) -> Unit, label: Int, message: String?, keyboard: KeyboardOptions,
-        secret: Boolean = false, onDone: (() -> Unit)? = null,
+        secret: Boolean = false, visible: Boolean = false, onVisibleChange: ((Boolean) -> Unit)? = null,
+        onFocus: ((Boolean) -> Unit)? = null, onDone: (() -> Unit)? = null,
     ) = OutlinedTextField(
         value = value, onValueChange = onChange,
-        modifier = Modifier.fillMaxWidth().then(if (message != null) Modifier.semantics { error(message) } else Modifier),
+        modifier = Modifier.fillMaxWidth().then(if (message != null) Modifier.semantics { error(message) } else Modifier)
+            .then(if (onFocus != null) Modifier.onFocusChanged { onFocus(it.isFocused) } else Modifier),
         enabled = enabled, singleLine = true, isError = message != null,
         supportingText = message?.let { { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) } },
         label = { Text(stringResource(label)) }, textStyle = typography.bodyStrong,
         shape = shapes.field, colors = owliFieldColors(),
-        visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (secret && !visible) PasswordVisualTransformation() else VisualTransformation.None,
+        // Same Show/Hide control as sign-in, on both the password and its confirmation.
+        trailingIcon = onVisibleChange?.let { toggle -> {
+            val visibilityLabel = stringResource(if (visible) R.string.auth_hide_password else R.string.auth_show_password)
+            TextButton(onClick = { toggle(!visible) }, enabled = enabled,
+                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = visibilityLabel }) {
+                Text(stringResource(if (visible) R.string.auth_hide else R.string.auth_show), style = typography.label, color = owli.accent)
+            }
+        } },
         keyboardOptions = keyboard,
         keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }, onDone = { onDone?.invoke() }),
     )
@@ -135,13 +151,15 @@ fun RegisterScreen(
                 Spacer(Modifier.height(12.dp))
                 field(password, { password = it; edited = edited + RegisterInputError.Password }, R.string.auth_password,
                     messageFor(RegisterInputError.Password, password),
-                    KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next), secret = true)
-                PasswordChecklist(password)
+                    KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next), secret = true,
+                    visible = passwordVisible, onVisibleChange = { passwordVisible = it }, onFocus = { passwordFocused = it })
+                PasswordChecklist(password, expanded = passwordFocused || password.isNotEmpty() ||
+                    messageFor(RegisterInputError.Password, password) != null)
                 Spacer(Modifier.height(12.dp))
                 field(confirmPassword, { confirmPassword = it; edited = edited + RegisterInputError.PasswordMismatch },
                     R.string.register_confirm_password, messageFor(RegisterInputError.PasswordMismatch, password),
                     KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done), secret = true,
-                    onDone = { submit() })
+                    visible = confirmVisible, onVisibleChange = { confirmVisible = it }, onDone = { submit() })
                 state.failure?.let {
                     Spacer(Modifier.height(14.dp))
                     LoginNotice(stringResource(registerFailureResource(it)), isError = true)

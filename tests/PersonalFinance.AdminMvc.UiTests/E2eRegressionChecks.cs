@@ -113,6 +113,14 @@ internal static class E2eRegressionChecks
             .Concat(Problems(new PersonalFinance.AdminMvc.ViewModels.MemberCurrencyPreferencesViewModel { DefaultCurrency = "usd" })).ToArray();
         if (messages.Length < 9 || messages.Any(m => m.Contains("The field", StringComparison.Ordinal) || m.Contains("regular expression", StringComparison.Ordinal) || m.Contains("field is required", StringComparison.Ordinal)))
             throw new InvalidOperationException("R3-4: validation messages must be plain language: " + string.Join(" | ", messages));
+        // Registration refinement: hint-first checklist with drawn marks, Show/Hide on both password fields, no redundant footer.
+        var register = File.ReadAllText(MvcProject.FindFile("Views", "Account", "Register.cshtml"));
+        var rules = File.ReadAllText(MvcProject.FindFile("Views", "Shared", "_PasswordRequirements.cshtml"));
+        if (System.Text.RegularExpressions.Regex.Matches(register, "data-password-toggle").Count != 2 || register.Contains("Registration creates a member account", StringComparison.Ordinal)
+            || !register.Contains("[\"PasswordRulesCollapsible\"] = true", StringComparison.Ordinal))
+            throw new InvalidOperationException("Registration must offer Show/Hide on both password fields, a collapsible checklist and no redundant footer.");
+        if (!rules.Contains("password-rules-hint", StringComparison.Ordinal) || !rules.Contains("<svg class=\"password-rule-mark\"", StringComparison.Ordinal) || rules.Contains('○') || rules.Contains('✓'))
+            throw new InvalidOperationException("The password checklist must show a hint and drawn marks, not text glyphs.");
         Console.WriteLine("PASS: end-to-end regressions (contribution/payment identities and versions from the form; contribution links bind; bill edit saves; budget status uses themed colours; site icon present; R3: goal surplus, rate confirmation, transaction identity and replay, plain validation wording).");
     }
 }

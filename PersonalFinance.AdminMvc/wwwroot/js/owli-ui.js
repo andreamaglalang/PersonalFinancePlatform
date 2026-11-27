@@ -99,9 +99,10 @@
             narrow.addEventListener("change", () => { if (!narrow.matches && drawer.open) drawer.close(); });
         }
 
-        const passwordToggle = document.querySelector("[data-password-toggle]");
-        const password = document.querySelector("#Password");
-        if (passwordToggle && password) {
+        // Every Show/Hide control reveals the password field in its own box (sign-in, password and confirmation).
+        document.querySelectorAll("[data-password-toggle]").forEach(passwordToggle => {
+            const password = passwordToggle.closest(".box")?.querySelector("input");
+            if (!password) return;
             passwordToggle.hidden = false;
             passwordToggle.addEventListener("click", () => {
                 const visible = password.type === "password";
@@ -109,7 +110,7 @@
                 passwordToggle.setAttribute("aria-pressed", String(visible));
                 passwordToggle.textContent = visible ? "Hide" : "Show";
             });
-        }
+        });
 
         const account = document.querySelector(".account-menu");
         if (account) {
@@ -361,10 +362,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const update = () => list.querySelectorAll("[data-rule]").forEach(item => {
    const met = input.value.length > 0 && rules[item.dataset.rule](input.value);
    item.classList.toggle("met", met);
-   item.querySelector(".password-rule-mark").textContent = met ? "✓" : "○";
    item.querySelector("[data-rule-state]").textContent = met ? " (done)" : " (still needed)";
   });
   input.addEventListener("input", update); update();
+  // Collapsible lists start as a one-line hint and open on focus or typing; they open at once after a failed
+  // submission so every rule is visible next to the error, and stay open once shown.
+  if (list.hasAttribute("data-collapsible")) {
+   const message = input.form?.querySelector('[data-valmsg-for="' + input.name + '"]');
+   const expand = () => list.classList.remove("is-collapsed");
+   if (!input.value && input.getAttribute("aria-invalid") !== "true" && !message?.textContent.trim()) list.classList.add("is-collapsed");
+   input.addEventListener("focus", expand); input.addEventListener("input", expand);
+  }
  });
  // Clear a field's server message once the user changes that field, so outdated errors don't linger.
  document.querySelectorAll("form input").forEach(input => input.addEventListener("input", () => {

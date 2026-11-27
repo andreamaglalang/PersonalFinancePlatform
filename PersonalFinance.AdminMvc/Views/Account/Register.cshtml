@@ -33,14 +33,15 @@
                 <button type="button" class="show" data-password-toggle aria-label="Show password" aria-pressed="false">Show</button>
             </div>
             <span asp-validation-for="Password"></span>
-            <partial name="_PasswordRequirements" model='"register-password-rules"' />
+            <partial name="_PasswordRequirements" model='"register-password-rules"' view-data='new ViewDataDictionary(ViewData) { ["PasswordRulesCollapsible"] = true }' />
             <label asp-for="ConfirmPassword">Confirm password</label>
             <div class="box"><partial name="_NavIcon" model='"lock"' />
-                <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required maxlength="128" /></div>
+                <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required maxlength="128" />
+                <button type="button" class="show" data-password-toggle aria-label="Show confirm password" aria-pressed="false" hidden>Show</button>
+            </div>
             <span asp-validation-for="ConfirmPassword"></span>
             <button class="btn block" type="submit">Create account</button>
         </form>
         <p class="lg-register">Already have an account? <a asp-controller="Account" asp-action="Login">Sign in</a></p>
-        <div class="lg-foot"><p><partial name="_NavIcon" model='"lock"' />Registration creates a member account.</p></div>
     </div></div>
 </section>
