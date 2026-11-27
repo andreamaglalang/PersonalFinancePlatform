@@ -251,7 +251,7 @@ E = essential (PRODUCT.md); O = optional. Each row needs PASS evidence on runtim
 
 ## 7. Decisions
 
-Approved with the review safeguards: D1–D5, D7–D9, D11, D12. **Owner confirmation still required: D6, D10.**
+Approved with the review safeguards: D1–D5, D7–D9, D11, D12. **Owner confirmation still required: D6.** D10 is resolved (Phase 5: external deployment team).
 
 | ID | Decision | Status / resolution | Trade-off |
 | --- | --- | --- | --- |
@@ -264,7 +264,7 @@ Approved with the review safeguards: D1–D5, D7–D9, D11, D12. **Owner confirm
 | D7 | Account contract split (`auth/*` vs `account/*`) | **Approved.** Keep both, documented | Duplicate contracts remain; unifying risks both clients late |
 | D8 | Transaction version mechanism | **Approved.** Computed hash body version (no migration) | A rowversion would need migration 6 and an If-Match style matching savings |
 | D9 | Runtime/demo database | **Approved.** Disposable `OWLI_Runtime_<date>`; leave `PersonalFinanceDb` untouched | The demo uses synthetic data; any real migration of `PersonalFinanceDb` is a separate approval |
-| D10 | Release endpoint and live deployment | **Owner confirmation required** for host, certificates, secrets and timing. Release endpoint is a build-time property with no default host. Live deployment remains a required final deliverable and is not removed | Blocked until the owner supplies hosting details; late supply compresses Saturday testing |
+| D10 | Release endpoint and live deployment | **Resolved (Phase 5, 27 Nov 2026):** the external deployment team hosts OWLI through its existing Cloudflare configuration and owns hosting, production data, secrets, signing and Hangfire activation. This team delivers a verified `dev` branch and [the deployment handoff guide](../../deployment/README.md). The release endpoint stays a build-time property with no default host | Production deployment and production runtime verification are reported by the deployment team, separately from local release readiness |
 | D11 | Android offline scope | **Approved.** Keep transaction-create offline + durable retry IDs (R6); retry on app start/connectivity; no WorkManager, no offline edit/delete | No background sync while the app is closed |
 | D12 | MVC session store | **Approved.** Accept the in-process store with a single MVC instance (already documented) | Restart signs users out |
 
