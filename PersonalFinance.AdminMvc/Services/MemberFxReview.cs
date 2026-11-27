@@ -28,12 +28,11 @@ public static class MemberFxReview
                 .Protect(Encoding.UTF8.GetBytes(payload)));
     }
 
-    /// <summary>True only when the token is intact, unexpired and matches the submitted transaction and the quote.</summary>
+    /// <summary>True only when the token is intact, unexpired and matches the submitted transaction and the current quote.</summary>
     public static bool Matches(IDataProtectionProvider protection, string? proof, string? userId,
         decimal amount, string currency, DateOnly date, Quote expected)
     {
         if (string.IsNullOrEmpty(proof) || userId is null) return false;
-        if (DateTimeOffset.UtcNow > expected.ExpiresUtc) return false;
         try
         {
             var plain = Encoding.UTF8.GetString(
@@ -56,7 +55,9 @@ public static class MemberFxReview
                 && string.Equals(parts[5], expected.BaseCurrency, StringComparison.Ordinal)
                 && string.Equals(parts[6], expected.Source, StringComparison.Ordinal)
                 && long.TryParse(parts[7], NumberStyles.Integer, CultureInfo.InvariantCulture, out var ticks)
-                && ticks == expected.ExpiresUtc.Ticks;
+                // The expiry is the one issued with the token; the fresh quote on confirmation carries its own later expiry.
+                && ticks >= DateTimeOffset.MinValue.UtcTicks && ticks <= DateTimeOffset.MaxValue.UtcTicks
+                && DateTimeOffset.UtcNow <= new DateTimeOffset(ticks, TimeSpan.Zero);
         }
         catch (CryptographicException) { return false; }
         catch (FormatException) { return false; }

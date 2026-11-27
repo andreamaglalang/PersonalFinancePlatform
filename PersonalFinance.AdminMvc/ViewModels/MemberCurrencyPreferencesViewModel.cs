@@ -11,7 +11,7 @@ public sealed class MemberCurrencyPreferencesViewModel
     /// <summary>The account's own currency. Read-only: transactions are always converted to it.</summary>
     public string AccountCurrency { get; set; } = MemberCurrencyPreferences.AccountCurrency;
 
-    [Required, RegularExpression("^[A-Z]{3}$")]
+    [Required(ErrorMessage = "Choose one of the supported currencies."), RegularExpression("^[A-Z]{3}$", ErrorMessage = "Choose one of the supported currencies.")]
     [Display(Name = "Default transaction currency")]
     public string DefaultCurrency { get; set; } = MemberCurrencyPreferences.AccountCurrency;
 

@@ -178,8 +178,8 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                         suffix = state.currency?.let { code -> { Text(code, style = typography.label) } },
                         textStyle = typography.heroAmount, shape = shapes.field, colors = owliFieldColors(),
                         modifier = Modifier.fillMaxWidth().onFocusChanged { if (!it.isFocused && state.amount.isNotEmpty()) model.touch(FormField.Amount) },
-                        isError = FormField.Amount in state.touched && !state.amountValid,
-                        supportingText = { if (FormField.Amount in state.touched && !state.amountValid) ErrorText(R.string.form_amount_error) },
+                        isError = addAmountProblem(state.amount, FormField.Amount in state.touched) != null,
+                        supportingText = { addAmountProblem(state.amount, FormField.Amount in state.touched)?.let { ErrorText(it) } },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus(); model.touch(FormField.Amount) }))
                     Text(state.currency?.let {

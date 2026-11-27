@@ -27,6 +27,14 @@ class GoalsBillsModelsTest {
     private fun edit(base: String, key: String, value: String?): JsonObject = json(base).apply { if (value == null) remove(key) else add(key, JsonParser.parseString(value)) }
     private fun fails(block: () -> Unit) = assertTrue(runCatching(block).isFailure)
 
+    @Test fun overFundedGoalShowsSurplusNotNegativeRemaining() {
+        val over = parseSavingsGoal(edit(edit(goal, "savedAmount", "10025.50").toString(), "remainingAmount", "-25.50"))
+        assertEquals(R.string.goal_progress_over_target to BigDecimal("25.50"), goalProgressCaption(over))
+        fails { parseSavingsGoal(edit(goal, "remainingAmount", "-25.50")) } // must equal target minus saved
+        assertEquals(R.string.goal_progress_remaining to BigDecimal("7500.00"), goalProgressCaption(parseSavingsGoal(json(goal))))
+        assertEquals(R.string.goal_progress_remaining to BigDecimal("0.00"), goalProgressCaption(parseSavingsGoal(edit(edit(goal, "savedAmount", "10000.00").toString(), "remainingAmount", "0.00"))))
+    }
+
     @Test fun parsesValidGoalBillAndContribution() {
         val g = parseSavingsGoal(json(goal))
         assertEquals(SavingsGoal(5, "Emergency", BigDecimal("10000.00"), BigDecimal("2500.00"), BigDecimal("7500.00"), BigDecimal("25.00"), "PHP",

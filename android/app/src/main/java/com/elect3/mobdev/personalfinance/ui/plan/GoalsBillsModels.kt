@@ -46,7 +46,9 @@ private fun JsonObject.currency(key: String): String = str(key).also { require(i
 private fun JsonObject.bool(key: String): Boolean = get(key).also { require(it != null && it.isJsonPrimitive && it.asJsonPrimitive.isBoolean) }.asBoolean
 
 fun parseSavingsGoal(o: JsonObject) = SavingsGoal(o.id("goalId"), o.str("name").also { require(it.isNotBlank()) }, o.money("targetAmount"), o.money("savedAmount"),
-    o.money("remainingAmount"), o.money("progressPercentage"), o.currency("baseCurrency"), GoalStatus.valueOf(o.str("status")),
+    // Signed: target minus saved, negative for an over-funded goal.
+    o.get("remainingAmount").also { require(it != null && it.isJsonPrimitive && it.asJsonPrimitive.isNumber) }.asBigDecimal
+        .also { require(it.compareTo(o.money("targetAmount").subtract(o.money("savedAmount"))) == 0) }, o.money("progressPercentage"), o.currency("baseCurrency"), GoalStatus.valueOf(o.str("status")),
     if (o.get("targetDate")?.isJsonNull == false) o.date("targetDate") else null, o.str("version"))
 
 fun parseRecurringBill(o: JsonObject) = RecurringBill(o.id("billId"), o.str("name").also { require(it.isNotBlank()) }, o.money("amount"), o.currency("currencyCode"),

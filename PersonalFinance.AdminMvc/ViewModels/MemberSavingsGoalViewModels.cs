@@ -55,7 +55,7 @@ public sealed class MemberContributionFormModel
     [Required(ErrorMessage = "Choose a contribution date."), Display(Name = "Contribution date")]
     public DateOnly? ContributedOn { get; set; }
 
-    [StringLength(200)]
+    [StringLength(200, ErrorMessage = "Notes can be up to 200 characters.")]
     [Display(Name = "Note")]
     public string? Note { get; set; }
 

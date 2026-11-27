@@ -142,7 +142,8 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
                         Text(stringResource(R.string.goal_saved_of, saved, target), style = typography.body, modifier = Modifier.semantics { contentDescription = progressLabel })
                         LinearProgressIndicator(progress = { record.progressPercentage.divide(BigDecimal(100)).toFloat().coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth().semantics { contentDescription = progressLabel })
-                        Text(stringResource(R.string.goal_progress_remaining, percent, money(record.remainingAmount, record.baseCurrency)), style = typography.caption)
+                        val (captionRes, captionAmount) = goalProgressCaption(record)
+                        Text(stringResource(captionRes, percent, money(captionAmount, record.baseCurrency)), style = typography.caption)
                         val status = stringResource(record.status.label)
                         Text(record.targetDate?.let { stringResource(R.string.plan_pair, status, stringResource(R.string.goal_target_date, displayDate(it))) } ?: status, style = typography.caption)
                         if (goalRow!!.contributionPending) PlanMessage(stringResource(R.string.goal_contribution_pending), error = true)
@@ -377,3 +378,8 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
         }) { Text(stringResource(if (request != null) R.string.contribution_check_same else R.string.plan_save)) }
     })
 }
+
+/** An over-funded goal reports its surplus, never a negative remaining amount. */
+internal fun goalProgressCaption(goal: SavingsGoal): Pair<Int, java.math.BigDecimal> =
+    if (goal.remainingAmount.signum() < 0) R.string.goal_progress_over_target to goal.remainingAmount.negate()
+    else R.string.goal_progress_remaining to goal.remainingAmount

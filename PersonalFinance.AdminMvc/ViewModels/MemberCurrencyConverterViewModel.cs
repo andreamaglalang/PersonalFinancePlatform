@@ -26,11 +26,11 @@ public sealed class MemberCategoryIndexViewModel
 
 public sealed class MemberCategoryFormViewModel : System.ComponentModel.DataAnnotations.IValidatableObject
 {
-    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(50)]
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter a category name."), System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Category names can be up to 50 characters.")]
     public string Name { get; set; } = string.Empty;
-    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.RegularExpression("^(Income|Expense)$")]
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose Income or Expense."), System.ComponentModel.DataAnnotations.RegularExpression("^(Income|Expense)$", ErrorMessage = "Choose Income or Expense.")]
     public string Type { get; set; } = "Expense";
-    [System.ComponentModel.DataAnnotations.RegularExpression("^#[0-9A-Fa-f]{6}$")]
+    [System.ComponentModel.DataAnnotations.RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Choose a valid color.")]
     public string? ColorHEX { get; set; }
     public bool IsActive { get; set; } = true;
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever] public bool IsEdit { get; set; }

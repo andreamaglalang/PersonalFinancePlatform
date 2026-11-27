@@ -53,7 +53,9 @@ class LiveAccountPlanRepository internal constructor(
                 require(o.get("reminderDaysBefore").asInt in 0..30); require(o.get("isActive").asJsonPrimitive.isBoolean)
             } else {
                 require(text(o, "name").isNotBlank()); currency(o, "baseCurrency"); text(o, "version")
-                listOf("targetAmount", "savedAmount", "remainingAmount", "surplusAmount", "progressPercentage").forEach { money(o, it) }
+                listOf("targetAmount", "savedAmount", "surplusAmount", "progressPercentage").forEach { money(o, it) }
+                // Remaining is target minus saved, so it is negative once a goal is over-funded (the surplus is reported separately).
+                require(o.get("remainingAmount").asBigDecimal.compareTo(o.get("targetAmount").asBigDecimal.subtract(o.get("savedAmount").asBigDecimal)) == 0)
                 require(text(o, "status") in setOf("Active", "Completed", "Cancelled"))
                 if (o.get("targetDate")?.isJsonNull == false) date(o, "targetDate")
             }

@@ -19,7 +19,7 @@
             <p class="owli-overline">@goal.Status</p>
             <h2>@goal.SavedAmount.ToString("N2", invariant) @goal.BaseCurrency <small>of @goal.TargetAmount.ToString("N2", invariant) @goal.BaseCurrency</small></h2>
             <div class="member-goal-progress" role="progressbar" aria-label="Goal progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Math.Clamp(goal.ProgressPercentage, 0m, 100m).ToString("0.0", invariant)"><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect class="member-progress-fill" width="@Math.Clamp(goal.ProgressPercentage, 0m, 100m).ToString("0.0", invariant)" height="10" rx="5" /></svg></div>
-            <p class="owli-caption">@goal.ProgressPercentage.ToString("0.0", invariant)% complete · @goal.RemainingAmount.ToString("N2", invariant) @goal.BaseCurrency remaining</p>
+            <p class="owli-caption">@goal.ProgressPercentage.ToString("0.0", invariant)% complete · @(goal.SurplusAmount > 0 ? $"{goal.SurplusAmount.ToString("N2", invariant)} {goal.BaseCurrency} over target" : $"{Math.Max(0m, goal.RemainingAmount).ToString("N2", invariant)} {goal.BaseCurrency} remaining")</p>
             @if (goal.TargetDate is { } target) { <p class="owli-caption">Target date: <time datetime="@target.ToString("yyyy-MM-dd", invariant)">@target.ToString("MMMM d, yyyy", System.Globalization.CultureInfo.CurrentCulture)</time></p> }
             <div class="member-form-actions">
                 @if (goal.Status == "Active")

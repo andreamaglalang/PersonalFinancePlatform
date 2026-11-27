@@ -61,6 +61,14 @@ class LiveAccountPlanRepositoryTest {
         assertEquals(FinanceFailure.Conflict, (result as FinanceResult.Failure).reason)
         assertEquals("\"AAAAAAAAAAE=\"", f.requests.single().ifMatch)
     }
+    @Test fun overFundedGoalLoadsWithSignedRemaining() = runTest {
+        val f = Fixture(); f.login()
+        fun goal(saved: String, remaining: String) = "{\"goalId\":7,\"name\":\"Bike\",\"targetAmount\":200.00,\"savedAmount\":$saved,\"remainingAmount\":$remaining,\"surplusAmount\":30.75,\"progressPercentage\":115.38,\"baseCurrency\":\"PHP\",\"status\":\"Completed\",\"targetDate\":null,\"version\":\"AAAAAAAAAAE=\"}"
+        f.read = { FinanceHttpResponse(200, goal("230.75", "-30.75")) }
+        assertTrue("an over-funded goal must load", f.repo.get("savings-goals/7") is FinanceResult.Success)
+        f.read = { FinanceHttpResponse(200, goal("230.75", "-10.00")) }
+        assertTrue("remaining must equal target minus saved", f.repo.get("savings-goals/7") is FinanceResult.Failure)
+    }
     @Test fun invalidVersionDoesNotSend() = runTest {
         val f = Fixture(); f.login()
         assertTrue(f.repo.save("savings-goals/7", null, delete = true, version = "invalid") is FinanceResult.Failure)
