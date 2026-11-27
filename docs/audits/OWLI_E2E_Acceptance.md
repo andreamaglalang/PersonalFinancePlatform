@@ -279,6 +279,16 @@ and failed.
 - Still NOT TESTED: spoken TalkBack/VoiceOver output, physical devices and tablets, upgrade with the release key,
   a populated pre-migration-4 database, production.
 
+### Regression after round 3
+
+| Suite | Result |
+| --- | --- |
+| .NET: Finance 441, Authentication 34, ApiSecurity 35, CategoryUniqueness 15, SchemaValidation 65, AdminProvisioning 40, MVC UiTests (with R3 checks) | PASS |
+| SqlIntegration 16/16, Hangfire 13/13 (real SQL Server) | PASS |
+| Android unit (debug / release) | 675 / 681, 0 failures |
+| Android instrumented, full suite | 203 run, 0 failures, 22 skipped (opt-in). A first run had 7 `MainActivityTest` failures because the emulator was still signed in from the manual device run; after signing out, the full suite passed |
+| Hosted CI on PR #31 | dotnet, android, sql green |
+
 ## Final verified commit
 
 | Item | Value |
