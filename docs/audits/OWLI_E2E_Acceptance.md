@@ -202,6 +202,83 @@ Not exercised on a device in this round (still covered by instrumented Compose t
 | Android unit (debug / release) | 672 / 678, 0 failures |
 | Android instrumented, full suite (incl. new v2 → v3 migration test) | 203 run, 0 failures, 22 skipped (opt-in device steps) |
 
+## Round 3: final functional regression (27 November 2026)
+
+Started from `dev` `285d6cc` (code identical to `bc652ce`). Local API, MVC and worker rebuilt from that commit;
+synthetic accounts only, disposable catalog `OWLI_Runtime_20261126`. Each financial result was checked in the
+page, in the API and in SQL Server. Scripts (local evidence): `gap.js` (remaining MVC controls), `journeys.js`
+(financial journeys), the uiautomator driver for Android, and curl replays of real MVC forms.
+
+### Defects found and corrected
+
+| # | Defect | How it was found | Root cause | Correction | Verified after the fix |
+| --- | --- | --- | --- | --- | --- |
+| R3-1 | An over-funded goal showed "-25.50 PHP remaining" (MVC goal details; Android Plan) | Contributed 75.50 to a 50.00 goal | The API's remaining amount is target minus saved (negative past the target; the surplus is a separate field); the details page and Android printed it unchanged | Show "X over target" when there is a surplus, otherwise remaining (never below zero) | MVC: "151.0% complete · 25.50 PHP over target". Android: "₱30.75 over target" |
+| R3-2 | **MVC rate review could never save.** With "Review the rate before saving" on, confirming a fresh rate always failed with "The exchange rate changed or the confirmation expired" | USD expense through the real form | The confirmation token's expiry was compared with the expiry of the quote rebuilt at submit (always later) | Check the expiry carried by the token itself; the account, amount, currency, date, rate, rate date and source checks are unchanged | Confirmed USD 10.25 → one row at the quoted rate (63.661, ₱652.53). Expired, other-account and changed-rate confirmations still refused (regression check) |
+| R3-3 | **MVC transaction created twice when the same form was resubmitted** | Same Add form posted twice with curl → **2** rows | ClientId minted in the POST action (the F1 pattern, not yet fixed for transactions) | ClientId minted when the form opens (hidden field); a form without it is refused as expired. The API's replay answer (200 with the original row) now counts as saved instead of "could not confirm" | Same form ×3 → **1** row, each answer "saved". Same form with a changed amount → 409 "already recorded with different details". A separately opened form → its own row |
+| R3-4 | MVC validation showed framework wording: "The Name field is required.", "The field Type must match the regular expression '^(Income\|Expense)$'." | Tampered and whitespace-only inputs on the administrator and member category forms | Data-annotation attributes without messages | Plain messages on category, transaction type, bill frequency, currency preference and contribution note rules | "Enter a category name.", "Choose Income or Expense.", "Choose a valid color." |
+| R3-5 | **Android Goals tab failed to load** ("Savings goals couldn't be loaded") once any goal was over-funded | Device run with an over-funded goal | Both goal parsers required every amount, including the signed remaining amount, to be zero or more | Remaining amount parsed signed, and must equal target minus saved (stricter than before) | Goals tab lists the goal; regression tests fail on the old code and pass on the fix |
+| R3-6 | Android Add transaction: an amount such as 10.555 disabled Save with no reason | Device run | The error appeared only after the field lost focus; Save, which would also show it, is disabled | Show the specific reason as soon as the amount cannot become valid ("0" while typing "0.5" still waits until the field is left) | "Amounts can have no more than two decimal places." shown under the field |
+
+Regression tests: `E2eRegressionChecks` (R3-1 to R3-4, including a real issue → confirm cycle of the rate token and the
+replay status), `ActivityParityChecks` (confirmation saves once; a form without ClientId sends nothing),
+`MemberCurrencyChecks` (the rendered Add form carries its ClientId), Android `LiveAccountPlanRepositoryTest`,
+`GoalsBillsModelsTest` and `AddTransactionViewModelTest`. R3-2, R3-3 and R3-5 checks were run against the old code first
+and failed.
+
+### Remaining MVC controls: all 56 exercised
+
+| Area | Controls | Result |
+| --- | --- | --- |
+| Member pages (12) | Activity "All" and "Expenses"; Budgets month picker (summary, input, Go); Reports month picker (summary, input, Go; API expense 20.00 for that month); default currency select (persists, preselects Add); colour on category edit (`#aa3355` in API); goal target date on edit (29 Feb 2028); bill currency select (USD) | PASS |
+| Member shell (3) | Skip to main content (first Tab, moves to `#main`); theme toggle (switches, persists across pages); logout dialog "Stay signed in" (still signed in) | PASS |
+| Administrator (41) | Form dialog Close; account menu Escape; every palette colour and No color on create (15/15 saved exactly) and on edit (16/16); Income type on create; "Reload current category" discards typing; Activate dialog Cancel keeps inactive, "Activate and save" activates; API page options (summary, page 2, page size 3); Name sort (39 names descending) and Status sort (active first) | PASS |
+| **MVC total** | **273 distinct controls, 273 exercised** | |
+
+### Financial journeys (MVC, verified in page, API and SQL)
+
+| Journey | Result |
+| --- | --- |
+| USD expense with rate review: quote, nothing stored before confirmation, one row after, exact base amount | PASS (after R3-2) |
+| Editing only the description keeps the historical rate snapshot (rate and base unchanged) | PASS |
+| Unsupported currency → 400 with a specific reason, nothing stored | PASS |
+| Budget spent/remaining/status after create (750, OK), edit (850, Warning), edit (1100, Exceeded), delete (0, OK) = SQL sums, shown on Plan | PASS |
+| Contribution to target → Completed; deleting it → Active, saved 0 | PASS |
+| Over-contribution → surplus 25.50 shown | PASS (after R3-1) |
+| USD bill paid through MVC → one transaction, 7.99 USD × 63.661 = ₱508.65, next due one month later | PASS |
+| Cross-account: member B on member A's edit, details, contribute, pay, category and delete pages sees "no longer available" or 404 and none of A's data; API 404 for read, update, pay, delete; A's data intact | PASS |
+| Inbox: 25 notifications → page 1 and Next/Previous; Mark read; another member marking it → 404; Unread only; Mark all → 0 unread; empty account → "You have no notifications yet." | PASS |
+| Lockout: 5 wrong passwords, then the right one → the same generic message; unknown account → same message; API 401 | PASS |
+| Invalid category type (API and tampered form) → refused, nothing stored | PASS (wording fixed by R3-4) |
+| Deactivated personal category hidden from Add; history keeps its name | PASS |
+| Insights after every mutation = API = SQL | PASS |
+
+### Android, on a device against the real API
+
+| Area | Checked | Result |
+| --- | --- | --- |
+| Sign-in | Password Show/Hide; Home all-time totals equal the seeded data (income ₱49,000.00, expenses ₱1,645.49, net +₱47,354.51) | PASS |
+| Activity search and filters | Search "jeepney" (1 result, totals re-filtered); Clear search; Previous month (October, 2 rows); All time (7); Income segment (2); Filters sheet: Food + Oldest first (2 rows, oldest first); remove chip; Clear all | PASS |
+| Insights month navigation | Previous ×3 (September −₱999.99; August empty state), This month; Next is disabled in the current month | PASS |
+| Currency converter | Preset $500 → ₱31,830.50 at 63.661 (equals API quote); Swap; picker to EUR → 0.01431 (equals API) | PASS |
+| Category manager | Rename "Coffee" → "Cafe drinks" and colour Teal (both in the API); Reorder Food to the top; order kept after reopening (device-local, as the screen states) | PASS |
+| Inbox actions | Mark read (SQL updated); Unread filter; read on MVC → disappears from Android's unread list after Refresh; Mark all as read → 0 unread in SQL | PASS |
+| Over-funded goal | Goals tab loads; "₱30.75 over target" | PASS (after R3-5, R3-1) |
+| Amount validation | 10.555 → specific message | PASS (after R3-6) |
+| API restart | API stopped: MVC shows "…could not verify your session. Try opening the page again shortly." (503); Android adds from cached categories and saves "Saved on this device". API restarted: synced **once** (one SQL row) | PASS, see limitation |
+
+### Limitations recorded in round 3 (not represented as passed)
+
+- After an API-only outage (network never lost), Android syncs on sign-in, on a system network event or with "Sync
+  now"; there is no periodic retry. In this run a network event triggered it within about two minutes. No duplicate.
+- Android caps the goal progress percentage at 100% ("100% · ₱30.75 over target"); MVC shows 151.0%. Display only.
+- A cold category cache (an account that never opened the picker online) cannot offer categories while the API is down.
+  This is the documented design.
+- The administrator test palette created extra shared categories in the disposable catalog; they appear in every
+  synthetic member's lists there. Not production data.
+- Still NOT TESTED: spoken TalkBack/VoiceOver output, physical devices and tablets, upgrade with the release key,
+  a populated pre-migration-4 database, production.
+
 ## Final verified commit
 
 | Item | Value |
