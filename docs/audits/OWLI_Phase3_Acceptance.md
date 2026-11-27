@@ -103,13 +103,35 @@ API and MVC from the candidate; Android 16 emulator using the debug build agains
 | 16a | Production deployment | **Out of scope (deployment team)** | D10: the external deployment team deploys through its existing Cloudflare setup using [the handoff guide](../../deployment/README.md). Not verified by this team; production status is reported separately |
 | 17 | MVC Manila dates | PASS | M9 paging remains optional |
 
+## Final integration on `dev` (27 November 2026)
+
+- PRs #12, #13, #14, #15, #16, #17, #20, #21, #22, #23, #18, #24 and #25 were merged in dependency order, each
+  after green CI on its latest head. #19 (the combined candidate) was closed without merging. Nothing was merged
+  into `main`.
+- **Matches the tested candidate:** the merged `dev` code differs from candidate `4c74878` only in the order of
+  four UiTests registrations and the position of the registration string block (the same 823 strings with
+  identical values, no duplicates). There are no conflict markers. #24 adds only its two runtime test files.
+- **Regression on the merged commit `600244d`:**
+
+| Suite | Result |
+| --- | --- |
+| .NET build + Finance 440, Authentication 30, ApiSecurity 34, CategoryUniqueness 15, SchemaValidation 65, AdminProvisioning 40, MVC UiTests | PASS (exit 0 each) |
+| SqlIntegrationTests (real SQL Server) | 16/16 |
+| HangfireTests (real SQL Server) | 13/13 |
+| Android unit (debug / release) | 656 / 662, 0 failures |
+| Android instrumented, full suite | 195 run, 0 failures, 15 skipped (opt-in). A first run had 2 TLS handshake failures while the API was still starting; after the API was up, the full suite was re-run clean |
+| Device UI runtime test (opt-in) | 5/5 PASS |
+| Cross-client transaction gate (Android ↔ MVC) | 14/14 PASS |
+| MVC browser flows (register, keyboard sign-in, goal, contribution, bill + payment) | PASS |
+| MVC rendered: 12 pages × 3 widths × 2 themes | 36/36 per theme: no overflow, 0 axe A/AA violations |
+
 ## Phase 5: release readiness and deployment handoff
 
 Two separate statuses:
 
 | Status | Result |
 | --- | --- |
-| Local release readiness | Candidate verified (sections above). Publish of API, MVC and worker is verified; no forbidden files in the output; the published worker starts disabled (exit 0). The secrets scan of `dev` and the candidate found no passwords, tokens, keys or private configuration. **Final `dev` commit: recorded after the reviewed merges** |
+| Local release readiness | Candidate verified (sections above). Publish of API, MVC and worker is verified; no forbidden files in the output; the published worker starts disabled (exit 0). The secrets scan of `dev` and the candidate found no passwords, tokens, keys or private configuration. **Final verified `dev` code commit: `600244d`** (all PRs #12–#25 merged with owner approval; see below) |
 | Production deployment | **Not performed by this team.** Owned by the external deployment team (D10); it is not claimed as verified here |
 
 Handoff: [deployment/README.md](../../deployment/README.md) covers software, pulling `dev`, configuration, backup and migration rehearsal, publish, API/MVC startup, worker supervision, `OWLI_Hangfire` preparation and controlled activation, Cloudflare, Android signing, verification and rollback (PR #25).

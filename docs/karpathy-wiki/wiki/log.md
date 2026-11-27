@@ -76,3 +76,8 @@
 - Disposition: Update
 - Updated: OWLI verification limits and architectural decisions
 - D10 resolved: external deployment team deploys via existing Cloudflare; this team delivers verified dev + deployment/README.md handoff (#25). Local readiness and production deployment are separate statuses.
+
+## [2026-11-27] update | Final dev integration
+- Disposition: Update
+- Updated: OWLI verification limits and architectural decisions
+- PRs #12-#25 merged; dev 600244d verified (full .NET/SQL/worker, Android unit+instrumented, device UI, cross-client, MVC rendered). Production deployment remains with the deployment team.
