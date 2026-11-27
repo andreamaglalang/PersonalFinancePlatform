@@ -82,7 +82,26 @@
     <string name="reports_change_same">Spending matches %1$s exactly.</string>
     <string name="reports_change_none">No spending recorded in %1$s to compare with.</string>
 
+    <!-- Server report extras (signed in) -->
+    <string name="reports_savings_description">Savings contributed in %1$s: %2$s</string>
+    <string name="reports_budgets_title">Budgets</string>
+    <string name="reports_budget_row">%1$s of %2$s</string>
+    <string name="reports_budget_row_description">%1$s budget: %2$s spent of %3$s, %4$s</string>
+    <string name="reports_budget_status_ok">On track</string>
+    <string name="reports_budget_status_warning">Near limit</string>
+    <string name="reports_budget_status_exceeded">Over budget</string>
+
+    <!-- Stored monthly snapshots (C4) -->
+    <string name="reports_snapshots_title">Monthly snapshots</string>
+    <string name="reports_snapshots_note">Snapshots are saved at the start of each month and don\'t change, even if you edit older transactions.</string>
+    <string name="reports_snapshots_loading">Loading monthly snapshots…</string>
+    <string name="reports_snapshots_empty">No snapshots yet. The first one is saved at the start of next month.</string>
+    <string name="reports_snapshots_error">Monthly snapshots couldn\'t be loaded.</string>
+    <string name="reports_snapshots_invalid">Monthly snapshots didn\'t add up, so they aren\'t shown.</string>
+    <string name="reports_snapshot_savings">Savings</string>
+    <string name="reports_snapshot_description">%1$s snapshot: income %2$s, expenses %3$s, net %4$s, savings %5$s</string>
+
     <!-- Source note -->
-    <string name="reports_source_account">Totals in %1$s. Pending entries appear after syncing.</string>
+    <string name="reports_source_account">Totals in %1$s from the OWLI server, the same figures as the web app. Pending entries appear after syncing.</string>
     <string name="reports_source_demo">Mock Demo · Sample data only.</string>
 </resources>

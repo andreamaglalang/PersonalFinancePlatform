@@ -42,6 +42,7 @@ fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier,
         onOpenFilter = shell.openActivityFilter,
         onOpenCategories = shell.openCategories,
         onOpenAccount = shell.openAccount,
+        onOpenNotifications = shell.openNotifications,
     )
 }
 
@@ -64,6 +65,7 @@ fun DashboardScreen(
     onOpenFilter: (() -> Unit)? = null,
     onOpenCategories: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
+    onOpenNotifications: (() -> Unit)? = null,
 ) {
     val copy = dashboardCopy(source)
     val typography = LocalOwliTypography.current
@@ -97,6 +99,10 @@ fun DashboardScreen(
                             Text(greeting, style = typography.greeting, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(stringResource(R.string.dashboard_title), style = typography.screenTitle,
                                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.semantics { heading() })
+                        }
+                        if (onOpenNotifications != null) IconButton(onClick = onOpenNotifications, modifier = Modifier.size(48.dp)) {
+                            Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_owli_bell), stringResource(R.string.notifications_open),
+                                modifier = Modifier.size(22.dp))
                         }
                         if (state is DashboardUiState.Content) DashboardPillAction(stringResource(R.string.dashboard_refresh), onRefresh, !state.isRefreshing)
                     }

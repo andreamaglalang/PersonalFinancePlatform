@@ -40,6 +40,12 @@ class ApiConfiguration private constructor(private val base: URI?) {
         return base?.resolve(if (categoryId == null) "api/categories" else "api/categories/$categoryId")?.toURL()
     }
 
+    /** C3: POST api/notifications/{id}/read, or api/notifications/read-all when [notificationId] is null. */
+    internal fun notificationReadUrl(notificationId: Int?): URL? {
+        require(notificationId == null || notificationId > 0)
+        return base?.resolve(if (notificationId == null) "api/notifications/read-all" else "api/notifications/$notificationId/read")?.toURL()
+    }
+
     companion object {
         fun unconfigured() = ApiConfiguration(null)
 

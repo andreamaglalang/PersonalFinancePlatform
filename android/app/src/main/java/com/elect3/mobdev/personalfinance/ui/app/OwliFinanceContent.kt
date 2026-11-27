@@ -74,6 +74,10 @@ fun OwliFinanceContent(
     /** Device-local (Room) ledger for signed-in offline-first recording. Never used by Mock Demo. */
     offlineLedger: com.elect3.mobdev.personalfinance.data.local.LocalLedger? = null,
     offlineCategoryCache: com.elect3.mobdev.personalfinance.data.local.LocalCategoryCache? = null,
+    /** Signed-in notifications inbox (api/notifications, C3); null hides it. Never used by Mock Demo. */
+    authenticatedNotifications: com.elect3.mobdev.personalfinance.domain.repository.NotificationRepository? = null,
+    /** Signed-in server reports for Insights (C6 monthly report, C4 snapshots); null hides Insights for the account. */
+    authenticatedReports: com.elect3.mobdev.personalfinance.domain.reports.ReportRepository? = null,
 ) {
     var formOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     var formInitialType by remember(authenticatedContentKey) { mutableStateOf<TransactionType?>(null) }
@@ -81,6 +85,7 @@ fun OwliFinanceContent(
     var dashboardRequests by remember(authenticatedContentKey) { mutableIntStateOf(0) }
     var accountOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     var converterOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
+    var notificationsOpen by remember(authenticatedContentKey) { mutableStateOf(false) }
     val demo = demoSession ?: remember { DemoSession() }
     val context = LocalContext.current
     // Signed-in icon/order choices: this device only, scoped to the account ID; never shared with Mock Demo.
@@ -117,11 +122,12 @@ fun OwliFinanceContent(
                 com.elect3.mobdev.personalfinance.data.local.cacheTransactionHistory(remote, offlineLedger, accountId) { isSessionCurrent(key) }
             else remote
         }
-        val scope = remember(key, repository) {
+        val scope = remember(key, repository, authenticatedReports) {
             AccountTransactionStore(repository, { isSessionCurrent(key) }, {
                 if (isSessionCurrent(key)) onSessionExpired(key)
             }, accountCurrency = authenticatedCurrency,
-                initialFilter = com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter().forMonth(java.time.YearMonth.now()))
+                initialFilter = com.elect3.mobdev.personalfinance.domain.repository.TransactionFilter().forMonth(java.time.YearMonth.now()),
+                reports = authenticatedReports)
         }
         DisposableEffect(scope) { onDispose { scope.close() } }
         LaunchedEffect(scope, sessionKeys) { scope.invalidateOnSessionChange(sessionKeys, key) }
@@ -233,8 +239,8 @@ fun OwliFinanceContent(
                     billCount = demoBills.size))
         }
     }
-    // Insights (Financial Reports) for this session only: demo -> in-memory sample ledger (PHP); signed in -> this
-    // account's GET api/transactions date-filtered reads, totalled from server base amounts. Never mixed.
+    // Insights (Financial Reports) for this session only: demo -> in-memory sample ledger (PHP); signed in -> the
+    // server's own monthly report (GET api/reports/monthly) and stored snapshots, as MVC shows them. Never mixed.
     val demoReportsStore = remember(authenticatedContentKey) { androidx.lifecycle.ViewModelStore() }
     DisposableEffect(demoReportsStore) { onDispose { demoReportsStore.clear() } }
     val reportsVm: com.elect3.mobdev.personalfinance.ui.reports.ReportsViewModel? = if (account != null) {
@@ -255,6 +261,10 @@ fun OwliFinanceContent(
             com.elect3.mobdev.personalfinance.ui.reports.ReportsRoute(reportsVm, demo = authenticatedContentKey == null,
                 currentMonth = { java.time.YearMonth.now() })
         }
+    }
+    // Stable per session so the shell's actions are not rebuilt on every recomposition.
+    val openNotifications: (() -> Unit)? = remember(authenticatedContentKey, authenticatedNotifications) {
+        if (authenticatedContentKey != null && authenticatedNotifications != null) ({ notificationsOpen = true }) else null
     }
     OwliApp(
         // Demo (no account scope) always uses the owner's sample Dashboard; it never reads account data.
@@ -282,7 +292,15 @@ fun OwliFinanceContent(
         planContent = if (canAdd) planContent else null,
         dashboardRequests = dashboardRequests,
         insightsContent = insightsContent,
+        onOpenNotifications = openNotifications,
     )
+    val notificationKey = authenticatedContentKey
+    if (notificationsOpen && notificationKey != null && authenticatedNotifications != null) {
+        com.elect3.mobdev.personalfinance.ui.notifications.NotificationsDialog(authenticatedNotifications,
+            isCurrent = { isSessionCurrent(notificationKey) },
+            onExpired = { if (isSessionCurrent(notificationKey)) onSessionExpired(notificationKey) },
+            onClose = { notificationsOpen = false })
+    }
     val editTarget = editing
     val editKey = authenticatedContentKey
     if (editTarget != null && editKey != null && accountUpdates != null) {

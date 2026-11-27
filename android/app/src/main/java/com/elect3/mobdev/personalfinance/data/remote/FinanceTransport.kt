@@ -10,7 +10,8 @@ import javax.net.ssl.SSLException
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 
-internal enum class FinanceResource(val path: String) { Categories("categories"), Transactions("transactions"), Budgets("budgets"), ExchangeRateQuote("exchange-rates/quote") }
+internal enum class FinanceResource(val path: String) { Categories("categories"), Transactions("transactions"), Budgets("budgets"), ExchangeRateQuote("exchange-rates/quote"),
+    Notifications("notifications"), MonthlyReport("reports/monthly"), ReportSummaries("reports/summaries") }
 internal class FinanceSessionLease(
     private val token: String, val lifetime: Job,
     private val canAuthorize: () -> Boolean = { true }, private val onUnauthorized: () -> Unit = {}, private val valid: () -> Boolean,
