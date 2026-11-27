@@ -316,6 +316,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const type = entry.querySelector("[name=Type]:checked")?.value;
             Array.from(category.options).forEach(option => { const excluded = !!option.value && option.dataset.type !== type; option.hidden = excluded; option.disabled = excluded; });
             if (category.selectedOptions[0]?.disabled) category.value = "";
+            const none = entry.querySelector("[data-no-categories]");
+            if (none) none.hidden = Array.from(category.options).some(option => option.value && !option.disabled);
             const icon = entry.querySelector(`[data-category-icon="${category.value}"]`);
             const preview = entry.querySelector("[data-entry-category-icon]");
             if (preview && icon) preview.replaceChildren(icon.content.cloneNode(true));

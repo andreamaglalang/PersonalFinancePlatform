@@ -1001,9 +1001,9 @@ input[type="color"] { width: 68px !important; min-height: 44px; padding: 5px !im
 .plan-category-icon svg { width: 21px; height: 21px; }
 .plan-budget-percent { font-size: 13px; font-variant-numeric: tabular-nums; }
 .member-budget-card > .member-goal-progress { margin-top: 14px; }
-.plan-budget-status { margin: 10px 0 0; font-size: 12px; font-weight: 650; color: var(--income, #28765b); }
-.is-warning .plan-budget-status { color: var(--owli-gold-deep, #956500); }
-.is-exceeded .plan-budget-status { color: var(--expense, #c74e50); }
+.plan-budget-status { margin: 10px 0 0; font-size: 12px; font-weight: 650; color: var(--owli-income); }
+.is-warning .plan-budget-status { color: var(--warning-text); }
+.is-exceeded .plan-budget-status { color: var(--owli-expense); }
 .member-budget-card > footer { margin-top: 12px; padding-top: 10px; }
 .member-goal-grid, .member-bill-grid { align-items: start; }
 .member-goal-card, .member-bill-card { padding: 16px; }

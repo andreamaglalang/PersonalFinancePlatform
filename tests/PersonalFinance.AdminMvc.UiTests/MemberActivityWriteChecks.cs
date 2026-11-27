@@ -21,7 +21,7 @@ internal static class MemberActivityWriteChecks
             throw new InvalidOperationException("Create must send the upstream CreateTransactionRequest.");
         if (controller.Contains("MemberSessionGate.AcquireAsync") is false)
             throw new InvalidOperationException("Create must resolve the session through MemberSessionGate.");
-        if (controller.Contains("Choose a {0} category.") is false && controller.Contains("Choose a {model.Type} category.") is false)
+        if (controller.Contains("Choose a {0} category.") is false && controller.Contains("Choose an {model.Type.ToLowerInvariant()} category.") is false)
             throw new InvalidOperationException("Create must reject a category of the wrong type.");
 
         // The form must render model-level errors and carry no fictional amounts.

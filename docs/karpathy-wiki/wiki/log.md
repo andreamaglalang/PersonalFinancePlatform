@@ -91,3 +91,8 @@
 - Disposition: Update
 - Updated: OWLI verification limits
 - One password policy (API/MVC/Kotlin) with live checklists; clients show only allowlisted API reasons (ApiMessages) for 400/404/409; specific amount and field messages; MVC session-expiry notice. Record: docs/audits/OWLI_Validation_Feedback.md.
+
+## [2026-11-27] update | End-to-end acceptance
+- Disposition: Update
+- Updated: OWLI verification limits
+- 926 interactive elements inventoried; 151 UI scenarios pass after fixing 7 defects (MVC contribution edit/delete 404, bill edit silent failure, Android rotation lost forms, dark budget-status contrast, missing icon, password separator, no-category hint). Record: docs/audits/OWLI_E2E_Acceptance.md.

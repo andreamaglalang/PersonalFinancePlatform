@@ -150,6 +150,9 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
+        // Frequency and first due date are fixed at creation; the edit form never posts them.
+        ModelState.Remove(nameof(model.Frequency));
+        ModelState.Remove(nameof(model.FirstDueDate));
         if (!ModelState.IsValid || loaded.Status != 200)
         {
             if (loaded.Status != 200) ViewData["CategoryError"] = "Expense categories are unavailable. The bill was not saved.";

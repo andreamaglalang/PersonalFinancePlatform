@@ -47,6 +47,7 @@
                 </select></div>
                 @foreach (var category in Model.Categories) { <template data-category-icon="@category.CategoryId"><partial name="_ActivityCategoryIcon" model='@PersonalFinance.AdminMvc.Services.ActivityProjection.IconKey(category.Name, category.Type)' /></template> }
                 <span asp-validation-for="CategoryId" class="member-field-error"></span>
+                <p class="owli-caption" data-no-categories hidden="@(Model.Categories.Any(c => c.Type == Model.Type))">No categories of this type yet. <a asp-area="Member" asp-controller="Categories" asp-action="Create">Add a category</a>, then come back.</p>
             </div>
 
             <div class="member-field">

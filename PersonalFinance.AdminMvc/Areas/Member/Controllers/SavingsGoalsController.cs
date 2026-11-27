@@ -204,7 +204,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpGet]
-    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromRoute] int contributionId, CancellationToken ct)
+    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromQuery] int contributionId, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -229,7 +229,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromRoute] int contributionId,
+    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromQuery] int contributionId,
         [FromForm] MemberContributionFormModel model, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
@@ -264,7 +264,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpGet]
-    public async Task<IActionResult> DeleteContribution([FromRoute] int id, [FromRoute] int contributionId, CancellationToken ct)
+    public async Task<IActionResult> DeleteContribution([FromRoute] int id, [FromQuery] int contributionId, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -283,7 +283,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpPost, ActionName(nameof(DeleteContribution)), ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteContributionConfirmed([FromRoute] int id, [FromRoute] int contributionId,
+    public async Task<IActionResult> DeleteContributionConfirmed([FromRoute] int id, [FromQuery] int contributionId,
         CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();

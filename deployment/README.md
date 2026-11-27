@@ -44,9 +44,11 @@ git checkout dev && git pull --ff-only
 git rev-parse HEAD   # must match the release commit in the acceptance record
 ```
 
-The verified code commit is `600244d`. Later `dev` commits may change only documentation, configuration templates or opt-in tests;
-confirm with `git diff --stat 600244d HEAD -- . ':!docs' ':!*.md' ':!android/app/src/androidTest' ':!deployment/*.template'`, which must
-print nothing.
+The verified code commit is the latest one recorded in
+[the end-to-end acceptance record](../docs/audits/OWLI_E2E_Acceptance.md) (earlier: `600244d` in the Phase 5 record).
+Later `dev` commits may change only documentation, configuration templates or opt-in tests. To confirm, run
+`git diff --stat <verified commit> HEAD -- . ':!docs' ':!*.md' ':!android/app/src/androidTest' ':!deployment/*.template'`;
+it must print nothing.
 
 `main` is not the release branch until the owner explicitly approves a `dev` → `main` merge.
 
