@@ -54,7 +54,17 @@ internal static class ActivityParityChecks
         model=await Index(new(){Period="AllTime"});Check(model.Month is null && model.TotalCount==24,"All time clears the monthly range and includes the complete owner history.");
         model=await Index(new(){Month="9999-12"});Check(model.Month==BudgetPlanSummary.PhilippineToday.ToString("yyyy-MM"),"Injected future months clamp to the current Philippine-local month safely.");
         Check(await controller.Delete(24,default) is RedirectToActionResult && handler.Writes==0 && await controller.Edit(24,default) is RedirectToActionResult,"Direct edit/delete routes refuse protected bill payments without financial writes.");
-        var create=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=25,CurrencyCode="PHP",TransactionDate=Month,Description="Isolated create"};
+        var stale=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=25,CurrencyCode="PHP",TransactionDate=Month,Description="Isolated create"};
+        Check(await controller.Create(stale,default) is ViewResult && handler.Writes==0 && !controller.ModelState.IsValid,"R3-3: a create form without its ClientId is refused before any POST.");controller.ModelState.Clear();
+        // A malformed posted ClientId leaves its attempted value and binding error in ModelState; the returned form must
+        // carry a fresh identity (input tag helpers prefer ModelState values over the model).
+        stale.ClientId=null; controller.ModelState.SetModelValue("ClientId","not-a-guid","not-a-guid"); controller.ModelState.AddModelError("ClientId","bad");
+        var recovered=(MemberTransactionDraftViewModel)((ViewResult)await controller.Create(stale,default)).Model!;
+        Check(handler.Writes==0 && recovered.ClientId is {} fresh && fresh!=Guid.Empty && !controller.ModelState.ContainsKey("ClientId"),"R3-3: an expired form returns a fresh ClientId that is not masked by the stale posted value.");
+        controller.ModelState.Clear(); recovered.CategoryId=2;
+        Check(await controller.Create(recovered,default) is RedirectToActionResult && handler.Writes==1,"R3-3: the recovered form then saves once.");
+        handler.Writes=0; controller.ModelState.Clear();
+        var create=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=25,CurrencyCode="PHP",TransactionDate=Month,Description="Isolated create",ClientId=Guid.NewGuid()};
         Check(await controller.Create(create,default) is RedirectToActionResult && handler.Writes==1,"A valid PHP creation uses the existing authenticated POST contract in isolated infrastructure.");
         handler.FailWrites=true;controller.ModelState.Clear();
         Check(await controller.Create(create,default) is ViewResult && !controller.ModelState.IsValid,"A failed transaction API save stays on the form and is never reported as success.");handler.FailWrites=false;
@@ -71,9 +81,11 @@ internal static class ActivityParityChecks
         var payload=protector.CreateProtector(MemberCurrencyPreferences.ProtectorPurpose).Protect(Encoding.UTF8.GetBytes(MemberCurrencyPreferences.Pack("91",new("USD",true,true))));
         context.Request.Headers.Cookie=MemberCurrencyPreferences.CookieName+"="+Convert.ToBase64String(payload).TrimEnd('=').Replace('+','-').Replace('/','_');
         var writes=handler.Writes;
-        var foreign=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=1,CurrencyCode="USD",TransactionDate=Month};
+        var foreign=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=1,CurrencyCode="USD",TransactionDate=Month,ClientId=Guid.NewGuid()};
         var review=(MemberTransactionDraftViewModel)((ViewResult)await controller.Create(foreign,default)).Model!;
         Check(review is {ReviewRequired:true,FxConfirmed:false,FxQuote:not null,FxProof:not null} && handler.Writes==writes,"The first foreign-currency review is unchecked and saves no transaction.");
+        controller.ModelState.Clear(); foreign.FxConfirmed=true; foreign.PostedFxProof=review.FxProof;
+        Check(await controller.Create(foreign,default) is RedirectToActionResult && handler.Writes==writes+1,"R3-2: confirming the reviewed rate saves the foreign-currency transaction once.");
         handler.FailReads=true;
         model=await Index(new(){Month="2026-11"});Check(!model.DataLoaded && model.Error is not null,"A failed API read stays unavailable rather than becoming confirmed empty activity.");handler.FailReads=false;
         handler.Expire=true;

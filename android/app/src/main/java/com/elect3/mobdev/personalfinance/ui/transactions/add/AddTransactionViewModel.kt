@@ -79,6 +79,16 @@ fun validAmount(raw: String): Boolean {
     } catch (_: NumberFormatException) { false }
 }
 
+/**
+ * The specific amount problem to show, or null. Save stays disabled while the amount is invalid, so the reason is shown
+ * as soon as it cannot become valid by typing more; "greater than zero" waits until the field is left (typing "0.5").
+ */
+fun addAmountProblem(raw: String, touched: Boolean): Int? {
+    if (validAmount(raw) || (raw.isEmpty() && !touched)) return null
+    val problem = com.elect3.mobdev.personalfinance.ui.plan.amountProblem(raw) ?: com.elect3.mobdev.personalfinance.R.string.form_amount_error
+    return problem.takeIf { touched || it != com.elect3.mobdev.personalfinance.R.string.amount_error_positive }
+}
+
 /** True when the user typed something beyond the chosen category (amount, note or a different date). */
 val AddTransactionUiState.hasUserInput get() = amount.isNotEmpty() || description.isNotEmpty() || date != initialDate || currency != initialCurrency
 

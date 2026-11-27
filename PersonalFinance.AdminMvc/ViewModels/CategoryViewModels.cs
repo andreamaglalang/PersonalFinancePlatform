@@ -20,17 +20,17 @@ public sealed class CategoryIndexViewModel
 
 public sealed class CategoryCreateViewModel
 {
-    [Required, StringLength(50)] public string Name { get; set; } = string.Empty;
-    [Required, RegularExpression("^(Income|Expense)$")] public string Type { get; set; } = "Expense";
-    [Display(Name = "Color (optional)"), RegularExpression("^#[0-9A-Fa-f]{6}$")]
+    [Required(ErrorMessage = "Enter a category name."), StringLength(50, ErrorMessage = "Category names can be up to 50 characters.")] public string Name { get; set; } = string.Empty;
+    [Required(ErrorMessage = "Choose Income or Expense."), RegularExpression("^(Income|Expense)$", ErrorMessage = "Choose Income or Expense.")] public string Type { get; set; } = "Expense";
+    [Display(Name = "Color (optional)"), RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Choose a color from the palette.")]
     public string? ColorHEX { get; set; }
     [Display(Name = "Active")] public bool IsActive { get; set; } = true;
 }
 
 public sealed class CategoryEditViewModel
 {
-    [Required, StringLength(50)] public string Name { get; set; } = string.Empty;
-    [Display(Name = "Color (optional)"), RegularExpression("^#[0-9A-Fa-f]{6}$")]
+    [Required(ErrorMessage = "Enter a category name."), StringLength(50, ErrorMessage = "Category names can be up to 50 characters.")] public string Name { get; set; } = string.Empty;
+    [Display(Name = "Color (optional)"), RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Choose a color from the palette.")]
     public string? ColorHEX { get; set; }
     [Display(Name = "Active")] public bool IsActive { get; set; }
     public bool ConfirmDeactivation { get; set; }

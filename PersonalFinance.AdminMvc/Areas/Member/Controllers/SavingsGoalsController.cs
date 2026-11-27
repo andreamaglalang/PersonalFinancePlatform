@@ -189,6 +189,8 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
         if (status == 401) return RedirectToAction("Login", "Account");
 
+        // Checked first: a missing or malformed identity would otherwise re-render the same unusable form.
+        if (model.ClientId is not { } clientId || clientId == Guid.Empty) return Expired(id);
         if (!ModelState.IsValid)
         {
             var current = await goals.GetAsync(id, token!, ct);
@@ -196,7 +198,6 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             Response.StatusCode = 400;
             return View(model);
         }
-        if (model.ClientId is not { } clientId || clientId == Guid.Empty) return Expired(id);
         // The identity minted when this form opened: resubmitting the same form (double click, retry after a lost
         // response, a second tab with the same page) replays the one contribution instead of adding another.
         var result = await goals.ContributeAsync(id,

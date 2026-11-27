@@ -38,7 +38,7 @@ public class MemberBillFormModel
     [Display(Name = "Active")]
     public bool IsActive { get; set; } = true;
 
-    [Required, RegularExpression("Weekly|Monthly|Quarterly|Yearly")]
+    [Required(ErrorMessage = "Choose how often the bill repeats."), RegularExpression("Weekly|Monthly|Quarterly|Yearly", ErrorMessage = "Choose how often the bill repeats.")]
     [Display(Name = "Frequency")]
     public string? Frequency { get; set; }
 

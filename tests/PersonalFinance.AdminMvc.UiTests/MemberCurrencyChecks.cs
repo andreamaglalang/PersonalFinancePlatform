@@ -157,6 +157,7 @@ internal static class MemberCurrencyChecks
         var html = RenderCreate(new MemberTransactionDraftViewModel
         {
             Type = "Expense",
+            ClientId = Guid.Parse("3f1c2b7e-0000-4000-8000-00000000c0de"),
             CategoryId = 4,
             Amount = 10m,
             CurrencyCode = "USD",
@@ -169,6 +170,9 @@ internal static class MemberCurrencyChecks
                     ColorHEX = "#8B5CF6", IsActive = true, IsSystemDefault = false }
             ]
         }).GetAwaiter().GetResult();
+        // R3-3: the rendered Add form must post the identity minted when it opened.
+        if (!System.Text.RegularExpressions.Regex.IsMatch(html, "<input[^>]*name=\"ClientId\"[^>]*value=\"3f1c2b7e-0000-4000-8000-00000000c0de\""))
+            throw new InvalidOperationException("R3-3: the Add transaction form must render its ClientId.");
         var start = html.IndexOf("<select id=\"CurrencyCode\"", StringComparison.Ordinal);
         var end = html.IndexOf("</select>", start, StringComparison.Ordinal);
         var selectMarkup = html[start..(end + 9)];

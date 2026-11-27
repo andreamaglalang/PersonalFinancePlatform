@@ -11,8 +11,10 @@ public sealed class MemberTransactionDraftViewModel
     public int? TransactionId { get; set; }
     /// <summary>The transaction version read when the edit form was opened (C1); never refreshed on POST.</summary>
     public string? Version { get; set; }
+    /// <summary>New transactions: the identity minted when the form opened, so a resubmitted form records once.</summary>
+    public Guid? ClientId { get; set; }
 
-    [Required, RegularExpression("^(Income|Expense)$")]
+    [Required(ErrorMessage = "Choose Income or Expense."), RegularExpression("^(Income|Expense)$", ErrorMessage = "Choose Income or Expense.")]
     public string Type { get; set; } = "Expense";
 
     [Required(ErrorMessage = "Choose a category."), Range(1, int.MaxValue, ErrorMessage = "Choose a category.")]

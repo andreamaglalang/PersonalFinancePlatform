@@ -99,7 +99,8 @@ public sealed class TransactionApiClient(HttpClient http)
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             var status = (int)response.StatusCode;
             if (status is 400 or 401 or 403 or 404 or 409 or 429) return new(status) { Message = status is 400 or 404 or 409 ? await ApiMessages.ReadAsync(response, ct) : null };
-            if (status != expected) return new(503);
+            // A replayed ClientId is answered 200 with the original row (validated below), not 201.
+            if (status != expected && !(expected == 201 && status == 200)) return new(503);
             if (response.Content.Headers.ContentType?.MediaType != "application/json") return new(503);
             var value = await response.Content.ReadFromJsonAsync<T>(Json, ct);
             return value is not null && validate!(value) ? new(status, value) : new(503);

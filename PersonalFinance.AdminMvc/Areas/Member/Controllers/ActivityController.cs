@@ -123,6 +123,7 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
             Type = type is "Income" or "Expense" ? type : "Expense",
             CurrencyCode = MemberCurrencyPreferences.Normalise(preferences.DefaultCurrency),
             TransactionDate = BudgetPlanSummary.PhilippineToday,
+            ClientId = Guid.NewGuid(),
             Currencies = MemberCurrencyPreferences.Supported,
             BaseCurrency = account,
             ShowOriginalAmounts = preferences.ShowOriginalAmounts
@@ -148,6 +149,16 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
         model.ShowOriginalAmounts = preferences.ShowOriginalAmounts;
 
         ValidateCategory(model);
+        if (model.ClientId is not { } clientId || clientId == Guid.Empty)
+        {
+            // A form without its identity (opened before this release, or altered) cannot be saved safely.
+            // Drop the posted value (empty or malformed) and its binding error so the new identity is what renders.
+            ModelState.Remove(nameof(model.ClientId));
+            model.ClientId = Guid.NewGuid();
+            ModelState.AddModelError(string.Empty, "This form has expired. Check the details and save again.");
+            Response.StatusCode = 400;
+            return View(model);
+        }
         if (ModelState.IsValid)
         {
             // Rate review: a foreign-currency save must be confirmed against a freshly fetched quote.
@@ -196,9 +207,9 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
                 }
             }
 
-            // A fresh ClientId per submission — the same idempotency contract Android's
-            // TransactionCreationCoordinator uses. Never retried on an ambiguous outcome.
-            var request = new CreateTransactionRequest(Guid.NewGuid(), model.Type, model.CategoryId!.Value,
+            // The identity minted when this form opened (Android's TransactionCreationCoordinator contract): resubmitting
+            // the same form after a double click or an unconfirmed outcome replays the one transaction instead of adding another.
+            var request = new CreateTransactionRequest(clientId, model.Type, model.CategoryId!.Value,
                 model.Amount!.Value, model.CurrencyCode, model.TransactionDate!.Value, model.Description);
             var result = await transactions.CreateAsync(request, token!, ct);
             if (result.Succeeded)

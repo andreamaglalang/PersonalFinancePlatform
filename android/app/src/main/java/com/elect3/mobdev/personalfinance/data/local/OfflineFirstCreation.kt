@@ -53,6 +53,12 @@ sealed interface SyncOutcome {
  * connectivity problem; a server rejection (invalid data, inactive category, conflict) is kept as Rejected for the
  * user to review, never silently dropped.
  */
+/**
+ * Delay before automatic retry [attempt] (0-based) while entries are still pending: 10 s doubling to a 5-minute cap.
+ * An API-only outage raises no network event, so this bounded backoff is what recovers it without "Sync now".
+ */
+fun autoSyncDelayMillis(attempt: Int): Long = (10_000L shl attempt.coerceIn(0, 5)).coerceAtMost(300_000L)
+
 class PendingTransactionSync(private val remote: TransactionCreationRepository, private val ledger: LocalLedger) {
     private val mutex = Mutex()
 

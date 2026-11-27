@@ -14,6 +14,17 @@ import java.time.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddTransactionViewModelTest {
+    @Test fun invalidAmountExplainsWhySaveIsUnavailable() {
+        org.junit.Assert.assertEquals(com.elect3.mobdev.personalfinance.R.string.amount_error_decimals, addAmountProblem("10.555", touched = false))
+        org.junit.Assert.assertEquals(com.elect3.mobdev.personalfinance.R.string.amount_error_number, addAmountProblem("77.70abc", touched = false))
+        org.junit.Assert.assertEquals(com.elect3.mobdev.personalfinance.R.string.amount_error_large, addAmountProblem("99999999999999999", touched = false))
+        org.junit.Assert.assertNull("typing 0 on the way to 0.5 is not an error yet", addAmountProblem("0", touched = false))
+        org.junit.Assert.assertEquals(com.elect3.mobdev.personalfinance.R.string.amount_error_positive, addAmountProblem("0", touched = true))
+        org.junit.Assert.assertNull(addAmountProblem("", touched = false))
+        org.junit.Assert.assertEquals(com.elect3.mobdev.personalfinance.R.string.amount_error_empty, addAmountProblem("", touched = true))
+        org.junit.Assert.assertNull(addAmountProblem("10.55", touched = true))
+    }
+
     @get:Rule val main = MainDispatcherRule()
     private val clock = Clock.fixed(Instant.parse("2026-11-14T23:30:00Z"), ZoneId.of("Asia/Shanghai"))
     private class Controlled(val ignoreCancellation: Boolean = false) : CategoryRepository {

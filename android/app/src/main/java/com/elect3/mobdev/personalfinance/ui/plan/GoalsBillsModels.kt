@@ -46,7 +46,9 @@ private fun JsonObject.currency(key: String): String = str(key).also { require(i
 private fun JsonObject.bool(key: String): Boolean = get(key).also { require(it != null && it.isJsonPrimitive && it.asJsonPrimitive.isBoolean) }.asBoolean
 
 fun parseSavingsGoal(o: JsonObject) = SavingsGoal(o.id("goalId"), o.str("name").also { require(it.isNotBlank()) }, o.money("targetAmount"), o.money("savedAmount"),
-    o.money("remainingAmount"), o.money("progressPercentage"), o.currency("baseCurrency"), GoalStatus.valueOf(o.str("status")),
+    // Signed: target minus saved, negative for an over-funded goal.
+    o.get("remainingAmount").also { require(it != null && it.isJsonPrimitive && it.asJsonPrimitive.isNumber) }.asBigDecimal
+        .also { require(it.compareTo(o.money("targetAmount").subtract(o.money("savedAmount"))) == 0) }, o.money("progressPercentage"), o.currency("baseCurrency"), GoalStatus.valueOf(o.str("status")),
     if (o.get("targetDate")?.isJsonNull == false) o.date("targetDate") else null, o.str("version"))
 
 fun parseRecurringBill(o: JsonObject) = RecurringBill(o.id("billId"), o.str("name").also { require(it.isNotBlank()) }, o.money("amount"), o.currency("currencyCode"),
@@ -116,7 +118,7 @@ fun planListState(loading: Boolean, error: Int?, available: Boolean, count: Int)
 /** Progress as MVC shows it: clamped to 0–100 with at most one decimal. */
 fun goalProgressText(percentage: BigDecimal, locale: Locale = Locale.getDefault()): String =
     NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1; roundingMode = RoundingMode.HALF_UP }
-        .format(percentage.max(BigDecimal.ZERO).min(BigDecimal(100)))
+        .format(percentage.max(BigDecimal.ZERO)) // the real percentage, as on MVC; only the progress bar is capped at 100%
 
 /** The server's reviewed reason (ApiMessages) for a definitive rejection, else the generic message for [failure]. */
 fun planFailureText(res: android.content.res.Resources, failure: com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Failure, writing: Boolean = false): String =
