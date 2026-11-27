@@ -5,12 +5,13 @@ $repo = Split-Path -Parent $PSScriptRoot
 # Build/publish only. Never runs the application, migrations or provisioning.
 foreach ($entry in @(
     @{ Project = 'PersonalFinance.Api'; Output = 'api' },
-    @{ Project = 'PersonalFinance.AdminMvc'; Output = 'mvc' }
+    @{ Project = 'PersonalFinance.AdminMvc'; Output = 'mvc' },
+    @{ Project = 'PersonalFinance.Worker'; Output = 'worker' }
 )) {
     $project = Join-Path $repo ($entry.Project + '/' + $entry.Project + '.csproj')
     $output = Join-Path $PSScriptRoot ('out/' + $entry.Output)
     if (Test-Path -LiteralPath $output) { throw "Output already exists; use a fresh release workspace: $output" }
-    & dotnet publish $project -c Release --no-restore --self-contained false -p:UseAppHost=false -o $output
+    & dotnet publish $project -c Release --self-contained false -p:UseAppHost=false -o $output
     if ($LASTEXITCODE -ne 0) { throw "Publish failed: $project" }
 }
 # Published applications must never contain local development configuration.
