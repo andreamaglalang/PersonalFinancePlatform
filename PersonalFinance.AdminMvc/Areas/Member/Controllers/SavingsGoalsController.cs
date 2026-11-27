@@ -60,7 +60,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!goal.Succeeded) return RedirectToIndex(goal.Status);
+        if (!goal.Succeeded) return RedirectToIndex(goal.Status, reason: goal.Message);
 
         var contributions = await goals.ListContributionsAsync(id, page, token!, ct);
         if (contributions.Status == 401)
@@ -102,7 +102,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             TempData["GoalNotice"] = "Savings goal created.";
             return RedirectToAction(nameof(Index));
         }
-        return WriteError(result.Status, model);
+        return WriteError(result.Status, model, reason: result.Message);
     }
 
     [HttpGet]
@@ -118,7 +118,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         var goal = result.Value!;
         ViewData["GoalId"] = goal.GoalId;
         return View(nameof(Create), new MemberSavingsGoalFormModel
@@ -148,7 +148,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded) return RedirectToIndex(current.Status);
+        if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
         var result = await goals.UpdateAsync(id, new(model.Name!.Trim(), model.Amount, model.TargetDate),
             current.Value!.Version, token!, ct);
         if (result.Succeeded)
@@ -163,7 +163,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             return RedirectToAction(nameof(Index));
         }
         ViewData["GoalId"] = id;
-        return WriteError(result.Status, model, nameof(Create));
+        return WriteError(result.Status, model, nameof(Create), result.Message);
     }
 
     [HttpGet]
@@ -173,7 +173,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
         if (status == 401) return RedirectToAction("Login", "Account");
         var result = await goals.GetAsync(id, token!, ct);
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         ViewData["Goal"] = result.Value!;
         return View(new MemberContributionFormModel { ContributedOn = BudgetPlanSummary.PhilippineToday });
     }
@@ -200,7 +200,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             TempData["GoalNotice"] = "Contribution saved.";
             return RedirectToAction(nameof(Index));
         }
-        return RedirectToIndex(result.Status, mutation: true);
+        return RedirectToIndex(result.Status, mutation: true, reason: result.Message);
     }
 
     [HttpGet]
@@ -215,9 +215,9 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!contribution.Succeeded || contribution.Value is null) return RedirectToIndex(contribution.Status);
+        if (!contribution.Succeeded || contribution.Value is null) return RedirectToIndex(contribution.Status, reason: contribution.Message);
         var goal = await goals.GetAsync(id, token!, ct);
-        if (!goal.Succeeded) return RedirectToIndex(goal.Status);
+        if (!goal.Succeeded) return RedirectToIndex(goal.Status, reason: goal.Message);
         ViewData["Goal"] = goal.Value!;
         ViewData["ContributionId"] = contributionId;
         return View(new MemberContributionFormModel
@@ -241,9 +241,9 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status);
+        if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status, reason: current.Message);
         var goal = await goals.GetAsync(id, token!, ct);
-        if (!goal.Succeeded) return RedirectToIndex(goal.Status);
+        if (!goal.Succeeded) return RedirectToIndex(goal.Status, reason: goal.Message);
         ViewData["Goal"] = goal.Value!;
         ViewData["ContributionId"] = contributionId;
         if (!ModelState.IsValid)
@@ -259,7 +259,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             TempData["GoalNotice"] = "Contribution updated.";
             return RedirectToAction(nameof(Details), new { id });
         }
-        TempData["GoalError"] = MemberSessionGate.Message(result.Status, mutation: true);
+        TempData["GoalError"] = MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -275,9 +275,9 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!contribution.Succeeded || contribution.Value is null) return RedirectToIndex(contribution.Status);
+        if (!contribution.Succeeded || contribution.Value is null) return RedirectToIndex(contribution.Status, reason: contribution.Message);
         var goal = await goals.GetAsync(id, token!, ct);
-        if (!goal.Succeeded) return RedirectToIndex(goal.Status);
+        if (!goal.Succeeded) return RedirectToIndex(goal.Status, reason: goal.Message);
         ViewData["Goal"] = goal.Value!;
         return View(contribution.Value);
     }
@@ -295,14 +295,14 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status);
+        if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status, reason: current.Message);
         var result = await goals.DeleteContributionAsync(id, contributionId, current.Value.Version, token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Contribution deleted.";
             return RedirectToAction(nameof(Details), new { id });
         }
-        TempData["GoalError"] = MemberSessionGate.Message(result.Status, mutation: true);
+        TempData["GoalError"] = MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -318,7 +318,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         return View(result.Value);
     }
 
@@ -334,7 +334,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status);
+        if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status, reason: current.Message);
         var result = await goals.DeleteAsync(id, current.Value.Version, token!, ct);
         if (result.Succeeded)
         {
@@ -343,7 +343,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         }
         TempData["GoalError"] = result.Status == 409
             ? "This goal has protected financial history and cannot be deleted. Cancel it instead."
-            : MemberSessionGate.Message(result.Status, mutation: true);
+            : MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Index));
     }
 
@@ -354,7 +354,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
         if (status == 401) return RedirectToAction("Login", "Account");
         var result = await goals.GetAsync(id, token!, ct);
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         return View(result.Value);
     }
 
@@ -371,7 +371,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded) return RedirectToIndex(current.Status);
+        if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
         // The row version is the concurrency precondition: a stale page is refused, never applied blind.
         var result = await goals.CancelAsync(id, current.Value!.Version, token!, ct);
         if (result.Succeeded)
@@ -384,7 +384,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             TempData["GoalError"] = MemberSessionGate.Message(409);
             return RedirectToAction(nameof(Index));
         }
-        return RedirectToIndex(result.Status, mutation: true);
+        return RedirectToIndex(result.Status, mutation: true, reason: result.Message);
     }
 
     private static string? Note(string? note)
@@ -393,14 +393,14 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         return string.IsNullOrEmpty(trimmed) ? null : trimmed[..Math.Min(trimmed.Length, 200)];
     }
 
-    private IActionResult WriteError<T>(int status, T model, string? viewName = null)
+    private IActionResult WriteError<T>(int status, T model, string? viewName = null, string? reason = null)
     {
         Response.StatusCode = status is 400 or 404 or 409 or 429 ? status : 503;
-        ModelState.AddModelError(string.Empty, MemberSessionGate.Message(status, mutation: true));
+        ModelState.AddModelError(string.Empty, MemberSessionGate.Message(status, true, reason));
         return View(viewName, model);
     }
 
-    private IActionResult RedirectToIndex(int status, bool mutation = false)
+    private IActionResult RedirectToIndex(int status, bool mutation = false, string? reason = null)
     {
         if (status == 401)
         {
@@ -408,7 +408,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             return RedirectToAction("Login", "Account");
         }
         Response.StatusCode = status is 400 or 404 or 409 or 429 ? status : 503;
-        TempData["GoalError"] = MemberSessionGate.Message(status, mutation);
+        TempData["GoalError"] = MemberSessionGate.Message(status, mutation, reason);
         return RedirectToAction(nameof(Index));
     }
 }

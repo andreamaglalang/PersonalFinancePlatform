@@ -6,38 +6,38 @@ namespace PersonalFinance.Infrastructure.Authentication.Contracts;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class RegisterRequest
 {
-    [Required, StringLength(100)]
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, ErrorMessage = "Full name must be 100 characters or fewer.")]
     public string FullName { get; set; } = string.Empty;
-    [Required, EmailAddress, StringLength(256)]
+    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = "Enter a valid email address."), StringLength(256, ErrorMessage = "Email must be 256 characters or fewer.")]
     public string Email { get; set; } = string.Empty;
-    [Required, StringLength(128, MinimumLength = 12)]
+    [Required(ErrorMessage = "Enter a password."), PasswordRequirements]
     public string Password { get; set; } = string.Empty;
-    [Required, Compare(nameof(Password))]
+    [Required(ErrorMessage = "Confirm your password."), Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class LoginRequest
 {
-    [Required, EmailAddress, StringLength(256)]
+    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = "Enter a valid email address."), StringLength(256, ErrorMessage = "Email must be 256 characters or fewer.")]
     public string Email { get; set; } = string.Empty;
-    [Required, StringLength(128)]
+    [Required(ErrorMessage = "Enter your password."), StringLength(128, ErrorMessage = "Password must be 128 characters or fewer.")]
     public string Password { get; set; } = string.Empty;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class UpdateProfileRequest
 {
-    [Required, StringLength(100, MinimumLength = 1)]
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, MinimumLength = 1, ErrorMessage = "Full name must be 100 characters or fewer.")]
     public string FullName { get; set; } = string.Empty;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class ChangePasswordRequest
 {
-    [Required, StringLength(128, MinimumLength = 12)]
+    [Required(ErrorMessage = "Enter your current password."), StringLength(128, ErrorMessage = "Password must be 128 characters or fewer.")]
     public string CurrentPassword { get; set; } = string.Empty;
-    [Required, StringLength(128, MinimumLength = 12)]
+    [Required(ErrorMessage = "Enter a new password."), PasswordRequirements]
     public string NewPassword { get; set; } = string.Empty;
 }
 

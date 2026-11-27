@@ -317,6 +317,96 @@ class DeviceUiRuntimeTest {
      * ui-test-junit4-accessibility artifact, which this project does not depend on. Fallback: every clickable
      * node (merged tree) must expose a non-empty text, editable text or contentDescription.
      */
+    // ---- Validation feedback (system-wide inspection) ----
+
+    private fun shown(message: String) = waitFor(hasText(message, substring = true), 15_000)
+
+    /** Reported defect and multi-field case on the real registration screen; nothing reaches the server. */
+    @Test fun registrationNamesEveryUnmetRule() {
+        val login = field(text(R.string.auth_email))
+        compose.waitUntil(30_000) { exists(login) || exists(logOut) }
+        if (exists(logOut)) { compose.onNode(logOut).performClick(); waitFor(login) }
+        compose.onNode(hasText(text(R.string.register_entry), substring = true) and clickable).performScrollTo().performClick()
+        val name = field(text(R.string.register_full_name)); val email = field(text(R.string.auth_email))
+        val password = field(text(R.string.auth_password)); val confirm = field(text(R.string.register_confirm_password))
+        waitFor(name)
+        compose.onNode(name).performTextReplacement("Validation Member")
+        compose.onNode(email).performTextReplacement("validation.$runId@example.test")
+        compose.onNode(password).performTextReplacement("abcdefghijk1")
+        compose.onNode(hasContentDescription(text(R.string.password_rule_state_needed, text(R.string.password_rule_upper)))).assertExists()
+        compose.onNode(hasContentDescription(text(R.string.password_rule_state_done, text(R.string.password_rule_lower)))).assertExists()
+        log("register: checklist shows uppercase still needed, lowercase done while typing")
+        compose.onNode(confirm).performTextReplacement("abcdefghijk1")
+        hideKeyboard()
+        compose.onNode(hasText(text(R.string.register_submit)) and clickable).performScrollTo().performClick()
+        val expected = "Password must contain an uppercase letter and a special character, such as ! or #."
+        shown(expected); log("register: weak 12-char password -> '$expected'")
+        val kept = compose.onNode(password).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text?.length
+        assertEquals("password kept after an on-device check fails", 12, kept)
+        assertTrue(!exists(hasText("at least 12 characters and match", substring = true)))
+
+        compose.onNode(name).performTextReplacement("")
+        compose.onNode(email).performTextReplacement("x")
+        compose.onNode(password).performTextReplacement("abc")
+        compose.onNode(confirm).performTextReplacement("abd")
+        hideKeyboard()
+        compose.onNode(hasText(text(R.string.register_submit)) and clickable).performScrollTo().performClick()
+        for (message in listOf(text(R.string.register_error_full_name), text(R.string.register_error_email),
+                "Password must contain at least 12 characters, an uppercase letter, a number, a special character, such as ! or # and at least 4 different characters.",
+                text(R.string.register_error_password_mismatch))) { shown(message); log("register: all wrong -> '$message'") }
+        // An outdated message disappears once its field is corrected.
+        compose.onNode(email).performTextReplacement("validation.$runId@example.test")
+        compose.waitUntil(5_000) { !exists(hasText(text(R.string.register_error_email))) }
+        log("register: email message cleared after editing the email")
+    }
+
+    /** Wrong current password (server), weak and mismatched new password (device), each beside its field. */
+    @Test fun changePasswordNamesTheProblem() {
+        signIn()
+        nav(R.string.navigation_dashboard)
+        compose.onNodeWithContentDescription(text(R.string.account_open)).performClick()
+        val entry = hasText(text(R.string.account_password)) and clickable
+        waitFor(entry); compose.onAllNodes(entry).onFirst().performScrollTo().performClick()
+        val current = field("Current password"); val fresh = field("New password"); val confirm = field("Confirm password")
+        // The Account row and the dialog's button share the label; the editor dialog is the newest window.
+        val submit = hasText("Change password") and hasClickAction()
+        waitFor(current)
+        compose.onNode(fresh).performTextReplacement("abcdefghijk1")
+        compose.onNode(confirm).performTextReplacement("abcdefghijkX")
+        hideKeyboard()
+        compose.onAllNodes(submit).onLast().performClick()
+        shown(text(R.string.password_error_current_empty))
+        shown("Password must contain an uppercase letter and a special character, such as ! or #.")
+        shown(text(R.string.register_error_password_mismatch))
+        log("password: empty current, weak new and mismatch each named")
+        compose.onNode(current).performTextReplacement("Wrong!Pass1234")
+        compose.onNode(fresh).performTextReplacement("Another!Pass1234")
+        compose.onNode(confirm).performTextReplacement("Another!Pass1234")
+        hideKeyboard()
+        compose.onAllNodes(submit).onLast().performClick()
+        shown("Your current password is incorrect."); log("password: server says the current password is incorrect")
+        compose.onNode(hasText("Close") and hasAnyAncestor(isDialog())).performClick()
+    }
+
+    /** Plan editor: every problem named, including the exact amount rule. */
+    @Test fun planEditorNamesAmountProblems() {
+        signIn()
+        nav(R.string.navigation_plan)
+        compose.onNode(planTab(R.string.plan_tab_goals)).performClick()
+        val add = hasText(text(R.string.plan_add_goal)) and clickable
+        compose.waitUntil(20_000) { exists(add and isEnabled()) }
+        compose.onNode(add).performClick()
+        compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement("10.555")
+        hideKeyboard()
+        compose.onNode(hasText(text(R.string.plan_save)) and hasAnyAncestor(isDialog())).performClick()
+        shown(text(R.string.plan_error_name)); shown(text(R.string.amount_error_decimals))
+        log("plan: '${text(R.string.plan_error_name)} ${text(R.string.amount_error_decimals)}'")
+        compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement("0")
+        compose.onNode(hasText(text(R.string.plan_save)) and hasAnyAncestor(isDialog())).performClick()
+        shown(text(R.string.amount_error_positive)); log("plan: zero -> '${text(R.string.amount_error_positive)}'")
+        compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
+    }
+
     /** Opt-in `owliFxDown=true`, with the API unable to reach the FX provider: a JPY save stores nothing. */
     @Test fun foreignSaveDuringFxOutageSavesNothing() {
         assumeTrue("owliFxDown not set", args.getString("owliFxDown") == "true")

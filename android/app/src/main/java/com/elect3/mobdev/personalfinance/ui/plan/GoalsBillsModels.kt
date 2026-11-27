@@ -118,6 +118,11 @@ fun goalProgressText(percentage: BigDecimal, locale: Locale = Locale.getDefault(
     NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1; roundingMode = RoundingMode.HALF_UP }
         .format(percentage.max(BigDecimal.ZERO).min(BigDecimal(100)))
 
+/** The server's reviewed reason (ApiMessages) for a definitive rejection, else the generic message for [failure]. */
+fun planFailureText(res: android.content.res.Resources, failure: com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Failure, writing: Boolean = false): String =
+    failure.message?.takeIf { failure.reason in com.elect3.mobdev.personalfinance.data.remote.definitiveRejections }
+        ?: res.getString(planFailureMessage(failure.reason, writing))
+
 @StringRes fun planFailureMessage(reason: FinanceFailure, writing: Boolean = false): Int = when (reason) {
     FinanceFailure.MissingSession, FinanceFailure.SessionExpired -> R.string.plan_failure_session
     FinanceFailure.InvalidInput -> R.string.plan_failure_invalid

@@ -12,7 +12,8 @@ enum class FinanceFailure {
 sealed interface FinanceResult<out T> {
     class Success<T>(val value: T) : FinanceResult<T>
     /** Only the transport may identify an I/O failure; HTTP 5xx keeps this false. */
-    data class Failure(val reason: FinanceFailure, val isConnectivityFailure: Boolean = false) : FinanceResult<Nothing>
+    /** [message]: a specific reason from the server's reviewed allowlist (ApiMessages), when one is known. */
+    data class Failure(val reason: FinanceFailure, val isConnectivityFailure: Boolean = false, val message: String? = null) : FinanceResult<Nothing>
 }
 data class Category(
     val categoryId: Int, val name: String, val type: TransactionType,

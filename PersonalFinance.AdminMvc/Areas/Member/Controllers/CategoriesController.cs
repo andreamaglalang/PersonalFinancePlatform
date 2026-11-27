@@ -85,7 +85,7 @@ public sealed class CategoriesController(ICategoryApiClient categories, AdminSes
             return RedirectToAction("Login", "Account", new { area = "" });
         }
         Response.StatusCode = Status(result.Failure);
-        model.Error = Message(result.Failure, true);
+        model.Error = result.Message ?? Message(result.Failure, true);
         return View(model);
     }
 
@@ -140,7 +140,7 @@ public sealed class CategoriesController(ICategoryApiClient categories, AdminSes
             return RedirectToAction("Login", "Account", new { area = "" });
         }
         Response.StatusCode = Status(result.Failure);
-        model.Error = Message(result.Failure, true);
+        model.Error = result.Message ?? Message(result.Failure, true);
         return View("Create", model);
     }
 
@@ -186,9 +186,9 @@ public sealed class CategoriesController(ICategoryApiClient categories, AdminSes
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account", new { area = "" });
         }
-        TempData["MemberCategoryError"] = result.Failure == CategoryFailure.Conflict
+        TempData["MemberCategoryError"] = result.Message ?? (result.Failure == CategoryFailure.Conflict
             ? "This category is referenced by financial records and cannot be deleted. Deactivate it instead."
-            : Message(result.Failure, true);
+            : Message(result.Failure, true));
         return RedirectToAction(nameof(Index));
     }
 
@@ -214,7 +214,7 @@ public sealed class CategoriesController(ICategoryApiClient categories, AdminSes
     private static string Message(CategoryFailure failure, bool mutation = false) => failure switch
     {
         CategoryFailure.BadRequest => "Check the category name, type and color.",
-        CategoryFailure.Conflict => "A category with this name and type already exists, or the category is referenced by protected records.",
+        CategoryFailure.Conflict => "This change conflicts with another category or with records that use it. Reload and try again.",
         CategoryFailure.RateLimited => "Too many category requests. Wait before trying again.",
         _ => mutation ? "The API could not confirm the change. Reload the categories before trying again; no automatic retry was made."
             : "Categories could not be loaded. Try again later."

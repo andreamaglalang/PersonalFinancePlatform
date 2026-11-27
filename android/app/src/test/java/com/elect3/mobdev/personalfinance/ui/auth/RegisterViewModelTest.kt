@@ -34,13 +34,31 @@ class RegisterViewModelTest {
     @Test fun clientChecksMirrorServerAndSendNothing() = runTest(main.dispatcher) {
         val repository = FakeRepository()
         val vm = model(repository)
-        vm.register(" ", "a@b.test", strong, strong); assertEquals(RegisterInputError.FullName, vm.state.value.inputError)
-        vm.register("A", "not-an-email", strong, strong); assertEquals(RegisterInputError.Email, vm.state.value.inputError)
-        vm.register("A", "a@b.test", "short", "short"); assertEquals(RegisterInputError.PasswordLength, vm.state.value.inputError)
-        vm.register("A", "a@b.test", strong, "$strong-x"); assertEquals(RegisterInputError.PasswordMismatch, vm.state.value.inputError)
-        vm.register("x".repeat(101), "a@b.test", strong, strong); assertEquals(RegisterInputError.FullName, vm.state.value.inputError)
+        fun errors() = vm.state.value.inputErrors
+        vm.register(" ", "a@b.test", strong, strong); assertEquals(setOf(RegisterInputError.FullName), errors())
+        vm.register("A", "not-an-email", strong, strong); assertEquals(setOf(RegisterInputError.Email), errors())
+        vm.register("A", "a@b.test", "short", "short"); assertEquals(setOf(RegisterInputError.Password), errors())
+        vm.register("A", "a@b.test", strong, "$strong-x"); assertEquals(setOf(RegisterInputError.PasswordMismatch), errors())
+        vm.register("x".repeat(101), "a@b.test", strong, strong); assertEquals(setOf(RegisterInputError.FullName), errors())
         runCurrent()
         assertTrue(repository.calls.isEmpty())
+    }
+
+    /** Reported defect: 12 matching characters without an uppercase letter or symbol reached the server. */
+    @Test fun twelveMatchingCharactersMissingRulesAreCaughtOnDevice() = runTest(main.dispatcher) {
+        val repository = FakeRepository()
+        val vm = model(repository)
+        vm.register("A", "a@b.test", "abcdefghijk1", "abcdefghijk1")
+        runCurrent()
+        assertEquals(setOf(RegisterInputError.Password), vm.state.value.inputErrors)
+        assertTrue(repository.calls.isEmpty())
+    }
+
+    @Test fun everyFailedCheckIsReportedAtOnce() = runTest(main.dispatcher) {
+        val vm = model(FakeRepository())
+        vm.register("", "nope", "abc", "abd")
+        assertEquals(setOf(RegisterInputError.FullName, RegisterInputError.Email, RegisterInputError.Password,
+            RegisterInputError.PasswordMismatch), vm.state.value.inputErrors)
     }
 
     @Test fun successEmitsTrimmedEmailForLoginWithoutSigningIn() = runTest(main.dispatcher) {

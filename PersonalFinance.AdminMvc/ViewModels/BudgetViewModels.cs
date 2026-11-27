@@ -14,34 +14,27 @@ public sealed class BudgetIndexViewModel
     [BindNever] public string? Error { get; set; }
 }
 
-public class BudgetEditViewModel : IValidatableObject
+public class BudgetEditViewModel
 {
-    [Required, StringLength(19)]
+    [Required(ErrorMessage = "Enter a limit amount."), StringLength(19, ErrorMessage = "That amount is too long."), MoneyText]
     [Display(Name = "Limit amount")]
     public string? LimitAmount { get; set; }
 
-    [Required, Range(1, 100)]
+    [Required(ErrorMessage = "Enter an alert threshold from 1 to 100."), Range(1, 100, ErrorMessage = "Enter an alert threshold from 1 to 100.")]
     [Display(Name = "Alert threshold (%)")]
     public int? AlertThresholdPct { get; set; }
 
     public decimal Amount => decimal.Parse(LimitAmount!, CultureInfo.InvariantCulture);
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        if (!decimal.TryParse(LimitAmount, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount)
-            || amount <= 0 || amount > 9999999999999999.99m || ((decimal.GetBits(amount)[3] >> 16) & 0x7F) > 2)
-            yield return new("Enter a positive amount with up to 16 whole digits and two decimal places. Use a decimal point.",
-                [nameof(LimitAmount)]);
-    }
 }
 
 public sealed class BudgetCreateViewModel : BudgetEditViewModel
 {
-    [Required, Range(1, int.MaxValue)]
+    [Required(ErrorMessage = "Choose an expense category."), Range(1, int.MaxValue, ErrorMessage = "Choose an expense category.")]
     [Display(Name = "Expense category")]
     public int? CategoryId { get; set; }
 
-    [Required, RegularExpression("^[0-9]{4}-(0[1-9]|1[0-2])$")]
+    [Required(ErrorMessage = "Choose a month."), RegularExpression("^[0-9]{4}-(0[1-9]|1[0-2])$", ErrorMessage = "Choose a valid month (YYYY-MM).")]
     public string? Month { get; set; }
 
     [BindNever] public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];

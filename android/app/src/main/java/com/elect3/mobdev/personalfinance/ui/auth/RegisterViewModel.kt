@@ -8,19 +8,32 @@ import androidx.lifecycle.viewModelScope
 import com.elect3.mobdev.personalfinance.data.auth.AuthRepository
 import com.elect3.mobdev.personalfinance.data.auth.AuthResult
 import com.elect3.mobdev.personalfinance.data.remote.AuthFailure
+import com.elect3.mobdev.personalfinance.domain.auth.PasswordPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Client checks that mirror the API's RegisterRequest; the server stays authoritative (full password policy). */
-enum class RegisterInputError { FullName, Email, PasswordLength, PasswordMismatch }
+/** Client checks that mirror the API's RegisterRequest and password policy; the server stays authoritative. */
+enum class RegisterInputError { FullName, Email, Password, PasswordMismatch }
+
+/** Every failed check, in field order, so all of them can be shown at once. */
+fun registerInputErrors(
+    fullName: String, email: String, password: String, confirmPassword: String,
+    isValidEmail: (String) -> Boolean = { Patterns.EMAIL_ADDRESS.matcher(it).matches() },
+): Set<RegisterInputError> = buildSet {
+    val trimmedEmail = email.trim()
+    if (fullName.trim().length !in 1..100) add(RegisterInputError.FullName)
+    if (trimmedEmail.length !in 1..256 || !isValidEmail(trimmedEmail)) add(RegisterInputError.Email)
+    if (PasswordPolicy.unmet(password).isNotEmpty()) add(RegisterInputError.Password)
+    if (password != confirmPassword) add(RegisterInputError.PasswordMismatch)
+}
 
 /** Public state holds no password. [registeredEmail] is a one-shot "go back to Login" event. */
 data class RegisterUiState(
     val isLoading: Boolean = false,
-    val inputError: RegisterInputError? = null,
+    val inputErrors: Set<RegisterInputError> = emptySet(),
     val failure: AuthFailure? = null,
     val registeredEmail: String? = null,
 )
@@ -38,15 +51,9 @@ class RegisterViewModel(
         if (request?.isActive == true) return
         val name = fullName.trim()
         val trimmedEmail = email.trim()
-        val inputError = when {
-            name.length !in 1..100 -> RegisterInputError.FullName
-            trimmedEmail.length !in 1..256 || !isValidEmail(trimmedEmail) -> RegisterInputError.Email
-            password.length !in 12..128 -> RegisterInputError.PasswordLength
-            password != confirmPassword -> RegisterInputError.PasswordMismatch
-            else -> null
-        }
-        if (inputError != null) {
-            mutableState.value = RegisterUiState(inputError = inputError)
+        val inputErrors = registerInputErrors(fullName, email, password, confirmPassword, isValidEmail)
+        if (inputErrors.isNotEmpty()) {
+            mutableState.value = RegisterUiState(inputErrors = inputErrors)
             return
         }
         mutableState.value = RegisterUiState(isLoading = true)

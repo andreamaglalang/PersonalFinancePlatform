@@ -20,13 +20,13 @@ public sealed class MemberSavingsGoalDetailViewModel
     public string? Notice { get; init; }
 }
 
-public class MemberSavingsGoalFormModel : IValidatableObject
+public class MemberSavingsGoalFormModel
 {
-    [Required, StringLength(100)]
+    [Required(ErrorMessage = "Enter a goal name."), StringLength(100, ErrorMessage = "Goal name must be 100 characters or fewer.")]
     [Display(Name = "Goal name")]
     public string? Name { get; set; }
 
-    [Required, StringLength(19)]
+    [Required(ErrorMessage = "Enter a target amount."), StringLength(19, ErrorMessage = "That amount is too long."), MoneyText]
     [Display(Name = "Target amount")]
     public string? TargetAmount { get; set; }
 
@@ -35,24 +35,15 @@ public class MemberSavingsGoalFormModel : IValidatableObject
 
     public decimal Amount => decimal.Parse(TargetAmount!, System.Globalization.CultureInfo.InvariantCulture);
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        if (!decimal.TryParse(TargetAmount, System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.InvariantCulture, out var amount)
-            || amount <= 0 || amount > 9999999999999999.99m
-            || ((decimal.GetBits(amount)[3] >> 16) & 0x7F) > 2)
-            yield return new("Enter a positive amount with up to 16 whole digits and two decimal places. Use a decimal point.",
-                [nameof(TargetAmount)]);
-    }
 }
 
-public sealed class MemberContributionFormModel : IValidatableObject
+public sealed class MemberContributionFormModel
 {
-    [Required, StringLength(19)]
+    [Required(ErrorMessage = "Enter an amount."), StringLength(19, ErrorMessage = "That amount is too long."), MoneyText]
     [Display(Name = "Amount")]
     public string? Amount { get; set; }
 
-    [Required, Display(Name = "Contribution date")]
+    [Required(ErrorMessage = "Choose a contribution date."), Display(Name = "Contribution date")]
     public DateOnly? ContributedOn { get; set; }
 
     [StringLength(200)]
@@ -61,13 +52,4 @@ public sealed class MemberContributionFormModel : IValidatableObject
 
     public decimal Value => decimal.Parse(Amount!, System.Globalization.CultureInfo.InvariantCulture);
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        if (!decimal.TryParse(Amount, System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.InvariantCulture, out var amount)
-            || amount <= 0 || amount > 9999999999999999.99m
-            || ((decimal.GetBits(amount)[3] >> 16) & 0x7F) > 2)
-            yield return new("Enter a positive amount with up to 16 whole digits and two decimal places. Use a decimal point.",
-                [nameof(Amount)]);
-    }
 }

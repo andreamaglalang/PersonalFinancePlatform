@@ -18,8 +18,9 @@ public static class FinanceValidation
 
     public static void ValidateMoney(decimal amount)
     {
-        if (amount <= 0 || amount > MaximumMoney || ((decimal.GetBits(amount)[3] >> 16) & 0x7F) > 2)
-            throw new FinanceException(400, "Amount must be positive, within decimal(18,2), and have at most two decimal places.");
+        if (amount <= 0) throw new FinanceException(400, AmountMessages.NotPositive);
+        if (((decimal.GetBits(amount)[3] >> 16) & 0x7F) > 2) throw new FinanceException(400, AmountMessages.TooManyDecimals);
+        if (amount > MaximumMoney) throw new FinanceException(400, AmountMessages.TooLarge);
     }
 
     public static decimal NormalizeRate(decimal rate)
@@ -51,3 +52,10 @@ public static class FinanceValidation
     public static bool CurrencyCode(string value) => value.Length == 3 && value.All(c => c is >= 'A' and <= 'Z');
 }
 
+
+public static class AmountMessages
+{
+    public const string NotPositive = "Enter an amount greater than zero.";
+    public const string TooManyDecimals = "Amounts can have no more than two decimal places.";
+    public const string TooLarge = "That amount is too large.";
+}

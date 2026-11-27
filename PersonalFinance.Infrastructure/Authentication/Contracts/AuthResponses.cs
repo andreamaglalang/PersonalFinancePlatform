@@ -15,8 +15,13 @@ public sealed record AccessToken(string Value, DateTime ExpiresAtUtc);
 
 public sealed record AuthResult<T>(T? Value, int StatusCode, string? Error)
 {
+    /// <summary>Field-specific messages (400), returned to clients as ValidationProblemDetails.errors.</summary>
+    public IReadOnlyDictionary<string, string[]>? Errors { get; init; }
     public bool Succeeded => Error is null;
     public static AuthResult<T> Success(T value, int status = 200) => new(value, status, null);
     public static AuthResult<T> Failure(int status, string error) => new(default, status, error);
+    public static AuthResult<T> Invalid(IReadOnlyDictionary<string, string[]> errors) =>
+        new(default, 400, "Check the highlighted fields.") { Errors = errors };
+    public static AuthResult<T> Invalid(string field, string message) => Invalid(new Dictionary<string, string[]> { [field] = [message] });
 }
 

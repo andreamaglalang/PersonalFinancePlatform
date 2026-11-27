@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,23 +69,36 @@ fun RegisterScreen(
     fun submit() {
         if (!enabled) return
         val submitted = password to confirmPassword
-        // Cleared on every submit, so a rejected password is never shown again.
-        password = ""
-        confirmPassword = ""
+        // Cleared once the password is sent, so a server-rejected password is never shown again. On-device check
+        // failures keep what was typed (it never left the phone) so the user can correct it.
+        if (registerInputErrors(fullName, email, password, confirmPassword).isEmpty()) {
+            password = ""
+            confirmPassword = ""
+        }
         focus.clearFocus()
         onRegister(fullName, email, submitted.first, submitted.second)
     }
-    val inputMessage = state.inputError?.let { stringResource(registerInputErrorResource(it)) }
+    val resources = LocalContext.current.resources
+    // Messages reflect the last submission; each disappears as soon as its field is edited.
+    var edited by remember(state.inputErrors) { mutableStateOf(emptySet<RegisterInputError>()) }
+    fun messageFor(error: RegisterInputError, password: String): String? =
+        if (error !in state.inputErrors || error in edited) null else when (error) {
+            RegisterInputError.FullName -> resources.getString(R.string.register_error_full_name)
+            RegisterInputError.Email -> resources.getString(R.string.register_error_email)
+            RegisterInputError.Password -> passwordRequirementsMessage(resources, password)
+                ?: resources.getString(R.string.password_error_new_empty)
+            RegisterInputError.PasswordMismatch -> resources.getString(R.string.register_error_password_mismatch)
+        }
 
     @Composable
     fun field(
-        value: String, onChange: (String) -> Unit, label: Int, error: Boolean, keyboard: KeyboardOptions,
+        value: String, onChange: (String) -> Unit, label: Int, message: String?, keyboard: KeyboardOptions,
         secret: Boolean = false, onDone: (() -> Unit)? = null,
     ) = OutlinedTextField(
         value = value, onValueChange = onChange,
-        modifier = Modifier.fillMaxWidth().then(if (error && inputMessage != null)
-            Modifier.semantics { error(inputMessage) } else Modifier),
-        enabled = enabled, singleLine = true, isError = error,
+        modifier = Modifier.fillMaxWidth().then(if (message != null) Modifier.semantics { error(message) } else Modifier),
+        enabled = enabled, singleLine = true, isError = message != null,
+        supportingText = message?.let { { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) } },
         label = { Text(stringResource(label)) }, textStyle = typography.bodyStrong,
         shape = shapes.field, colors = owliFieldColors(),
         visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
@@ -111,26 +125,23 @@ fun RegisterScreen(
                 Spacer(Modifier.height(4.dp))
                 Text(stringResource(R.string.register_intro), style = typography.body, color = scheme.onSurfaceVariant)
                 Spacer(Modifier.height(16.dp))
-                field(fullName, { fullName = it }, R.string.register_full_name, state.inputError == RegisterInputError.FullName,
+                field(fullName, { fullName = it; edited = edited + RegisterInputError.FullName }, R.string.register_full_name,
+                    messageFor(RegisterInputError.FullName, password),
                     KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next))
                 Spacer(Modifier.height(12.dp))
-                field(email, { email = it }, R.string.auth_email, state.inputError == RegisterInputError.Email,
+                field(email, { email = it; edited = edited + RegisterInputError.Email }, R.string.auth_email,
+                    messageFor(RegisterInputError.Email, password),
                     KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next))
                 Spacer(Modifier.height(12.dp))
-                field(password, { password = it }, R.string.auth_password, state.inputError == RegisterInputError.PasswordLength,
+                field(password, { password = it; edited = edited + RegisterInputError.Password }, R.string.auth_password,
+                    messageFor(RegisterInputError.Password, password),
                     KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next), secret = true)
-                Text(stringResource(R.string.register_password_hint), style = typography.caption,
-                    color = scheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, start = 4.dp))
+                PasswordChecklist(password)
                 Spacer(Modifier.height(12.dp))
-                field(confirmPassword, { confirmPassword = it }, R.string.register_confirm_password,
-                    state.inputError == RegisterInputError.PasswordMismatch,
+                field(confirmPassword, { confirmPassword = it; edited = edited + RegisterInputError.PasswordMismatch },
+                    R.string.register_confirm_password, messageFor(RegisterInputError.PasswordMismatch, password),
                     KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done), secret = true,
                     onDone = { submit() })
-                inputMessage?.let {
-                    // Announced politely; the field itself is marked with error semantics.
-                    Spacer(Modifier.height(14.dp))
-                    LoginNotice(it, isError = true)
-                }
                 state.failure?.let {
                     Spacer(Modifier.height(14.dp))
                     LoginNotice(stringResource(registerFailureResource(it)), isError = true)
@@ -149,13 +160,6 @@ fun RegisterScreen(
             }
         }
     }
-}
-
-private fun registerInputErrorResource(error: RegisterInputError): Int = when (error) {
-    RegisterInputError.FullName -> R.string.register_error_full_name
-    RegisterInputError.Email -> R.string.register_error_email
-    RegisterInputError.PasswordLength -> R.string.register_error_password_length
-    RegisterInputError.PasswordMismatch -> R.string.register_error_password_mismatch
 }
 
 /** Mirrors the MVC registration messages; anything uncertain is "temporarily unavailable". */

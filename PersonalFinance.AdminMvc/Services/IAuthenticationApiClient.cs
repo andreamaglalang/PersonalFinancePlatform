@@ -9,6 +9,8 @@ public sealed class ApiResult<T>
 {
     public T? Value { get; init; }
     public ApiFailure Failure { get; init; }
+    /// <summary>Reviewed field messages from a rejected request (ApiMessages); "" holds form-level messages.</summary>
+    public IReadOnlyDictionary<string, string[]> Fields { get; init; } = new Dictionary<string, string[]>();
     public bool Succeeded => Failure == ApiFailure.None;
     public static ApiResult<T> Fail(ApiFailure failure) => new() { Failure = failure };
     public static ApiResult<T> Success(T value) => new() { Value = value };

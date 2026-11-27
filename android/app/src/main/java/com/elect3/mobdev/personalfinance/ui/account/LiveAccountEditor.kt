@@ -7,6 +7,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
+import com.elect3.mobdev.personalfinance.R
+import com.elect3.mobdev.personalfinance.ui.auth.PasswordChecklist
+import com.elect3.mobdev.personalfinance.ui.auth.passwordRequirementsMessage
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -30,6 +36,9 @@ internal fun LiveAccountEditor(live: LiveAccountPlanRepository, password: Boolea
     var fresh by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    // Field messages for the password form (index 0 current, 1 new, 2 confirm); cleared when that field changes.
+    var fieldErrors by remember { mutableStateOf(mapOf<Int, String>()) }
+    val resources = LocalContext.current.resources
     var finished by remember { mutableStateOf(false) }
     suspend fun load() {
         busy = true
@@ -38,7 +47,7 @@ internal fun LiveAccountEditor(live: LiveAccountPlanRepository, password: Boolea
                 name = result.value.get("fullName").asString; email = result.value.get("email").asString
                 version = result.value.get("version").asString; loaded = true
             }
-            is FinanceResult.Failure -> message = liveFailure(result.reason, account = true)
+            is FinanceResult.Failure -> message = liveFailure(result.reason, account = true, message = result.message)
         }
         busy = false
     }
@@ -49,12 +58,15 @@ internal fun LiveAccountEditor(live: LiveAccountPlanRepository, password: Boolea
                 Text(if (password) "Change password" else "Edit profile", style = MaterialTheme.typography.titleLarge)
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (!finished && password) {
-                    Text("12–128 characters; upper/lowercase, number, symbol, 4 distinct characters.", style = MaterialTheme.typography.bodySmall)
                     listOf("Current password", "New password", "Confirm password").forEachIndexed { index, label ->
+                        val fieldError = fieldErrors[index]
                         OutlinedTextField(value = when(index) { 0 -> current; 1 -> fresh; else -> confirm },
-                            onValueChange = { if (it.length <= 128) when(index) { 0 -> current = it; 1 -> fresh = it; else -> confirm = it } },
-                            enabled = !busy, label = { Text(label) }, singleLine = true,
+                            onValueChange = { if (it.length <= 128) { when(index) { 0 -> current = it; 1 -> fresh = it; else -> confirm = it }; fieldErrors = fieldErrors - index } },
+                            enabled = !busy, label = { Text(label) }, singleLine = true, isError = fieldError != null,
+                            supportingText = fieldError?.let { { Text(it) } },
+                            modifier = if (fieldError != null) Modifier.semantics { error(fieldError) } else Modifier,
                             visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                        if (index == 1) PasswordChecklist(fresh)
                     }
                 } else if (!finished && loaded) {
                     Text(email)
@@ -65,16 +77,27 @@ internal fun LiveAccountEditor(live: LiveAccountPlanRepository, password: Boolea
                     TextButton(enabled = !busy, onClick = { current = ""; fresh = ""; confirm = ""; onClose(); if (password && finished) onSessionEnded() }) { Text("Close") }
                     if (!finished && !password) TextButton(enabled = !busy, onClick = { scope.launch { load() } }) { Text("Reload") }
                     if (!finished && loaded) Button(enabled = !busy, onClick = {
-                        val valid = if (password) current.isNotEmpty() && fresh.length in 12..128 && fresh == confirm && fresh != current && fresh.any(Char::isUpperCase) && fresh.any(Char::isLowerCase) && fresh.any(Char::isDigit) && fresh.any { !it.isLetterOrDigit() } && fresh.toSet().size >= 4
-                            else name.trim().isNotEmpty() && name.none(Char::isISOControl)
-                        if (!valid) message = if (password) "Check the passwords and confirmation." else "Enter a display name."
+                        // Every unmet rule at once, beside its field; the server checks the same policy again.
+                        if (password) fieldErrors = buildMap {
+                            if (current.isEmpty()) put(0, resources.getString(R.string.password_error_current_empty))
+                            val unmet = passwordRequirementsMessage(resources, fresh)
+                            when {
+                                fresh.isEmpty() -> put(1, resources.getString(R.string.password_error_new_empty))
+                                unmet != null -> put(1, unmet)
+                                fresh == current -> put(1, resources.getString(R.string.password_error_same))
+                            }
+                            if (confirm != fresh) put(2, resources.getString(R.string.register_error_password_mismatch))
+                        }
+                        val valid = if (password) fieldErrors.isEmpty() else name.trim().isNotEmpty() && name.none(Char::isISOControl)
+                        message = null
+                        if (!valid) message = if (password) null else "Enter your full name."
                         else scope.launch {
                             busy = true; message = null
                             val result = if (password) live.changePassword(current, fresh, confirm) else live.updateProfile(name, version)
                             when(result) {
                                 is FinanceResult.Success -> { finished = true; message = if (password) "Password changed. Sign in again." else "Profile saved." }
                                 is FinanceResult.Failure -> {
-                                    message = liveFailure(result.reason, true, account = true)
+                                    message = liveFailure(result.reason, true, account = true, message = result.message)
                                     if (password && result.reason in uncertainFailures) { finished = true; message = "Password change could not be confirmed. Sign in again to check; do not resubmit automatically." }
                                 }
                             }

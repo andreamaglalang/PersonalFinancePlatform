@@ -23,6 +23,10 @@
         {
             <p class="success-notice" role="status">@registrationNotice</p>
         }
+        @if (TempData["SessionExpiredNotice"] is string expiredNotice && TempData.Peek("PasswordChangedNotice") is null)
+        {
+            <p class="notice login-notice" role="alert"><partial name="_NavIcon" model='"alert"' />@expiredNotice</p>
+        }
         @if (TempData["PasswordChangedNotice"] is string passwordChangedNotice)
         {
             <p class="success-notice" role="status">@passwordChangedNotice</p>

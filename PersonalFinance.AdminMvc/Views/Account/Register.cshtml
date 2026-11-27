@@ -28,10 +28,12 @@
             <span asp-validation-for="Email"></span>
             <label asp-for="Password"></label>
             <div class="box"><partial name="_NavIcon" model='"lock"' />
-                <input asp-for="Password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" />
+                <input asp-for="Password" type="password" autocomplete="new-password" required maxlength="128"
+                       aria-describedby="register-password-rules" data-password-rules="register-password-rules" />
                 <button type="button" class="show" data-password-toggle aria-label="Show password" aria-pressed="false">Show</button>
             </div>
             <span asp-validation-for="Password"></span>
+            <partial name="_PasswordRequirements" model='"register-password-rules"' />
             <label asp-for="ConfirmPassword">Confirm password</label>
             <div class="box"><partial name="_NavIcon" model='"lock"' />
                 <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required maxlength="128" /></div>

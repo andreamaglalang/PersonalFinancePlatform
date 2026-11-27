@@ -13,25 +13,25 @@ public sealed class MemberBillIndexViewModel
 }
 
 /// <summary>Editable bill fields. Frequency and first due date are fixed at creation and never submitted as edits.</summary>
-public class MemberBillFormModel : IValidatableObject
+public class MemberBillFormModel
 {
-    [Required, StringLength(100)]
+    [Required(ErrorMessage = "Enter a bill name."), StringLength(100, ErrorMessage = "Bill name must be 100 characters or fewer.")]
     [Display(Name = "Bill name")]
     public string? Name { get; set; }
 
-    [Required, Range(1, int.MaxValue)]
+    [Required(ErrorMessage = "Choose an expense category."), Range(1, int.MaxValue, ErrorMessage = "Choose an expense category.")]
     [Display(Name = "Expense category")]
     public int? CategoryId { get; set; }
 
-    [Required, StringLength(19)]
+    [Required(ErrorMessage = "Enter an amount."), StringLength(19, ErrorMessage = "That amount is too long."), MoneyText]
     [Display(Name = "Amount")]
     public string? Amount { get; set; }
 
-    [Required, StringLength(3, MinimumLength = 3)]
+    [Required(ErrorMessage = "Choose a currency."), RegularExpression("^[A-Z]{3}$", ErrorMessage = "Currency is three letters, for example PHP.")]
     [Display(Name = "Currency")]
     public string? CurrencyCode { get; set; }
 
-    [Required, Range(0, 30)]
+    [Required(ErrorMessage = "Enter how many days before to remind you."), Range(0, 30, ErrorMessage = "Reminder days must be a whole number from 0 to 30.")]
     [Display(Name = "Reminder days before")]
     public int? ReminderDaysBefore { get; set; }
 
@@ -42,20 +42,9 @@ public class MemberBillFormModel : IValidatableObject
     [Display(Name = "Frequency")]
     public string? Frequency { get; set; }
 
-    [Required, Display(Name = "First due date")]
+    [Required(ErrorMessage = "Choose the first due date."), Display(Name = "First due date")]
     public DateOnly? FirstDueDate { get; set; }
 
     public decimal Value => decimal.Parse(Amount!, System.Globalization.CultureInfo.InvariantCulture);
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        if (!decimal.TryParse(Amount, System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.InvariantCulture, out var amount)
-            || amount <= 0 || amount > 9999999999999999.99m
-            || ((decimal.GetBits(amount)[3] >> 16) & 0x7F) > 2)
-            yield return new("Enter a positive amount with up to 16 whole digits and two decimal places. Use a decimal point.",
-                [nameof(Amount)]);
-        if (CurrencyCode is not { Length: 3 } || !CurrencyCode.All(c => c is >= 'A' and <= 'Z'))
-            yield return new("Currency is three letters, for example PHP.", [nameof(CurrencyCode)]);
-    }
 }

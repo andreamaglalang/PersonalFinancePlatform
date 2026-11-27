@@ -37,6 +37,8 @@ public sealed record CreateContributionRequest(Guid ClientId, decimal Amount, Da
 
 public sealed record SavingsGoalResult<T>(int Status, T? Value = default)
 {
+    /// <summary>A specific, reviewed reason for a rejected request (ApiMessages), or null.</summary>
+    public string? Message { get; init; }
     public bool Succeeded => Status is 200 or 201 or 204;
 }
 
@@ -165,7 +167,7 @@ public sealed class SavingsGoalApiClient(HttpClient http)
             if (body is not null) request.Content = JsonContent.Create(body, body.GetType(), options: Json);
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             var status = (int)response.StatusCode;
-            if (status is 400 or 401 or 403 or 404 or 409 or 428 or 429) return new(status);
+            if (status is 400 or 401 or 403 or 404 or 409 or 428 or 429) return new(status) { Message = status is 400 or 404 or 409 ? await ApiMessages.ReadAsync(response, ct) : null };
             if (!ok.Contains(status)) return new(503);
             if (status == 204) return new(status);
             if (response.Content.Headers.ContentType?.MediaType != "application/json") return new(503);

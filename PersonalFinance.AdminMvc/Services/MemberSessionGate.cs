@@ -21,6 +21,7 @@ public static class MemberSessionGate
         if (session is null)
         {
             await http.SignOutAsync(AdminSessionStore.Scheme);
+            NoteExpired(http);
             return (401, null);
         }
 
@@ -54,7 +55,18 @@ public static class MemberSessionGate
             finally { session.Gate.Release(); }
         }
         await http.SignOutAsync(AdminSessionStore.Scheme);
+        NoteExpired(http);
         return 401;
+    }
+
+    public const string ExpiredNotice = "Your session has expired. Please sign in again.";
+
+    /// <summary>Tells the sign-in page why the member is there (shown unless a password-change notice is pending).</summary>
+    private static void NoteExpired(HttpContext http)
+    {
+        if (http.RequestServices?.GetService(typeof(Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataDictionaryFactory))
+            is Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataDictionaryFactory factory)
+            factory.GetTempData(http)["SessionExpiredNotice"] = ExpiredNotice;
     }
 
     /// <summary>The signed-in member's base currency, used to prefill the create form. Never a secret.</summary>
@@ -62,6 +74,10 @@ public static class MemberSessionGate
         store.Find(user.FindFirstValue(AdminSessionStore.SessionClaim)) is { User.BaseCurrency: { Length: 3 } currency }
             ? currency
             : fallback;
+
+    /// <summary>The reviewed API reason (ApiMessages) when one is known; otherwise a safe message for the status.</summary>
+    public static string Message(int status, bool mutation, string? reason) =>
+        status is 400 or 404 or 409 && reason is not null ? reason : Message(status, mutation);
 
     public static string Message(int status, bool mutation = false) => status switch
     {

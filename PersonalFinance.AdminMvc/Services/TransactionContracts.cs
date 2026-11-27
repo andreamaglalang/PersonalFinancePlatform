@@ -34,5 +34,7 @@ public sealed record TransactionDeletionResponse(int TransactionId, bool Deleted
 
 public sealed record TransactionResult<T>(int Status, T? Value = default)
 {
+    /// <summary>A specific, reviewed reason for a rejected request (ApiMessages), or null.</summary>
+    public string? Message { get; init; }
     public bool Succeeded => Status is 200 or 201 or 204;
 }

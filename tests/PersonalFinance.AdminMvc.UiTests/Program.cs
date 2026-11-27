@@ -53,6 +53,7 @@ await MemberCategoryManagementChecks.RunAsync();
 await SavingsGoalContributionMvcChecks.RunAsync();
 await SavingsGoalResponseChecks.RunAsync();
 await BillPaymentResponseChecks.RunAsync();
+await ValidationFeedbackChecks.RunAsync();
 
 var categories = new PageFixture();
 var controller = new CategoriesController(categories)

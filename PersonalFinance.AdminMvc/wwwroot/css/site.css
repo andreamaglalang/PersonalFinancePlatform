@@ -413,3 +413,11 @@ main:has(> .login) { flex: 1; }
 /* Registration: model-level (API) messages rendered by the validation summary. */
 .login-notice ul { margin: 6px 0 0; padding-left: 18px; }
 .login-notice li { margin-top: 2px; }
+
+/* Password requirement checklist (registration and change password). */
+.password-rules { margin: .25rem 0 .75rem; font-size: .875rem; color: var(--muted); }
+.password-rules-title { margin: 0 0 .25rem; font-weight: 600; color: var(--text); }
+.password-rules ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .125rem; }
+.password-rules li { display: flex; gap: .5rem; align-items: baseline; }
+.password-rules li.met { color: var(--active-text); }
+.password-rule-mark { width: 1em; flex: none; text-align: center; }

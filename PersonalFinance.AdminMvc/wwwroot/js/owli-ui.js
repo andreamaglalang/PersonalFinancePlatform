@@ -343,3 +343,30 @@ document.addEventListener("DOMContentLoaded", () => {
  toggle.hidden=false;toggle.addEventListener("click",()=>{reordering=!reordering;toggle.textContent=reordering?"Done reordering":"Reorder";toggle.setAttribute("aria-pressed",String(reordering));update();});
  catalog.addEventListener("click",event=>{const button=event.target.closest("[data-category-move]");if(!button||!reordering)return;const card=button.closest("[data-category-id]"),list=card.parentElement,delta=Number(button.dataset.categoryMove),other=delta<0?card.previousElementSibling:card.nextElementSibling;if(!other)return;if(delta<0)list.insertBefore(card,other);else list.insertBefore(other,card);update();try{localStorage.setItem(key(list),JSON.stringify([...list.children].map(c=>c.dataset.categoryId)));status.textContent="Category order saved in this browser.";}catch{status.textContent="Order changed for this page. Browser storage is unavailable.";}const available=[...card.querySelectorAll("[data-category-move]")].find(b=>!b.disabled);(available||toggle).focus();});update();
 });
+
+// Password requirement checklists: mirror PasswordPolicy (ASCII classes, as the server counts them).
+document.addEventListener("DOMContentLoaded", () => {
+ const rules = {
+  length: p => p.length >= 12 && p.length <= 128,
+  upper: p => /[A-Z]/.test(p),
+  lower: p => /[a-z]/.test(p),
+  digit: p => /[0-9]/.test(p),
+  symbol: p => /[^A-Za-z0-9]/.test(p),
+  distinct: p => new Set(p).size >= 4
+ };
+ document.querySelectorAll("[data-password-rules]").forEach(input => {
+  const list = document.getElementById(input.dataset.passwordRules); if (!list) return;
+  const update = () => list.querySelectorAll("[data-rule]").forEach(item => {
+   const met = input.value.length > 0 && rules[item.dataset.rule](input.value);
+   item.classList.toggle("met", met);
+   item.querySelector(".password-rule-mark").textContent = met ? "✓" : "○";
+   item.querySelector("[data-rule-state]").textContent = met ? " (done)" : " (still needed)";
+  });
+  input.addEventListener("input", update); update();
+ });
+ // Clear a field's server message once the user changes that field, so outdated errors don't linger.
+ document.querySelectorAll("form input").forEach(input => input.addEventListener("input", () => {
+  const message = input.form.querySelector('[data-valmsg-for="' + input.name + '"]');
+  if (message && message.textContent) { message.textContent = ""; input.removeAttribute("aria-invalid"); }
+ }));
+});

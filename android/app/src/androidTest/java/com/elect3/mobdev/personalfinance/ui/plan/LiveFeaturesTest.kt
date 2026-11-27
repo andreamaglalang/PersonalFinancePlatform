@@ -58,6 +58,8 @@ class LiveFeaturesTest {
         val repo = repository({ error("No read expected") })
         compose.setContent { PersonalFinanceTheme { LiveAccountEditor(repo, true, {}, {}, {}) } }
         compose.onAllNodesWithText("Change password").onLast().performClick()
-        compose.onNodeWithText("Check the passwords and confirmation.").assertIsDisplayed()
+        // Each empty field is named beside it; nothing is sent (the repository would fail on any call).
+        compose.onNodeWithText("Enter your current password.", substring = true).assertExists()
+        compose.onNodeWithText("Enter a new password.", substring = true).assertExists()
     }
 }

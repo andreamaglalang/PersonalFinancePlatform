@@ -41,18 +41,30 @@ public sealed class CategoryApiClient(HttpClient http) : ICategoryApiClient
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
                 return CategoryResult<bool>.Success(true);
-            return CategoryResult<bool>.Fail((int)response.StatusCode switch
-            {
-                400 => CategoryFailure.BadRequest, 401 => CategoryFailure.Unauthorized,
-                403 => CategoryFailure.Forbidden, 404 => CategoryFailure.NotFound,
-                409 => CategoryFailure.Conflict, 429 => CategoryFailure.RateLimited,
-                _ => CategoryFailure.Unavailable
-            });
+            return await FailAsync<bool>(response, ct);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
         {
             return CategoryResult<bool>.Fail(CategoryFailure.Unavailable);
         }
+    }
+
+    // ProblemDetails and ValidationProblemDetails share status codes. Never echo their arbitrary
+    // title/detail/errors strings, HTML, SQL details or trace data: only reviewed messages (ApiMessages).
+    private static async Task<CategoryResult<T>> FailAsync<T>(HttpResponseMessage response, CancellationToken ct)
+    {
+        var status = (int)response.StatusCode;
+        return new CategoryResult<T>
+        {
+            Failure = status switch
+            {
+                400 => CategoryFailure.BadRequest, 401 => CategoryFailure.Unauthorized,
+                403 => CategoryFailure.Forbidden, 404 => CategoryFailure.NotFound,
+                409 => CategoryFailure.Conflict, 429 => CategoryFailure.RateLimited,
+                _ => CategoryFailure.Unavailable
+            },
+            Message = status is 400 or 404 or 409 ? await ApiMessages.ReadAsync(response, ct) : null
+        };
     }
 
     private async Task<CategoryResult<T>> SendAsync<T>(HttpMethod method, string route, CategoryWriteRequest? body, string bearer, CancellationToken ct)
@@ -65,15 +77,7 @@ public sealed class CategoryApiClient(HttpClient http) : ICategoryApiClient
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             if (!response.IsSuccessStatusCode)
             {
-                // ProblemDetails and ValidationProblemDetails share status codes. Never echo
-                // their arbitrary title/detail/errors strings, HTML, SQL details or trace data.
-                return CategoryResult<T>.Fail((int)response.StatusCode switch
-                {
-                    400 => CategoryFailure.BadRequest, 401 => CategoryFailure.Unauthorized,
-                    403 => CategoryFailure.Forbidden, 404 => CategoryFailure.NotFound,
-                    409 => CategoryFailure.Conflict, 429 => CategoryFailure.RateLimited,
-                    _ => CategoryFailure.Unavailable
-                });
+                return await FailAsync<T>(response, ct);
             }
             var expected = method == HttpMethod.Post ? 201 : 200;
             if ((int)response.StatusCode != expected || response.Content.Headers.ContentType?.MediaType != "application/json")

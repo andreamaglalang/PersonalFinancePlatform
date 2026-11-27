@@ -26,7 +26,7 @@ public sealed class AccountService(UserManager<ApplicationUser> users, IAuthSess
     public Task<AuthResult<AccountProfileResponse>> UpdateProfileAsync(int userId, AccountUpdateProfileRequest request, CancellationToken ct)
     {
         if (!AuthRules.IsValid(request) || string.IsNullOrWhiteSpace(request.FullName) || request.FullName.Any(char.IsControl))
-            return Task.FromResult(AuthResult<AccountProfileResponse>.Failure(400, "Enter a name of 1–100 characters."));
+            return Task.FromResult(AuthResult<AccountProfileResponse>.Invalid(nameof(request.FullName), "Enter your full name (up to 100 characters)."));
         return store.ExecuteAsync(AuthRules.UserLock(userId), async token =>
         {
             var user = await AvailableAsync(userId, token);
@@ -42,8 +42,9 @@ public sealed class AccountService(UserManager<ApplicationUser> users, IAuthSess
 
     public Task<AuthResult<bool>> ChangePasswordAsync(int userId, AccountChangePasswordRequest request, CancellationToken ct)
     {
-        if (!AuthRules.IsValid(request) || request.CurrentPassword == request.NewPassword)
-            return Task.FromResult(AuthResult<bool>.Failure(400, "Check the current password, new password and confirmation."));
+        if (AuthRules.Errors(request) is { } errors) return Task.FromResult(AuthResult<bool>.Invalid(errors));
+        if (request.CurrentPassword == request.NewPassword)
+            return Task.FromResult(AuthResult<bool>.Invalid(nameof(request.NewPassword), PasswordMessages.SameAsCurrent));
         return store.ExecuteAsync(AuthRules.UserLock(userId), async token =>
         {
             var user = await AvailableAsync(userId, token);
@@ -54,9 +55,10 @@ public sealed class AccountService(UserManager<ApplicationUser> users, IAuthSess
                 if (result.Errors.Any(e => e.Code == "PasswordMismatch"))
                 {
                     await users.AccessFailedAsync(user);
-                    return AuthResult<bool>.Failure(400, "Current password is incorrect.");
+                    return AuthResult<bool>.Invalid(nameof(request.CurrentPassword), PasswordMessages.CurrentIncorrect);
                 }
-                return AuthResult<bool>.Failure(400, "Use 12–128 characters with uppercase, lowercase, a digit, a symbol and four distinct characters.");
+                return AuthResult<bool>.Invalid(nameof(request.NewPassword),
+                    PasswordPolicy.Describe(request.NewPassword) ?? "This password does not meet the requirements.");
             }
             // ChangePasswordAsync changes Identity's security stamp. JWT validation checks its digest.
             // Refresh revocation commits atomically with the password update under the same lock.
