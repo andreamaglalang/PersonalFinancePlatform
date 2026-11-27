@@ -81,3 +81,8 @@
 - Disposition: Update
 - Updated: OWLI verification limits and architectural decisions
 - PRs #12-#25 merged; dev 600244d verified (full .NET/SQL/worker, Android unit+instrumented, device UI, cross-client, MVC rendered). Production deployment remains with the deployment team.
+
+## [2026-11-27] update | Final closeout
+- Disposition: Update
+- Updated: OWLI verification limits
+- Device-verified the Android stored monthly summary and a real FX-provider outage (API, MVC, Android); TalkBack focus order checked on the emulator, speech not captured. The handoff guide now requires a coordinated API+MVC+Android release and a rollback that keeps financial data recorded after cutover. D6 stays open.

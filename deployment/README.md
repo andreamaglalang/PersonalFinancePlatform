@@ -44,6 +44,10 @@ git checkout dev && git pull --ff-only
 git rev-parse HEAD   # must match the release commit in the acceptance record
 ```
 
+The verified code commit is `600244d`. Later `dev` commits may change only documentation, configuration templates or opt-in tests;
+confirm with `git diff --stat 600244d HEAD -- . ':!docs' ':!*.md' ':!android/app/src/androidTest' ':!deployment/*.template'`, which must
+print nothing.
+
 `main` is not the release branch until the owner explicitly approves a `dev` → `main` merge.
 
 ## 4. Private configuration (never commit)
@@ -56,7 +60,7 @@ sourced as shell scripts.
 | --- | --- |
 | API ([api.env.template](api.env.template)) | `ASPNETCORE_ENVIRONMENT=Production`, `AllowedHosts`, `ConnectionStrings__DefaultConnection`, `Jwt__Issuer`, `Jwt__Audience`, `Jwt__SigningKeyBase64` (≥ 32 random bytes, base64), `CurrencyPolicy__MaximumRateAgeDays`, `Hangfire__Enabled=false`, Kestrel HTTPS URL/certificate |
 | MVC ([mvc.env.template](mvc.env.template)) | `ASPNETCORE_ENVIRONMENT=Production`, `AllowedHosts`, `BackendApi__BaseUrl` (the API's HTTPS origin reachable from the MVC server, no path), Kestrel HTTPS URL/certificate |
-| Worker ([worker.env.template](worker.env.template)) | `DOTNET_ENVIRONMENT=Production`, `ConnectionStrings__DefaultConnection` (PersonalFinanceDb), `ConnectionStrings__Hangfire` (`OWLI_Hangfire`, same instance), `Hangfire__Enabled` (`false` until activation, see §8) |
+| Worker ([worker.env.template](worker.env.template)) | `DOTNET_ENVIRONMENT=Production`, `ConnectionStrings__DefaultConnection` (PersonalFinanceDb), `ConnectionStrings__Hangfire` (`OWLI_Hangfire`, same instance), `Hangfire__Enabled` (`false` until activation, see §9) |
 | Android build | `owliApiBaseUrl` Gradle property (public HTTPS API origin) and the signing keystore, both held by the deployment team |
 
 Rules:
@@ -105,7 +109,26 @@ dotnet publish PersonalFinance.Worker/PersonalFinance.Worker.csproj -c Release -
 The script refuses existing output folders and fails if any development settings or secret-bearing file
 appear in the output. Ship only the publish folders and their checksums.
 
-## 7. Start and supervise the API and MVC
+## 7. Coordinated release of API, MVC and Android
+
+This release changes the transaction contract between the server and both clients, so **all three ship together**:
+
+- The API now **requires** the transaction `version` on every edit (400 "The current transaction version is
+  required" without it; 409 when it is stale). Neither the previous MVC nor previous Android builds send it, so
+  their transaction edits fail against the new API.
+- The new Android build calls endpoints that only the new API has (notification read state, stored monthly
+  summaries). It shows an error for those sections against an older API.
+
+Order inside one maintenance window:
+1. Stop the worker, if it runs.
+2. Back up the database, then rehearse and apply migrations (§5).
+3. Deploy the API and the MVC site together, and restart both (§8).
+4. Run the post-deployment checks (§12) with the new APK build.
+5. Publish the new signed APK (§11) to users, and ask them to update. Older installed APKs can still sign in
+   and record, but cannot edit transactions until they update.
+6. Start the worker last (§9).
+
+## 8. Start and supervise the API and MVC
 
 Run each app under its own service account and supervisor (systemd, Windows service/IIS, or the team's
 standard) with its own environment, then:
@@ -116,12 +139,12 @@ dotnet PersonalFinance.AdminMvc.dll     # e.g. ASPNETCORE_URLS=https://127.0.0.1
 ```
 
 - Both apps require `Request.IsHttps = true`. Plain HTTP is rejected on authentication and finance routes.
-  Origins must listen on HTTPS (§9).
+  Origins must listen on HTTPS (§10).
 - MVC keeps member sessions in process. Run **one** MVC instance; a restart signs users out (decision D12).
 - The API rate-limits authentication: 20 requests per minute per client IP when anonymous, per user when
   signed in.
 
-## 8. Worker and dedicated Hangfire storage
+## 9. Worker and dedicated Hangfire storage
 
 **Prepare storage (once, by the DBA):**
 1. Create an empty `OWLI_Hangfire` database on the **same instance** as `PersonalFinanceDb`.
@@ -153,7 +176,7 @@ graceful shutdown.
      `owli-monthly-summaries` (day 1, 00:30), all in `Asia/Manila`.
 4. Never set `Hangfire__Enabled=true` on the API (it has no effect there, by design).
 
-## 9. Cloudflare integration (existing tunnel; deployment team only)
+## 10. Cloudflare integration (existing tunnel; deployment team only)
 
 - Publish separate hostnames for the MVC site and the API through the existing remotely managed tunnel, for
   example `www.owli-auf.online` → MVC and an API hostname → API.
@@ -168,7 +191,7 @@ graceful shutdown.
 
 See also [the existing Cloudflare notes](../docs/developer-guide/DEPLOYMENT.md).
 
-## 10. Android release APK
+## 11. Android release APK
 
 ```bash
 cd android
@@ -186,7 +209,7 @@ cd android
   apksigner verify owli-release.apk
   ```
 
-## 11. Post-deployment verification
+## 12. Post-deployment verification
 
 Use **synthetic accounts** only, and record the results separately from local readiness:
 
@@ -204,14 +227,28 @@ Use **synthetic accounts** only, and record the results separately from local re
 7. **Worker (after activation):** one server and three jobs. The next hourly `owli-budget-alerts` run succeeds.
 8. **API isolation:** the API logs show no Hangfire server.
 
-## 12. Rollback
+## 13. Rollback (without losing financial data)
+
+Financial data that users record after the cutover must survive any rollback.
 
 - Keep the previous publish folders, their checksums and the previous environment versions.
-- **Application rollback:**
+- **Application rollback (the normal path):**
   1. Stop the worker first.
-  2. Switch the API and MVC back to the previous folders and restart them.
+  2. Switch the API and MVC back to the previous folders **together** (§7), and restart them.
   3. Re-enable traffic.
-- **Schema rollback:** restore the pre-migration backup. Do not hand-write down-migrations against financial
-  data; that decision belongs with the owner and the DBA.
-- **Worker rollback:** stop it, then set `Hangfire__Enabled=false`. Job history stays in `OWLI_Hangfire`;
-  do not delete it.
+  - The database stays as it is, so every transaction, contribution, payment and notification recorded on the
+    new release is kept.
+  - This release adds no migration beyond the five in §5. If production was already at
+    `20261123100000_UsePhilippineLocalBillPaymentDates` before the cutover, the previous applications run on the
+    same schema.
+  - Users who already installed the new APK keep working for everything except notification read state and
+    stored summaries, until the API is redeployed.
+- **Schema rollback:** restore the pre-migration backup **only if no user traffic reached the new release**
+  (for example, a guard fired or the post-deployment checks failed before traffic was re-enabled).
+  - Once users have recorded data, do not restore the backup; that would delete their new records.
+  - Keep the migrated database, and roll the application back as above or fix forward with the development team.
+  - Never hand-write down-migrations against financial data; that decision belongs with the owner and the DBA.
+- **Worker rollback:**
+  1. Stop the worker.
+  2. Set `Hangfire__Enabled=false`.
+  - Job history stays in `OWLI_Hangfire`; do not delete it.

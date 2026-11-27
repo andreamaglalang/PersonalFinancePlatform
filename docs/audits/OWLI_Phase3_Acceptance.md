@@ -2,38 +2,43 @@
 
 > Status: 27 November 2026 (Asia/Manila). Evidence labels: PASS / FAIL / BLOCKED / NOT TESTED.
 > An essential row that is not PASS remains **incomplete**. Nothing is merged into `main`.
+> Final closeout: 27 November 2026; see "Final closeout" below.
 
 ## Commits
 
 | Item | Commit |
 | --- | --- |
-| `dev` head (PRs #4–#11 merged) | `0cb05e7` |
-| Combined review candidate (draft PR #19, **do not merge**) | `integration/phase3-candidate` at `4c74878` |
-| Independent-review gate | **Pending** for #12–#24. The owner chose to hold further merges for review |
+| Phase 3 start (`dev` with PRs #4–#11) | `0cb05e7` |
+| Combined review candidate (PR #19, closed without merging) | `integration/phase3-candidate` at `4c74878` |
+| Final verified code commit (PRs #12–#25 merged) | `600244d` |
+| `dev` head after the record PR #26 | `a5c30d2` (documentation only beyond `600244d`; hosted CI green) |
+| Independent-review gate | **Done.** The owner approved the merges and checked the integration and handoff through GitHub |
 
-The candidate is `dev` plus the open PRs, joined only by merge commits (no duplicated implementation commits).
-Every result below was produced on the candidate unless stated otherwise.
+The candidate was `dev` plus the open PRs, joined only by merge commits (no duplicated implementation commits).
+The candidate results below were repeated on merged `dev` (`600244d`); see "Final integration on `dev`".
 
 ## Pull requests
 
 | PR | Content | State |
 | --- | --- | --- |
 | #4–#11 | R0, R2, R3a, R3b, R6, R7, R8 (MVC), R10 | merged in `dev` |
-| #12 | R4+R5 transaction contract (server + both clients) + SQL Server concurrency tests | open |
-| #13 | R11 Android release endpoint | open |
-| #14 | R8 Android inbox, snapshots, server report | open |
-| #15 | R9 goals/bills UI (+ Phase 4 message fix) | open |
-| #16 | Auth rate limit per user + MVC session-check reuse | open |
-| #17 | MVC WCAG AA contrast, 360 px overflow, ARIA | open |
-| #18 | This record | open |
-| #19 | Combined candidate (draft, do not merge) | review vehicle |
-| #20 | Root-cause fixes for the 4 failing Android instrumented tests | open (Phase 4) |
-| #21 | API: contribution dates on the Philippine calendar | open (Phase 4) |
-| #22 | MVC: Record payment only for a due bill occurrence | open (Phase 4) |
-| #23 | Android: offline banner category, stale profile name, misleading error, lost separators | open (Phase 4) |
-| #24 | Opt-in Android device runtime tests (cross-client steps + device UI flows) | open (stacked on #19) |
+| #12 | R4+R5 transaction contract (server + both clients) + SQL Server concurrency tests | merged |
+| #13 | R11 Android release endpoint | merged |
+| #14 | R8 Android inbox, snapshots, server report | merged |
+| #15 | R9 goals/bills UI (+ Phase 4 message fix) | merged |
+| #16 | Auth rate limit per user + MVC session-check reuse | merged |
+| #17 | MVC WCAG AA contrast, 360 px overflow, ARIA | merged |
+| #18 | This record | merged |
+| #19 | Combined candidate (review vehicle) | closed without merging |
+| #20 | Root-cause fixes for the 4 failing Android instrumented tests | merged |
+| #21 | API: contribution dates on the Philippine calendar | merged |
+| #22 | MVC: Record payment only for a due bill occurrence | merged |
+| #23 | Android: offline banner category, stale profile name, misleading error, lost separators | merged |
+| #24 | Opt-in Android device runtime tests (cross-client steps + device UI flows) | merged (test files only) |
+| #25 | Phase 5 deployment handoff guide | merged |
+| #26 | Final verified `dev` commit and regression record | merged |
 
-**Integration order** (each step simulated on current `dev` with the real PR branches; every step merges cleanly):
+**Integration order** (followed exactly; each step was first simulated on current `dev` with the real PR branches; every step merges cleanly):
 #12 → #13 → #14 → #15 → #16 → #17 → #20 → #21 → #22 → #23 → #18, then #24 last. Do not merge #19.
 
 - **#14:** carries a merge of #12 (`649d178`) that resolves `MainActivity.kt`/`FinanceRepositories.kt`. Its diff also shows #12 until #12 merges.
@@ -92,12 +97,12 @@ API and MVC from the candidate; Android 16 emulator using the debug build agains
 | 6 | Recurring bills + payments | **PASS** | Android UI: bill, payment, next due date advances. MVC browser: due bill paid (one receipt + one transaction); a future bill shows "Payment opens on …" (#22). SQL: concurrent payments → one receipt |
 | 7 | Report identical across clients | **PASS** | Android = API = MVC to the cent, including savings and budgets |
 | 8 | Notifications + read state | **PASS** | Both directions |
-| 9 | Stored summaries | **PASS (MVC) / partial (Android)** | Worker snapshot in MVC; the Android snapshot section is covered by unit tests only, and its device rendering was not exercised |
-| 10 | Currency + Frankfurter | **PASS / partial** | Live quote and snapshot PASS; unavailable-rate (503) handling is offline tests only |
+| 9 | Stored summaries | **PASS** | Worker snapshot in MVC. Android device (closeout): the worker-stored October 2026 summary renders on Insights as "October 2026 snapshot: income ₱0.00, expenses ₱40.00, net −₱40.00, savings ₱0.00" (`storedMonthlySummaryOnInsights`) |
+| 10 | Currency + Frankfurter | **PASS** | Live quote and snapshot. Real provider outage (closeout: API outbound HTTPS sent to a closed proxy): an uncached JPY quote and a JPY create return 503 "Exchange-rate data is temporarily unavailable"; nothing is stored; PHP transactions keep working; a rate already cached within the age policy is still served. MVC converter shows "The reference-rate service is unavailable. Try again later."; MVC create saves nothing. Android device: a JPY save shows the server-failure message and adds no row (`foreignSaveDuringFxOutageSavesNothing`) |
 | 11 | Android offline create, pending, sync, no duplicates | **PASS** | Device UI: offline save → "1 waiting to sync" with the category name → reconnect → auto-sync → one confirmed row. A second sync attempt makes no copy. SQL: each of 7 offline expenses stored exactly once |
 | 12 | Worker lifecycle, schedules, retry, API isolation | **PASS** | HangfireTests live (retry after forced failure, dedupe, stop/restart, no processing without the worker). API has 0 Hangfire servers. At startup the worker ran the missed 07:00 Manila daily reminder and hourly alert on its own and created a correct "due in 2 days" reminder. Then, with no manual trigger, the hourly schedule created job 9 at **00:00:00.86 UTC (08:00 Manila)** and it succeeded (next run 01:00 UTC). The worker was stopped with SIGTERM and deregistered |
-| 13 | Admin provisioning + role-based access | **PASS** | Interactive provisioning (pseudo-terminal) on `OWLI_Runtime_*`: catalog-specific confirmation, User + Administrator roles, admin pages 200; a rerun for the same email is refused. Members are redirected to Access Denied. D6 (cross-user scope) is still an owner decision |
-| 14 | Responsive, accessible, keyboard, screen reader, TalkBack | **Incomplete** | MVC: 12 pages × 3 widths × 2 themes, 0 overflow, 0 axe A/AA violations (#17). Keyboard-only sign-in; every control reachable by Tab with visible focus. Android: every clickable node on 8 screens has an accessible name. **NOT TESTED:** a real screen reader (VoiceOver/NVDA) and TalkBack spoken navigation |
+| 13 | Admin provisioning + role-based access | **PASS** (D6 open) | Interactive provisioning (pseudo-terminal) on `OWLI_Runtime_*`: catalog-specific confirmation, User + Administrator roles, admin pages 200; a rerun for the same email is refused. Members are redirected to Access Denied. D6 (cross-user scope) is still an owner decision |
+| 14 | Responsive, accessible, keyboard, screen reader, TalkBack | **Incomplete** | MVC: 12 pages × 3 widths × 2 themes, 0 overflow, 0 axe A/AA violations (#17). Keyboard-only sign-in; every control reachable by Tab with visible focus. Android: every clickable node on 8 screens has an accessible name. Closeout: with TalkBack enabled on the emulator, swipe navigation moves focus through the sign-in controls in order. **NOT TESTED:** the spoken text itself (the emulator has no audio and TalkBack does not log its speech) and a desktop screen reader (VoiceOver/NVDA) on MVC |
 | 15 | Ownership isolation | **PASS** | SQL harness + API/MVC role checks |
 | 16 | Android release endpoint | **PASS** | Build-time property; an invalid value fails the build |
 | 16a | Production deployment | **Out of scope (deployment team)** | D10: the external deployment team deploys through its existing Cloudflare setup using [the handoff guide](../../deployment/README.md). Not verified by this team; production status is reported separately |
@@ -136,9 +141,32 @@ Two separate statuses:
 
 Handoff: [deployment/README.md](../../deployment/README.md) covers software, pulling `dev`, configuration, backup and migration rehearsal, publish, API/MVC startup, worker supervision, `OWLI_Hangfire` preparation and controlled activation, Cloudflare, Android signing, verification and rollback (PR #25).
 
-## Remaining blockers
+## Final closeout (27 November 2026)
 
-- Independent review of #12–#24, then merges in the order above and a re-run of these suites on the merged `dev` head.
-- D6 owner decision (administrator cross-user scope).
-- Production deployment belongs to the external deployment team (D10). Local release readiness does not imply production readiness, and production runtime verification is NOT TESTED by this team.
-- NOT TESTED: real screen reader and TalkBack navigation; Android snapshot section rendering on a device; FX-unavailable handling at runtime.
+- **Hosted CI:** green on every merged head (`600244d`, `a5c30d2`).
+- **New runtime evidence** (API and MVC built from `dev`, disposable `OWLI_Runtime_20261126`, synthetic accounts, Android 16
+  emulator):
+
+| Check | Result |
+| --- | --- |
+| Android stored monthly summary on Insights (device) | PASS (row 9) |
+| FX provider outage: API, MVC, Android (device) | PASS (row 10) |
+| TalkBack swipe navigation (emulator) | PASS for focus order; spoken output NOT TESTED (row 14) |
+
+  The two device checks are opt-in steps added to `DeviceUiRuntimeTest` (skipped unless their instrumentation
+  arguments are given), so the default instrumented suite is unchanged.
+- **Deployment guide:** now requires a coordinated API + MVC + Android release (the transaction edit contract changed),
+  backup and migration rehearsal before production, and a rollback that keeps financial data recorded after the cutover
+  (application rollback by default; backup restore only before user traffic).
+
+## Remaining limitations
+
+- **D6 (unresolved):** whether administrators may see other users' data. It stays open until the owner confirms it.
+- **NOT TESTED:**
+  - spoken TalkBack output;
+  - a desktop screen reader (VoiceOver/NVDA) on MVC;
+  - upgrading a populated production database (the guide requires a rehearsal on a restored copy).
+- **Minor:** during an FX outage with rate review off, MVC shows its generic "could not confirm the change" message
+  instead of an exchange-rate message. Nothing is saved.
+- **Production:** deployment and production runtime verification belong to the external deployment team (D10) and
+  are NOT TESTED by this team. Local release readiness does not imply production readiness.

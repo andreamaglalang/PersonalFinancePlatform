@@ -317,6 +317,56 @@ class DeviceUiRuntimeTest {
      * ui-test-junit4-accessibility artifact, which this project does not depend on. Fallback: every clickable
      * node (merged tree) must expose a non-empty text, editable text or contentDescription.
      */
+    /** Opt-in `owliFxDown=true`, with the API unable to reach the FX provider: a JPY save stores nothing. */
+    @Test fun foreignSaveDuringFxOutageSavesNothing() {
+        assumeTrue("owliFxDown not set", args.getString("owliFxDown") == "true")
+        val description = "ui-fxdown-$runId"
+        signIn()
+        nav(R.string.navigation_transactions)
+        compose.onNodeWithContentDescription(text(R.string.navigation_add)).performClick()
+        val groceries = hasText("Groceries") and clickable and hasAnyAncestor(isDialog())
+        waitFor(groceries); compose.onNode(groceries).performClick()
+        waitFor(field(text(R.string.form_amount)))
+        compose.onNodeWithContentDescription(text(R.string.fx_currency_change, "PHP"), substring = true).performScrollTo().performClick()
+        val jpy = hasText("JPY") and hasAnyAncestor(isDialog())
+        waitFor(hasText(text(R.string.fx_currency_picker_title)))
+        val option = jpy and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
+        compose.onAllNodes(hasScrollAction() and hasAnyAncestor(isDialog())).fetchSemanticsNodes().indices.forEach { i ->
+            runCatching { compose.onAllNodes(hasScrollAction() and hasAnyAncestor(isDialog()))[i].performScrollToNode(option) } }
+        compose.onNode(option).performClick()
+        waitFor(hasText(text(R.string.fx_amount_in, "JPY")))
+        compose.onNode(field(text(R.string.form_amount))).performTextReplacement("1000")
+        compose.onNode(field(text(R.string.form_description))).performScrollTo().performTextReplacement(description)
+        hideKeyboard()
+        compose.onNodeWithText(text(R.string.form_save_expense)).assertIsEnabled().performClick()
+        waitFor(hasText(text(R.string.fx_conversion_server_failure)), 30_000)
+        log("fx outage: form shows '${text(R.string.fx_conversion_server_failure)}'")
+        val confirmedRow = hasText(description, substring = true) and clickable and !SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText)
+        repeat(3) { if (!exists(tab(text(R.string.navigation_transactions)))) { back(); Thread.sleep(1_000) } }
+        nav(R.string.navigation_transactions)
+        refreshActivity()
+        Thread.sleep(3_000)
+        assertEquals("no confirmed row after FX outage", 0, compose.onAllNodes(confirmedRow).fetchSemanticsNodes().size)
+        log("fx outage: Activity has no row for $description")
+    }
+
+    /** Opt-in `owliSnapshot=yyyy-MM,income,expense,net,savings`: a worker-stored summary (C4) renders on Insights. */
+    @Test fun storedMonthlySummaryOnInsights() {
+        val spec = args.getString("owliSnapshot"); assumeTrue("owliSnapshot not set", spec != null)
+        val (month, income, expense, net, savings) = spec!!.split(",")
+        signIn()
+        nav(R.string.navigation_insights)
+        val expected = text(R.string.reports_snapshot_description,
+            com.elect3.mobdev.personalfinance.ui.reports.reportMonthLabel(java.time.YearMonth.parse(month)),
+            php(income), php(expense),
+            com.elect3.mobdev.personalfinance.ui.reports.formatSignedReportAmount(BigDecimal(net), "PHP"), php(savings))
+        Thread.sleep(3_000) // report + snapshots load
+        val row = hasContentDescription(expected)
+        compose.onAllNodes(hasScrollAction())[0].performScrollToNode(row)
+        compose.onNode(row).assertIsDisplayed()
+        log("snapshot row: $expected")
+    }
+
     @Test fun accessibilityChecks() {
         signIn()
         val failures = mutableListOf<String>()
