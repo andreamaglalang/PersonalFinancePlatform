@@ -206,6 +206,24 @@ await Check("Authentication endpoint rate limiting returns 429", async () =>
     for (var i = 0; i < 21; i++) last = (await f.SendAsync("GET", "/api/auth/me")).Status;
     Require(last == 429);
 });
+await Check("Anonymous credential attempts stay limited per client IP", async () =>
+{
+    await using var f = new ApiFixture(); var last = 0;
+    for (var i = 0; i < 21; i++) last = (await f.SendAsync("POST", "/api/auth/login", new { email = "nobody@example.test", password = "Wrong-password-1!" })).Status;
+    Require(last == 429);
+});
+await Check("Signed-in session checks are limited per user, not per shared server IP (MVC proxies every member)", async () =>
+{
+    // MVC calls GET /api/auth/me for every page view from one server IP; one shared 20/min budget throttled all members.
+    await using var f = new ApiFixture();
+    var a = await f.LoginAsync();
+    var statuses = new List<int>();
+    for (var i = 0; i < 25; i++) statuses.Add((await f.SendAsync("GET", "/api/auth/me", bearer: a)).Status);
+    Require(statuses.Take(20).All(s => s == 200));
+    Require(statuses.Last() == 429); // still limited, but per user
+    var other = await f.LoginAsync(f.SecondEmail);
+    Require((await f.SendAsync("GET", "/api/auth/me", bearer: other)).Status == 200); // another member is unaffected
+});
 
 await Check("Profile update is authenticated, owner-scoped, trimmed and persistent", async () =>
 {

@@ -14,6 +14,8 @@ public sealed class AdminSession
     public required CurrentUserResponse User { get; set; }
     public required DateTimeOffset AbsoluteExpiry { get; init; }
     public DateTimeOffset LastActivity { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>When the API last confirmed this session (GET api/auth/me); null until the first check.</summary>
+    public DateTimeOffset? LastVerifiedAt { get; set; }
     public AuthenticationTicket? Ticket { get; set; }
     public SemaphoreSlim Gate { get; } = new(1, 1);
     public bool Invalidated { get; set; }

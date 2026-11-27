@@ -59,8 +59,8 @@ app.UseMiddleware<FinanceTransportMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter(); // after authentication so signed-in calls are partitioned per user
 app.UseAuthorization();
 
 app.MapControllers();
