@@ -33,13 +33,13 @@ await Check("Accept expected resolved connection without connecting",()=>{
  return Task.CompletedTask;
 });
 foreach(var target in new[]{
- "Server=localhost,14336;Database=OWLI_Runtime_;User ID=sa;Password=x",
- "Server=localhost,14336;Database=OWLI_Runtime_x;y;User ID=sa;Password=x",
- "Server=localhost,14336;Database=OWLI_Hangfire;User ID=sa;Password=x",
- "Server=localhost,14336;Database=OWLI_Runtime_20261126;AttachDbFilename=/tmp/x.mdf;User ID=sa;Password=x"})
+ "Server=sql.example.test,1433;Database=OWLI_Runtime_;User ID=sa;Password=x",
+ "Server=sql.example.test,1433;Database=OWLI_Runtime_x;y;User ID=sa;Password=x",
+ "Server=sql.example.test,1433;Database=OWLI_Hangfire;User ID=sa;Password=x",
+ "Server=sql.example.test,1433;Database=OWLI_Runtime_20261126;AttachDbFilename=/tmp/x.mdf;User ID=sa;Password=x"})
  await Check("Reject unapproved portable target",()=>Reject(()=>{ProvisioningSafety.RequireTarget(target);return Task.CompletedTask;}));
 await Check("Accept disposable runtime catalog on any server with SQL authentication",()=>{
- Assert(ProvisioningSafety.RequireTarget("Server=localhost,14336;Database=OWLI_Runtime_20261126;User ID=sa;Password=x;TrustServerCertificate=True")=="OWLI_Runtime_20261126");
+ Assert(ProvisioningSafety.RequireTarget("Server=sql.example.test,1433;Database=OWLI_Runtime_20261126;User ID=sa;Password=x;TrustServerCertificate=True")=="OWLI_Runtime_20261126");
  Assert(ProvisioningSafety.ConfirmationFor("OWLI_Runtime_20261126")=="CREATE DEVELOPMENT ADMINISTRATOR IN OWLI_Runtime_20261126");
  Assert(ProvisioningSafety.ConfirmationFor("PersonalFinanceDb")==ProvisioningSafety.Confirmation);
  return Task.CompletedTask;

@@ -1,6 +1,6 @@
 # Deployment and Cloudflare (optional)
 
-**OWLI runs fully locally without Cloudflare.** Use this only if the owner asks you to expose the API or MVC site.
+**Production deployment is handled by the external deployment team; see the [deployment handoff guide](../../deployment/README.md).** OWLI runs fully locally without Cloudflare. Use this only if the owner asks you to expose the API or MVC site.
 
 ## What exists on the original PC (observed read-only on 2026-11-21; nothing was changed)
 

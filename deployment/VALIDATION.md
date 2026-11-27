@@ -1,3 +1,7 @@
+> **Historical record (Phase 2, 20 November 2026).** Superseded by
+> [the Phase 3–4 acceptance record](../docs/audits/OWLI_Phase3_Acceptance.md) and the
+> [deployment handoff guide](README.md). Kept for traceability only.
+
 # OWLI Phase 2 offline validation — November 20, 2026
 
 ## Exact source and integration
