@@ -201,7 +201,13 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
         if (status == 401) return RedirectToAction("Login", "Account");
         var result = await bills.GetAsync(id, token!, ct);
         if (!result.Succeeded) return RedirectToIndex(result.Status);
-        ViewData["DueDate"] = result.Value!.NextDueDate;
+        // The API only accepts payment for an occurrence that is due (Philippine calendar); don't offer an early payment.
+        if (result.Value!.NextDueDate > BudgetPlanSummary.PhilippineToday)
+        {
+            TempData["BillError"] = $"This bill can be paid from its due date, {result.Value.NextDueDate:MMMM d, yyyy}.";
+            return RedirectToAction(nameof(Index));
+        }
+        ViewData["DueDate"] = result.Value.NextDueDate;
         return View(result.Value);
     }
 

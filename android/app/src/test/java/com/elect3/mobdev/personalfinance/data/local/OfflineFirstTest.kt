@@ -34,6 +34,14 @@ class OfflineFirstTest {
         }
     }
 
+    @Test fun queuedItemCarriesTheCategoryNameForTheOfflineBanner() = runTest {
+        // Phase 4 device run: the banner showed "#<categoryId>" because no name lookup was wired.
+        val ledger = InMemoryLedger()
+        val creation = OfflineFirstCreationRepository(Server(), ledger, { 42 }, categoryName = { id -> if (id == draft.categoryId) "Groceries" else null })
+        creation.create(CreateTransactionRequest(UUID.randomUUID(), draft))
+        assertEquals(listOf("Groceries"), ledger.pending(42).map { it.categoryName })
+    }
+
     @Test fun offlineSaveIsQueuedWithItsClientIdAndSyncedOnceWhenOnline() = runTest {
         val server = Server(); val ledger = InMemoryLedger()
         val creation = OfflineFirstCreationRepository(server, ledger, { 42 })
@@ -88,7 +96,7 @@ class OfflineFirstTest {
         ledger.enqueue(42, q, "Food")
         assertEquals(SyncOutcome.Done(0, 1, 0), PendingTransactionSync(rejecting, ledger).sync(42) { true })
         assertTrue(ledger.unsynced(42).first().single().rejected)
-        ledger.discardRejected(42, q.clientId)
+        ledger.discardUnsynced(42, q.clientId)
         assertTrue(ledger.unsynced(42).first().isEmpty())
     }
 

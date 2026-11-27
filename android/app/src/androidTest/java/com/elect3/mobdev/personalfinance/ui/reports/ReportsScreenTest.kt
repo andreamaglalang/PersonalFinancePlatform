@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
@@ -68,7 +69,8 @@ class ReportsScreenTest {
         compose.onNodeWithText(text(R.string.reports_title)).assertIsDisplayed()
         compose.onAllNodesWithText(month(nov)).onFirst().assertIsDisplayed()
         // The panel is announced as one description holding every overview figure.
-        compose.onNodeWithContentDescription("+₱48,218.77", substring = true).assertIsDisplayed()
+        // The same net flow is described by the overview, the trend point and the comparison; the overview comes first.
+        compose.onAllNodesWithContentDescription("+₱48,218.77", substring = true).onFirst().assertIsDisplayed()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("USD", substring = true))
         compose.onNodeWithText("USD", substring = true).assertIsDisplayed()
         compose.onNode(hasScrollAction()).performScrollToNode(androidx.compose.ui.test.hasContentDescription("Rank 1, Rent", substring = true))

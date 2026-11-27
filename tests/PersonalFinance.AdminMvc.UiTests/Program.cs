@@ -21,6 +21,7 @@ RoleClaimsChecks.Run();
 OwliLandingChecks.Run();
 MemberAreaChecks.Run();
 RegistrationChecks.Run();
+await SessionVerificationChecks.RunAsync();
 ManilaDateChecks.Run();
 await RegistrationChecks.RunStatusContractAsync();
 MemberShellChecks.Run();

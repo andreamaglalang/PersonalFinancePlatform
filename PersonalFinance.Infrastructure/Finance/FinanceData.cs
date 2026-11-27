@@ -38,6 +38,9 @@ internal static class FinanceData
         return await users.AsNoTracking().Select(u => u.BaseCurrency).SingleOrDefaultAsync(ct);
     }
 
+    internal static string Version(FinanceTransaction t) => TransactionVersion.Of(t.TransactionId, t.Type.ToString(), t.CategoryId,
+        t.Amount, t.CurrencyCode, t.FxRate, t.FxRateDate, t.AmountBase, t.TransactionDate, t.Description);
+
     internal static bool SameState(FinanceTransaction a, FinanceTransaction b) =>
         a.ClientId == b.ClientId && a.CategoryId == b.CategoryId && a.Type == b.Type
         && a.Amount == b.Amount && a.CurrencyCode == b.CurrencyCode && a.TransactionDate == b.TransactionDate

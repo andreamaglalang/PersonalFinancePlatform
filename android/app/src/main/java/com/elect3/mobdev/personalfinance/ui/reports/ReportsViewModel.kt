@@ -6,7 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.elect3.mobdev.personalfinance.domain.reports.FinancialReport
 import com.elect3.mobdev.personalfinance.domain.reports.FinancialReportResult
+import com.elect3.mobdev.personalfinance.domain.reports.MonthlySnapshot
 import com.elect3.mobdev.personalfinance.domain.reports.ReportPeriod
+import com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure
+import com.elect3.mobdev.personalfinance.domain.repository.FinanceResult
 import com.elect3.mobdev.personalfinance.domain.repository.TransactionFailure
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
@@ -43,6 +46,14 @@ sealed interface ReportsUiState {
     data class SessionExpired(override val month: YearMonth) : ReportsUiState
 }
 
+/** Stored monthly snapshots (C4) below the report. Hidden where the owner supplies none (Mock Demo). */
+sealed interface SnapshotsUiState {
+    data object Hidden : SnapshotsUiState
+    data object Loading : SnapshotsUiState
+    data class Ready(val items: List<MonthlySnapshot>) : SnapshotsUiState
+    data class Failure(val error: ReportsError) : SnapshotsUiState
+}
+
 enum class ReportsError {
     /** No response or a server error: offline, unreachable or temporarily unavailable. */
     Unavailable,
@@ -62,14 +73,18 @@ class ReportsViewModel @MainThread constructor(
     initialMonth: YearMonth = currentMonth(),
     private val isSessionCurrent: () -> Boolean = { true },
     private val onSessionExpired: () -> Unit = {},
+    private val snapshotLoader: (suspend () -> FinanceResult<List<MonthlySnapshot>>)? = null,
 ) : ViewModel() {
+    private val mutableSnapshots = MutableStateFlow<SnapshotsUiState>(SnapshotsUiState.Hidden)
+    val snapshots = mutableSnapshots.asStateFlow()
+    private var snapshotRequest: Job? = null
     private val mutableState = MutableStateFlow<ReportsUiState>(ReportsUiState.Loading(ReportPeriod.clamp(initialMonth, currentMonth())))
     val state = mutableState.asStateFlow()
     private var request: Job? = null
     private var generation = 0L
     private var invalidated = false
 
-    init { load(state.value.month) }
+    init { load(state.value.month); loadSnapshots() }
 
     val canGoBack: Boolean get() = ReportPeriod.canGoBack(state.value.month)
     val canGoForward: Boolean get() = ReportPeriod.canGoForward(state.value.month, currentMonth())
@@ -96,6 +111,7 @@ class ReportsViewModel @MainThread constructor(
     @MainThread
     fun refresh() {
         if (invalidated) return
+        loadSnapshots()
         when (val current = state.value) {
             is ReportsUiState.Ready -> if (!current.isRefreshing) load(current.month, current)
             is ReportsUiState.Failure -> load(current.month)
@@ -110,7 +126,39 @@ class ReportsViewModel @MainThread constructor(
         generation++
         request?.cancel()
         request = null
+        snapshotRequest?.cancel()
+        if (snapshotLoader != null) mutableSnapshots.value = SnapshotsUiState.Hidden
         mutableState.value = ReportsUiState.SessionExpired(state.value.month)
+    }
+
+    /** Re-reads the stored snapshots; a read already running is kept. */
+    @MainThread
+    fun retrySnapshots() { if (!invalidated) loadSnapshots() }
+
+    private fun loadSnapshots() {
+        val loader = snapshotLoader ?: return
+        if (snapshotRequest?.isActive == true) return
+        if (mutableSnapshots.value !is SnapshotsUiState.Ready) mutableSnapshots.value = SnapshotsUiState.Loading
+        snapshotRequest = viewModelScope.launch {
+            val result = try { loader() } catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { FinanceResult.Failure(FinanceFailure.Unavailable) }
+            if (invalidated) return@launch
+            mutableSnapshots.value = when (result) {
+                is FinanceResult.Success -> SnapshotsUiState.Ready(result.value)
+                is FinanceResult.Failure -> when (result.reason) {
+                    FinanceFailure.MissingSession, FinanceFailure.SessionExpired -> {
+                        invalidated = true
+                        generation++
+                        request?.cancel()
+                        mutableState.value = ReportsUiState.SessionExpired(state.value.month)
+                        onSessionExpired()
+                        SnapshotsUiState.Hidden
+                    }
+                    FinanceFailure.InvalidResponse -> SnapshotsUiState.Failure(ReportsError.InvalidData)
+                    else -> SnapshotsUiState.Failure(ReportsError.Unavailable)
+                }
+            }
+        }
     }
 
     private fun load(month: YearMonth, previous: ReportsUiState.Ready? = null) {
@@ -158,11 +206,13 @@ class ReportsViewModel @MainThread constructor(
         private val currentMonth: () -> YearMonth = { YearMonth.now() },
         private val isSessionCurrent: () -> Boolean = { true },
         private val onSessionExpired: () -> Unit = {},
+        private val snapshots: (suspend () -> FinanceResult<List<MonthlySnapshot>>)? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == ReportsViewModel::class.java)
             @Suppress("UNCHECKED_CAST")
-            return ReportsViewModel(loader, currentMonth, isSessionCurrent = isSessionCurrent, onSessionExpired = onSessionExpired) as T
+            return ReportsViewModel(loader, currentMonth, isSessionCurrent = isSessionCurrent, onSessionExpired = onSessionExpired,
+                snapshotLoader = snapshots) as T
         }
     }
 }

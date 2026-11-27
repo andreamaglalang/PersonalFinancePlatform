@@ -22,7 +22,7 @@ class ApiConfiguration private constructor(private val base: URI?) {
 
     internal fun transactionCreateUrl(): URL? = base?.resolve("api/transactions")?.toURL()
 
-    /** PUT api/transactions/{id} (member edit). */
+    /** api/transactions/{id}: GET (reload), PUT (member edit) and DELETE. */
     internal fun transactionUpdateUrl(transactionId: Int): URL? {
         require(transactionId > 0)
         return base?.resolve("api/transactions/$transactionId")?.toURL()
@@ -38,6 +38,12 @@ class ApiConfiguration private constructor(private val base: URI?) {
     internal fun categoryWriteUrl(categoryId: Int?): URL? {
         require(categoryId == null || categoryId > 0)
         return base?.resolve(if (categoryId == null) "api/categories" else "api/categories/$categoryId")?.toURL()
+    }
+
+    /** C3: POST api/notifications/{id}/read, or api/notifications/read-all when [notificationId] is null. */
+    internal fun notificationReadUrl(notificationId: Int?): URL? {
+        require(notificationId == null || notificationId > 0)
+        return base?.resolve(if (notificationId == null) "api/notifications/read-all" else "api/notifications/$notificationId/read")?.toURL()
     }
 
     companion object {

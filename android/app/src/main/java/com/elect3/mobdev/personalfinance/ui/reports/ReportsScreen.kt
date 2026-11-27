@@ -60,6 +60,7 @@ import java.util.Locale
 @Composable
 fun ReportsRoute(viewModel: ReportsViewModel, demo: Boolean, currentMonth: () -> YearMonth, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snapshots by viewModel.snapshots.collectAsStateWithLifecycle()
     val shell = LocalOwliShellActions.current
     ReportsScreen(
         state = state, currentMonth = currentMonth(), demo = demo,
@@ -67,6 +68,7 @@ fun ReportsRoute(viewModel: ReportsViewModel, demo: Boolean, currentMonth: () ->
         onRetry = viewModel::retry, onRefresh = viewModel::refresh,
         onAddTransaction = shell.addTransaction?.let { add -> { add(null) } },
         modifier = modifier,
+        snapshots = snapshots, onRetrySnapshots = viewModel::retrySnapshots,
     )
 }
 
@@ -83,6 +85,8 @@ fun ReportsScreen(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
     onAddTransaction: (() -> Unit)? = null,
+    snapshots: SnapshotsUiState = SnapshotsUiState.Hidden,
+    onRetrySnapshots: () -> Unit = {},
 ) {
     val typography = LocalOwliTypography.current
     val scheme = MaterialTheme.colorScheme
@@ -154,6 +158,7 @@ fun ReportsScreen(
                     } else {
                         item(key = "overview") { Box(width) { ReportsOverviewPanel(report.selected, locale) } }
                         item(key = "breakdown") { Box(width.padding(top = 6.dp)) { ReportsBreakdown(report.selected, locale) } }
+                        if (report.selected.budgets.isNotEmpty()) item(key = "budgets") { Box(width.padding(top = 6.dp)) { ReportsBudgets(report.selected) } }
                         item(key = "trend") { Box(width.padding(top = 6.dp)) { ReportsTrend(report, locale, onSelectMonth) } }
                     }
                     item(key = "source") {
@@ -161,6 +166,9 @@ fun ReportsScreen(
                             style = typography.caption, color = scheme.onSurfaceVariant, modifier = width.padding(top = 4.dp))
                     }
                 }
+            }
+            if (state !is ReportsUiState.SessionExpired && snapshots != SnapshotsUiState.Hidden) item(key = "snapshots") {
+                Box(width.padding(top = 6.dp)) { ReportsSnapshots(snapshots, locale, onRetrySnapshots) }
             }
         }
     }
@@ -256,6 +264,10 @@ private fun ReportsOverviewPanel(report: MonthlyReport, locale: Locale) {
                 Text(if (report.isEmpty) stringResource(R.string.reports_month_no_activity, month)
                     else pluralStringResource(R.plurals.reports_transaction_count, report.transactionCount, count, month),
                     style = typography.caption, color = owli.onPanelMuted)
+                report.savingsContributed?.let { savings ->
+                    Text(stringResource(R.string.reports_savings_description, month, formatReportAmount(savings, currency)),
+                        style = typography.caption, color = owli.onPanelMuted)
+                }
                 if (report.foreignCurrencyCount > 0) Text(
                     pluralStringResource(R.plurals.reports_foreign_note, report.foreignCurrencyCount, report.foreignCurrencyCount,
                         report.foreignCurrencies.joinToString(", "), currency),

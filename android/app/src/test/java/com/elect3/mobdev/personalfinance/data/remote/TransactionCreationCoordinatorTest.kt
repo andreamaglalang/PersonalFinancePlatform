@@ -45,6 +45,15 @@ class TransactionCreationCoordinatorTest {
         coordinator.submit(draft())
         assertEquals(requests.first().clientId, requests.last().clientId)
     }
+    @Test fun aCreateConflictIsDefinitiveAndNeverResentUnderThatClientId() = runTest {
+        val requests = mutableListOf<CreateTransactionRequest>()
+        val coordinator = TransactionCreationCoordinator(TransactionCreationRepository {
+            requests += it; CreationResult.Failure(FinanceFailure.Conflict)
+        }, { true })
+        assertEquals(CreationResult.Failure(FinanceFailure.Conflict), coordinator.submit(draft()))
+        assertEquals(CreationResult.Failure(FinanceFailure.Conflict), coordinator.submit(draft()))
+        assertEquals(1, requests.size); assertTrue(coordinator.unresolvedClientIds.isEmpty())
+    }
     @Test fun simultaneousDuplicateSubmitDoesNotDispatchTwice() = runTest {
         var calls = 0
         val response = CompletableDeferred<CreationResult>()

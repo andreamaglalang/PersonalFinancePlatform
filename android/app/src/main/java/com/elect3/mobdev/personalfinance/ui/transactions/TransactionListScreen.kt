@@ -282,7 +282,7 @@ fun TransactionListScreen(
                                     com.elect3.mobdev.personalfinance.data.local.LocalTransactionState.Synced -> R.string.local_history_synced
                                     com.elect3.mobdev.personalfinance.data.local.LocalTransactionState.Rejected -> R.string.local_history_rejected
                                 }
-                                Text("${row.draft.transactionDate} ? ${row.categoryName ?: row.draft.type.wireValue} ? ${row.draft.amount.toPlainString()} ${row.draft.currencyCode}")
+                                Text("${row.draft.transactionDate} · ${row.categoryName ?: row.draft.type.wireValue} · ${row.draft.amount.toPlainString()} ${row.draft.currencyCode}")
                                 Text(stringResource(status), style = MaterialTheme.typography.labelMedium)
                             }
                         }

@@ -165,4 +165,46 @@ class ReportsViewModelTest {
         org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { ReportsUiState.Ready(oct, report) }
         assertEquals(LocalDate.of(2026, 11, 1), nov.atDay(1))
     }
+
+    private fun snapshotModel(result: suspend () -> com.elect3.mobdev.personalfinance.domain.repository.FinanceResult<List<com.elect3.mobdev.personalfinance.domain.reports.MonthlySnapshot>>,
+                              expired: () -> Unit = {}): ReportsViewModel {
+        val store = ViewModelStore().also { stores += it }
+        return ViewModelProvider(store, ReportsViewModel.Factory({ success(it) }, { nov }, onSessionExpired = expired, snapshots = result))
+            .get(ReportsViewModel::class.java)
+    }
+
+    @Test fun snapshotsAreHiddenWithoutALoader() = verify {
+        val vm = model(Loader()); runCurrent()
+        assertEquals(SnapshotsUiState.Hidden, vm.snapshots.value)
+    }
+
+    @Test fun snapshotsEmptyReadyAndErrorStates() = verify {
+        var next: com.elect3.mobdev.personalfinance.domain.repository.FinanceResult<List<com.elect3.mobdev.personalfinance.domain.reports.MonthlySnapshot>> =
+            com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Success(emptyList())
+        val vm = snapshotModel({ next })
+        assertEquals(SnapshotsUiState.Loading, vm.snapshots.value)
+        runCurrent()
+        assertEquals(SnapshotsUiState.Ready(emptyList()), vm.snapshots.value)
+        next = com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Failure(com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure.Unavailable)
+        vm.retrySnapshots(); runCurrent()
+        assertEquals(SnapshotsUiState.Failure(ReportsError.Unavailable), vm.snapshots.value)
+        next = com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Failure(com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure.InvalidResponse)
+        vm.retrySnapshots(); runCurrent()
+        assertEquals(SnapshotsUiState.Failure(ReportsError.InvalidData), vm.snapshots.value)
+        val item = com.elect3.mobdev.personalfinance.domain.reports.MonthlySnapshot(oct, java.math.BigDecimal("10.00"), java.math.BigDecimal("4.00"),
+            java.math.BigDecimal("6.00"), java.math.BigDecimal.ZERO, java.time.Instant.parse("2026-11-01T00:30:00Z"), "PHP")
+        next = com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Success(listOf(item))
+        vm.refresh(); runCurrent()
+        assertEquals(SnapshotsUiState.Ready(listOf(item)), vm.snapshots.value)
+    }
+
+    @Test fun snapshotSessionExpiryEndsTheReportSession() = verify {
+        var expiries = 0
+        val vm = snapshotModel({ com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Failure(
+            com.elect3.mobdev.personalfinance.domain.repository.FinanceFailure.SessionExpired) }, expired = { expiries++ })
+        runCurrent()
+        assertEquals(ReportsUiState.SessionExpired(nov), vm.state.value)
+        assertEquals(SnapshotsUiState.Hidden, vm.snapshots.value)
+        assertEquals(1, expiries)
+    }
 }
