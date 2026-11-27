@@ -134,9 +134,11 @@ fun OwliFinanceContent(
         scope
     } else null
     // Offline-first (signed in only): queue on connectivity loss with the same ClientId, sync when back online.
-    val offlineCreation = remember(authenticatedContentKey, offlineLedger, authenticatedCreation) {
+    val offlineCreation = remember(authenticatedContentKey, offlineLedger, authenticatedCreation, offlineCategoryCache) {
         if (authenticatedContentKey == null || offlineLedger == null || authenticatedCreation == null) null
-        else com.elect3.mobdev.personalfinance.data.local.OfflineFirstCreationRepository(authenticatedCreation, offlineLedger, { accountId })
+        else com.elect3.mobdev.personalfinance.data.local.OfflineFirstCreationRepository(authenticatedCreation, offlineLedger, { accountId },
+            // The offline queue banner shows the category name from the on-device category cache (it showed "#<id>").
+            categoryName = { id -> accountId?.let { account -> offlineCategoryCache?.read(account, null, true)?.firstOrNull { it.categoryId == id }?.name } })
     }
     val pendingSync = remember(authenticatedContentKey, offlineLedger, authenticatedCreation) {
         if (authenticatedContentKey == null || offlineLedger == null || authenticatedCreation == null) null
@@ -316,9 +318,12 @@ fun OwliFinanceContent(
         )
     }
     if (accountOpen && onLogout != null) {
+        // Re-read the signed-in name after a profile sheet closes (it showed the sign-in-time name until re-login).
+        var profileRevision by remember { mutableIntStateOf(0) }
+        val signedInProfile = remember(profileRevision) { accountProfile() }
         com.elect3.mobdev.personalfinance.ui.account.AccountDialog(
             mode = if (authenticatedContentKey == null) com.elect3.mobdev.personalfinance.ui.account.AccountMode.Demo
-                else com.elect3.mobdev.personalfinance.ui.account.AccountMode.SignedIn(accountProfile()),
+                else com.elect3.mobdev.personalfinance.ui.account.AccountMode.SignedIn(signedInProfile),
             appearance = appearance, onAppearance = onAppearance,
             // Opens the existing Category settings over Account; Back returns here.
             onManageCategories = openCategories,
@@ -331,6 +336,7 @@ fun OwliFinanceContent(
             onPasswordChanged = onPasswordChanged,
             currencyPreferences = preferenceStore,
             isCurrent = { authenticatedContentKey != null && isSessionCurrent(authenticatedContentKey) },
+            onProfileChanged = { profileRevision++ },
         )
     }
     if (converterOpen) {

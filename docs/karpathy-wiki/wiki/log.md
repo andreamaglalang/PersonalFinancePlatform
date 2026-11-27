@@ -70,3 +70,13 @@
 - Updated: OWLI verification limits and architectural decisions
 - Linked docs/audits/OWLI_Phase3_Acceptance.md; PRs #4-#17 pending review; incomplete essential rows recorded, D6/D10 pending.
 - API Hangfire hosting and DevJobsController removed; PersonalFinance.Worker implemented; HangfireTests 13/13 (7 offline + 6 live) on disposable catalogs. Operational cutover not approved.
+
+## [2026-11-27] update | Phase 4 integration and runtime acceptance
+- Disposition: Update
+- Updated: OWLI verification limits and architectural decisions
+- Candidate #19 (4c74878) verified; Phase 4 defects fixed in #20-#23; scheduled hourly job fired at 08:00 Manila; ordered PR merge simulation reproduces the candidate. Merges await independent review; D6/D10 pending.
+
+## [2026-11-27] update | Phase 5 deployment handoff
+- Disposition: Update
+- Updated: OWLI verification limits and architectural decisions
+- D10 resolved: external deployment team deploys via existing Cloudflare; this team delivers verified dev + deployment/README.md handoff (#25). Local readiness and production deployment are separate statuses.

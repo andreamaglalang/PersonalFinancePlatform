@@ -75,6 +75,10 @@ internal static class MemberGoalBillChecks
             || planNavigation.Contains("asp-controller=\"Bills\"") is false)
             throw new InvalidOperationException("Member Plan navigation must reach budgets, goals and bills.");
 
+        // The API refuses future occurrences (409); MVC must not offer an early payment or show a misleading conflict.
+        if (!billIndex.Contains("bill.NextDueDate <= PersonalFinance.AdminMvc.Services.BudgetPlanSummary.PhilippineToday")
+            || !billIndex.Contains("Payment opens on") || !bills.Contains("can be paid from its due date"))
+            throw new InvalidOperationException("Record payment must be offered only for a due occurrence.");
         Console.WriteLine("PASS: member savings goals and recurring bills are member-scoped, antiforgery-protected and idempotent.");
     }
 }

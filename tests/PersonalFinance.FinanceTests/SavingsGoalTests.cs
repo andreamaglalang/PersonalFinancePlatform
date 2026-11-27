@@ -233,9 +233,10 @@ internal static class SavingsGoalTests
             Expect(await Send(f, "POST", Path(id) + "/contributions", ContributionBody(date: "2026-11-04")), 400); Assert(await Snapshot(f) == before); });
         await check("Savings contributions: future correction rejected without mutation", async f => { var id = await Goal(f); var r = await Contribute(f, id); var before = await Snapshot(f);
             Expect(await Edit(f, id, ContributionId(r), date: "2026-11-04"), 400); Assert(await Snapshot(f) == before); });
-        await check("Savings contributions: UTC calendar date rather than clock offset local date", async f => { f.Clock.Now = new DateTimeOffset(2026, 11, 4, 0, 30, 0, TimeSpan.FromHours(8)); var id = await Goal(f);
-            await Contribute(f, id, date: Today); Expect(await Send(f, "POST", Path(id) + "/contributions", ContributionBody(date: "2026-11-04")), 400); });
-        await check("Savings contributions: UTC midnight advances accepted day deterministically", async f => { f.Clock.Now = new DateTimeOffset(2026, 11, 3, 23, 59, 59, TimeSpan.Zero); var id = await Goal(f);
+        // Phase 4 defect: both clients default to the Philippine date; a UTC rule rejected "today" from 00:00 to 08:00 Manila.
+        await check("Savings contributions: Philippine calendar date (UTC+8), like bill payments", async f => { f.Clock.Now = new DateTimeOffset(2026, 11, 4, 0, 30, 0, TimeSpan.FromHours(8)); var id = await Goal(f);
+            await Contribute(f, id, date: "2026-11-04"); Expect(await Send(f, "POST", Path(id) + "/contributions", ContributionBody(date: "2026-11-05")), 400); });
+        await check("Savings contributions: Philippine midnight advances accepted day deterministically", async f => { f.Clock.Now = new DateTimeOffset(2026, 11, 3, 15, 59, 59, TimeSpan.Zero); var id = await Goal(f);
             Expect(await Send(f, "POST", Path(id) + "/contributions", ContributionBody(date: "2026-11-04")), 400); f.Clock.Now = f.Clock.Now.AddSeconds(1); await Contribute(f, id, date: "2026-11-04"); });
         await check("Savings contributions: invalid money required fields date and note", async f => { var id = await Goal(f); var before = await Snapshot(f);
             foreach (var body in new object[] { new { }, ContributionBody(amount: 0), ContributionBody(amount: -1), ContributionBody(amount: 1.001m), ContributionBody(amount: 10000000000000000m), ContributionBody(date: "2026-02-30"), ContributionBody(note: new string('x', 201)) })

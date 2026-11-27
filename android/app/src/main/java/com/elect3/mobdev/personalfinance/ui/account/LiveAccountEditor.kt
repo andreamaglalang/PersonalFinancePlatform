@@ -38,7 +38,7 @@ internal fun LiveAccountEditor(live: LiveAccountPlanRepository, password: Boolea
                 name = result.value.get("fullName").asString; email = result.value.get("email").asString
                 version = result.value.get("version").asString; loaded = true
             }
-            is FinanceResult.Failure -> message = liveFailure(result.reason)
+            is FinanceResult.Failure -> message = liveFailure(result.reason, account = true)
         }
         busy = false
     }
@@ -74,7 +74,7 @@ internal fun LiveAccountEditor(live: LiveAccountPlanRepository, password: Boolea
                             when(result) {
                                 is FinanceResult.Success -> { finished = true; message = if (password) "Password changed. Sign in again." else "Profile saved." }
                                 is FinanceResult.Failure -> {
-                                    message = liveFailure(result.reason, true)
+                                    message = liveFailure(result.reason, true, account = true)
                                     if (password && result.reason in uncertainFailures) { finished = true; message = "Password change could not be confirmed. Sign in again to check; do not resubmit automatically." }
                                 }
                             }

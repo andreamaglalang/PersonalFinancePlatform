@@ -637,7 +637,7 @@
     <string name="offline_discard">Discard</string>
     <string name="offline_syncing">Syncing…</string>
     <string name="offline_rejected_label">Not accepted</string>
-    <string name="local_history_title">Offline ? On-device history</string>
+    <string name="local_history_title">Offline · On-device history</string>
     <string name="local_history_notice">Up to 200 saved entries. Incomplete history; totals unavailable. Synced entries may be out of date.</string>
     <string name="local_history_pending">Pending · Awaiting sync</string>
     <string name="local_history_synced">Synced · Last confirmed copy</string>
@@ -698,24 +698,7 @@
     <string name="auth_connection_failed">Cannot reach OWLI. Check your connection.</string>
     <string name="auth_renewal_unconfirmed">Session renewal was interrupted. Sign in again to reconnect safely.</string>
     <string name="auth_secure_storage">Secure session storage is unavailable. Unlock your device and try again.</string>
-    <!-- Registration (mirrors MVC Account/Register) -->
-    <string name="register_entry">New to OWLI? Create account</string>
-    <string name="register_title">Create your account</string>
-    <string name="register_intro">Register with your name and email. You sign in after the account is ready.</string>
-    <string name="register_full_name">Full name</string>
-    <string name="register_confirm_password">Confirm password</string>
-    <string name="register_password_hint">At least 12 characters, with upper and lower case letters, a number and a symbol.</string>
-    <string name="register_submit">Create account</string>
-    <string name="register_creating">Creating account…</string>
-    <string name="register_back_to_sign_in">Back to sign in</string>
-    <string name="register_success">Your OWLI account is ready. Sign in with your email and password.</string>
-    <string name="register_error_full_name">Enter your full name (up to 100 characters).</string>
-    <string name="register_error_email">Enter a valid email address.</string>
-    <string name="register_error_password_length">Passwords must be at least 12 characters.</string>
-    <string name="register_error_password_mismatch">Passwords do not match.</string>
-    <string name="register_error_invalid">Check your name, email and password. Passwords must be at least 12 characters and match.</string>
-    <string name="register_error_duplicate">That email is already registered. Sign in instead.</string>
-    <string name="register_error_unavailable">Registration is temporarily unavailable. Please try again later.</string>
+
     <!-- Savings goals and recurring bills (live account) -->
     <string name="plan_add_goal">Add goal</string>
     <string name="plan_add_bill">Add bill</string>
@@ -749,7 +732,7 @@
     <string name="plan_option_selected">✓ %1$s</string>
     <string name="plan_editor_invalid">Check the name, amount, date and bill settings.</string>
     <string name="plan_failure_session">Session ended. Sign in again.</string>
-    <string name="plan_failure_invalid">Check your entries. The current password may be incorrect, or an account rule was not met.</string>
+    <string name="plan_failure_invalid">Check your entries. A value was not accepted, for example a date later than today.</string>
     <string name="plan_failure_conflict">This record changed or has financial history. Reload before editing.</string>
     <string name="plan_failure_not_found">This operation is not available on the running API, or the record no longer exists.</string>
     <string name="plan_failure_denied">This operation is not permitted.</string>
@@ -847,4 +830,22 @@
     <string name="demo_bill_mark_message">%1$s · Demo only. No money is paid.</string>
     <string name="demo_bill_mark_confirm">Mark paid (demo)</string>
     <string name="demo_cancel">Cancel</string>
+    <!-- Registration (mirrors MVC Account/Register) -->
+    <string name="register_entry">New to OWLI? Create account</string>
+    <string name="register_title">Create your account</string>
+    <string name="register_intro">Register with your name and email. You sign in after the account is ready.</string>
+    <string name="register_full_name">Full name</string>
+    <string name="register_confirm_password">Confirm password</string>
+    <string name="register_password_hint">At least 12 characters, with upper and lower case letters, a number and a symbol.</string>
+    <string name="register_submit">Create account</string>
+    <string name="register_creating">Creating account…</string>
+    <string name="register_back_to_sign_in">Back to sign in</string>
+    <string name="register_success">Your OWLI account is ready. Sign in with your email and password.</string>
+    <string name="register_error_full_name">Enter your full name (up to 100 characters).</string>
+    <string name="register_error_email">Enter a valid email address.</string>
+    <string name="register_error_password_length">Passwords must be at least 12 characters.</string>
+    <string name="register_error_password_mismatch">Passwords do not match.</string>
+    <string name="register_error_invalid">Check your name, email and password. Passwords must be at least 12 characters and match.</string>
+    <string name="register_error_duplicate">That email is already registered. Sign in instead.</string>
+    <string name="register_error_unavailable">Registration is temporarily unavailable. Please try again later.</string>
 </resources>
