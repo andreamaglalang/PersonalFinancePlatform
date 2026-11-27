@@ -800,6 +800,7 @@
     <string name="contribution_previously_deleted">This contribution was previously deleted. Nothing was added.</string>
     <string name="contribution_saved">Contribution saved.</string>
     <string name="contribution_check_same">Check same contribution</string>
+
     <!-- Savings goals and recurring bills (mock demo) -->
     <string name="demo_goals_account_title">Your savings goals</string>
     <string name="demo_goals_account_message">Account goals are not available here yet.</string>
