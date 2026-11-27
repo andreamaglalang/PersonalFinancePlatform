@@ -269,15 +269,23 @@ and failed.
 
 ### Limitations recorded in round 3 (not represented as passed)
 
-- After an API-only outage (network never lost), Android syncs on sign-in, on a system network event or with "Sync
-  now"; there is no periodic retry. In this run a network event triggered it within about two minutes. No duplicate.
-- Android caps the goal progress percentage at 100% ("100% · ₱30.75 over target"); MVC shows 151.0%. Display only.
+- ~~No periodic retry after an API-only outage~~ and ~~Android capped the goal percentage at 100%~~: both corrected in
+  the round-3 follow-up below.
 - A cold category cache (an account that never opened the picker online) cannot offer categories while the API is down.
   This is the documented design.
 - The administrator test palette created extra shared categories in the disposable catalog; they appear in every
   synthetic member's lists there. Not production data.
 - Still NOT TESTED: spoken TalkBack/VoiceOver output, physical devices and tablets, upgrade with the release key,
   a populated pre-migration-4 database, production.
+
+### Round 3 follow-up: reviewer items (27 November 2026)
+
+| Item | Correction | Verified |
+| --- | --- | --- |
+| Automatic sync after an API-only outage | While pending (not rejected) entries exist and the app is in the foreground, Android retries with bounded backoff: 10 s, doubling to a 5-minute cap. It uses the same single-flight sync (never two at once), the stored ClientIds and the signed-in account only; nothing runs when the queue is empty, and a request in flight is not cancelled when the app leaves the foreground | API stopped with the device network unchanged → expense "Saved on this device". API restarted at 20:56:12; **no tap**; synced at 20:57:26 (within the backoff schedule), **one** server row, banner cleared. The active network stayed the same throughout, so no network event was involved. Unit test: backoff schedule and cap |
+| Goal progress parity | Android and the MVC goals list show the real percentage; only the progress bars stay at 100%. Saved, surplus and status unchanged | Same goal: Android "115.4% · ₱30.75 over target"; MVC list "30.75 PHP over target · 115.4%"; MVC details "115.4% complete · 30.75 PHP over target"; MVC bar `aria-valuenow="100"`. Unit tests: text 115.4, bar fraction 1.0 |
+| Expired transaction form | The posted ClientId (empty or malformed) and its binding error are removed from ModelState, so the new identity renders | Real form posted with a missing, empty and malformed ClientId: each returned "This form has expired. Check the details and save again." with a **new ClientId in the HTML**; that returned form submitted twice → **1** row each. Regression check fails without the fix |
+| Contribution and payment forms | Contributions now treat a missing or malformed ClientId as expired **before** other validation (a malformed value used to re-render the same unusable form). Payments already redirected | Missing, empty, malformed → "This form has expired. Nothing was saved/paid…", nothing stored; reopened form submitted twice → 1 contribution, 1 payment |
 
 ### Regression after round 3
 
@@ -288,6 +296,10 @@ and failed.
 | Android unit (debug / release) | 675 / 681, 0 failures |
 | Android instrumented, full suite | 203 run, 0 failures, 22 skipped (opt-in). A first run had 7 `MainActivityTest` failures because the emulator was still signed in from the manual device run; after signing out, the full suite passed |
 | Hosted CI on PR #31 | dotnet, android, sql green |
+| **After the follow-up** (`a0d882a`): all .NET suites above, SqlIntegration 16/16, Hangfire 13/13 | PASS |
+| Android unit (debug / release) after the follow-up | 677 / 683, 0 failures |
+| Android instrumented after the follow-up | 203 run, 0 failures, 22 skipped (opt-in) |
+| Hosted CI on `a0d882a` | dotnet, android, sql green |
 
 ## Final verified commit
 
