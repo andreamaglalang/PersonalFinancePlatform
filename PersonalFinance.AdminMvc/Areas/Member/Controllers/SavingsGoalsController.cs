@@ -125,7 +125,8 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         {
             Name = goal.Name,
             TargetAmount = goal.TargetAmount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
-            TargetDate = goal.TargetDate
+            TargetDate = goal.TargetDate,
+            Version = goal.Version
         });
     }
 
@@ -149,17 +150,19 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             return RedirectToAction("Login", "Account");
         }
         if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
+        if (string.IsNullOrEmpty(model.Version)) return Expired(id);
+        // The version this form was opened with, not the current one: a stale form must not overwrite a newer change.
         var result = await goals.UpdateAsync(id, new(model.Name!.Trim(), model.Amount, model.TargetDate),
-            current.Value!.Version, token!, ct);
+            model.Version, token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Savings goal saved.";
             return RedirectToAction(nameof(Index));
         }
-        if (result.Status == 428 || result.Status == 409)
+        if (result.Status is 412 or 428 || result.Status == 409 && result.Message is null)
         {
             // The version changed underneath this page: reload rather than overwrite someone else's edit.
-            TempData["GoalError"] = MemberSessionGate.Message(409);
+            TempData["GoalError"] = ChangedElsewhere;
             return RedirectToAction(nameof(Index));
         }
         ViewData["GoalId"] = id;
@@ -175,7 +178,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         var result = await goals.GetAsync(id, token!, ct);
         if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         ViewData["Goal"] = result.Value!;
-        return View(new MemberContributionFormModel { ContributedOn = BudgetPlanSummary.PhilippineToday });
+        return View(new MemberContributionFormModel { ContributedOn = BudgetPlanSummary.PhilippineToday, ClientId = Guid.NewGuid() });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -192,9 +195,12 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             if (current.Succeeded) ViewData["Goal"] = current.Value!;
             Response.StatusCode = 400;
             return View(model);
-        }        // A fresh ClientId per submission, the same idempotency contract Android's repository uses.
+        }
+        if (model.ClientId is not { } clientId || clientId == Guid.Empty) return Expired(id);
+        // The identity minted when this form opened: resubmitting the same form (double click, retry after a lost
+        // response, a second tab with the same page) replays the one contribution instead of adding another.
         var result = await goals.ContributeAsync(id,
-            new(Guid.NewGuid(), model.Value, model.ContributedOn!.Value, Note(model.Note)), token!, ct);
+            new(clientId, model.Value, model.ContributedOn!.Value, Note(model.Note)), token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Contribution saved.";
@@ -204,7 +210,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpGet]
-    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromRoute] int contributionId, CancellationToken ct)
+    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromQuery] int contributionId, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -224,12 +230,13 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         {
             Amount = contribution.Value.Amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
             ContributedOn = contribution.Value.ContributedOn,
-            Note = contribution.Value.Note
+            Note = contribution.Value.Note,
+            Version = contribution.Value.Version
         });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromRoute] int contributionId,
+    public async Task<IActionResult> EditContribution([FromRoute] int id, [FromQuery] int contributionId,
         [FromForm] MemberContributionFormModel model, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
@@ -251,20 +258,21 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             Response.StatusCode = 400;
             return View(model);
         }
+        if (string.IsNullOrEmpty(model.Version)) return Expired(id);
         var result = await goals.UpdateContributionAsync(id, contributionId,
             new UpdateGoalContributionRequest(model.Value, model.ContributedOn!.Value, Note(model.Note)),
-            current.Value.Version, token!, ct);
+            model.Version, token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Contribution updated.";
             return RedirectToAction(nameof(Details), new { id });
         }
-        TempData["GoalError"] = MemberSessionGate.Message(result.Status, true, result.Message);
+        TempData["GoalError"] = result.Status == 412 ? ChangedElsewhere : MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }
 
     [HttpGet]
-    public async Task<IActionResult> DeleteContribution([FromRoute] int id, [FromRoute] int contributionId, CancellationToken ct)
+    public async Task<IActionResult> DeleteContribution([FromRoute] int id, [FromQuery] int contributionId, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -283,8 +291,8 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpPost, ActionName(nameof(DeleteContribution)), ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteContributionConfirmed([FromRoute] int id, [FromRoute] int contributionId,
-        CancellationToken ct)
+    public async Task<IActionResult> DeleteContributionConfirmed([FromRoute] int id, [FromQuery] int contributionId,
+        [FromForm] string? version, CancellationToken ct)
     {
         if (id <= 0 || contributionId <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -296,13 +304,14 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             return RedirectToAction("Login", "Account");
         }
         if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status, reason: current.Message);
-        var result = await goals.DeleteContributionAsync(id, contributionId, current.Value.Version, token!, ct);
+        if (string.IsNullOrEmpty(version)) return Expired(id);
+        var result = await goals.DeleteContributionAsync(id, contributionId, version, token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Contribution deleted.";
             return RedirectToAction(nameof(Details), new { id });
         }
-        TempData["GoalError"] = MemberSessionGate.Message(result.Status, true, result.Message);
+        TempData["GoalError"] = result.Status == 412 ? ChangedElsewhere : MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -323,7 +332,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpPost, ActionName(nameof(Delete)), ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed([FromRoute] int id, CancellationToken ct)
+    public async Task<IActionResult> DeleteConfirmed([FromRoute] int id, [FromForm] string? version, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -335,13 +344,14 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
             return RedirectToAction("Login", "Account");
         }
         if (!current.Succeeded || current.Value is null) return RedirectToIndex(current.Status, reason: current.Message);
-        var result = await goals.DeleteAsync(id, current.Value.Version, token!, ct);
+        if (string.IsNullOrEmpty(version)) return Expired(id);
+        var result = await goals.DeleteAsync(id, version, token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Savings goal deleted.";
             return RedirectToAction(nameof(Index));
         }
-        TempData["GoalError"] = result.Status == 409
+        TempData["GoalError"] = result.Status == 412 ? ChangedElsewhere : result.Status == 409
             ? "This goal has protected financial history and cannot be deleted. Cancel it instead."
             : MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Index));
@@ -359,7 +369,7 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
     }
 
     [HttpPost, ActionName(nameof(Cancel)), ValidateAntiForgeryToken]
-    public async Task<IActionResult> CancelConfirmed([FromRoute] int id, CancellationToken ct)
+    public async Task<IActionResult> CancelConfirmed([FromRoute] int id, [FromForm] string? version, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -373,15 +383,16 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         }
         if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
         // The row version is the concurrency precondition: a stale page is refused, never applied blind.
-        var result = await goals.CancelAsync(id, current.Value!.Version, token!, ct);
+        if (string.IsNullOrEmpty(version)) return Expired(id);
+        var result = await goals.CancelAsync(id, version, token!, ct);
         if (result.Succeeded)
         {
             TempData["GoalNotice"] = "Savings goal cancelled.";
             return RedirectToAction(nameof(Index));
         }
-        if (result.Status is 428 or 409)
+        if (result.Status is 412 or 428 or 409)
         {
-            TempData["GoalError"] = MemberSessionGate.Message(409);
+            TempData["GoalError"] = ChangedElsewhere;
             return RedirectToAction(nameof(Index));
         }
         return RedirectToIndex(result.Status, mutation: true, reason: result.Message);
@@ -398,6 +409,16 @@ public sealed class SavingsGoalsController(SavingsGoalApiClient goals, AdminSess
         Response.StatusCode = status is 400 or 404 or 409 or 429 ? status : 503;
         ModelState.AddModelError(string.Empty, MemberSessionGate.Message(status, true, reason));
         return View(viewName, model);
+    }
+
+    private const string ChangedElsewhere =
+        "This goal or contribution was updated elsewhere, for example in the OWLI app. Nothing was changed. Review it and try again.";
+
+    /// <summary>A form without its original identity or version cannot be applied safely.</summary>
+    private IActionResult Expired(int id)
+    {
+        TempData["GoalError"] = "This form has expired. Nothing was saved. Open it again and retry.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     private IActionResult RedirectToIndex(int status, bool mutation = false, string? reason = null)

@@ -67,4 +67,45 @@ class OwliDatabaseMigrationTest {
         assertEquals(listOf("recurring-bills/7/payments"),db.pendingRequests().paths("ns#1"))
         assertTrue(db.pendingRequests().paths("ns#2").isEmpty())
     }
+
+    /** An installed v2 app (cached categories, pending and synced transactions) upgrades to v3 with nothing lost. */
+    @Test fun roomTwoToThreePreservesTransactionsAndCachedCategories()=runBlocking{
+        val legacy=context.openOrCreateDatabase(name,Context.MODE_PRIVATE,null)
+        listOf(
+            "CREATE TABLE IF NOT EXISTS `local_transactions` (`accountId` INTEGER NOT NULL, `clientId` TEXT NOT NULL, `transactionId` INTEGER, `type` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `categoryName` TEXT, `amount` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `amountBase` TEXT, `transactionDate` TEXT NOT NULL, `description` TEXT, `syncState` TEXT NOT NULL, `updatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `clientId`))",
+            "CREATE INDEX IF NOT EXISTS `index_local_transactions_accountId_syncState` ON `local_transactions` (`accountId`, `syncState`)",
+            "CREATE INDEX IF NOT EXISTS `index_local_transactions_accountId_transactionDate` ON `local_transactions` (`accountId`, `transactionDate`)",
+            "CREATE TABLE IF NOT EXISTS `local_categories` (`accountId` INTEGER NOT NULL, `categoryId` INTEGER NOT NULL, `type` TEXT NOT NULL, `name` TEXT NOT NULL, `colorHex` TEXT, `isActive` INTEGER NOT NULL, `isSystemDefault` INTEGER NOT NULL, `updatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `categoryId`))",
+            "CREATE INDEX IF NOT EXISTS `index_local_categories_accountId_type_isActive` ON `local_categories` (`accountId`, `type`, `isActive`)",
+            "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+            "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4356d08a5e3189e52912bfc8bb750592')"
+        ).forEach{legacy.execSQL(it)}
+        listOf("Pending","Synced").forEachIndexed{index,state->
+            legacy.insertOrThrow("local_transactions",null,ContentValues().apply{
+                put("accountId",1);put("clientId","00000000-0000-0000-0000-0000000000a"+index)
+                if(state=="Synced")put("transactionId",777) else putNull("transactionId")
+                put("type","Expense");put("categoryId",9);put("categoryName","Groceries")
+                put("amount","45.60");put("currencyCode","USD")
+                if(state=="Synced")put("amountBase","2650.00") else putNull("amountBase")
+                put("transactionDate","2026-11-20");put("description","v2 fixture "+state)
+                put("syncState",state);put("updatedAtEpochMs",10L+index)
+            })
+        }
+        legacy.insertOrThrow("local_categories",null,ContentValues().apply{
+            put("accountId",1);put("categoryId",9);put("type","Expense");put("name","Groceries");putNull("colorHex")
+            put("isActive",1);put("isSystemDefault",0);put("updatedAtEpochMs",5L)
+        })
+        legacy.version=2
+        val transactions=snapshot(legacy.rawQuery("SELECT * FROM local_transactions ORDER BY clientId",null))
+        val categories=snapshot(legacy.rawQuery("SELECT * FROM local_categories",null))
+        legacy.close()
+        val db=Room.databaseBuilder(context,OwliDatabase::class.java,name).addMigrations(MIGRATION_1_2,MIGRATION_2_3).build()
+        migrated=db
+        val sql=db.openHelper.writableDatabase
+        assertEquals(transactions,snapshot(sql.query("SELECT * FROM local_transactions ORDER BY clientId")))
+        assertEquals(categories,snapshot(sql.query("SELECT * FROM local_categories")))
+        assertEquals(listOf("Pending","Synced"),db.transactions().history(1,100).map{it.syncState}.sorted())
+        assertEquals(listOf("Groceries"),db.categories().read(1,null,true).map{it.name})
+        assertTrue(db.pendingRequests().paths("ns#1").isEmpty())
+    }
 }

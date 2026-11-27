@@ -446,7 +446,7 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
         else if (category is null)
             ModelState.AddModelError(nameof(model.CategoryId), "That category is not available.");
         else if (category.Type != model.Type)
-            ModelState.AddModelError(nameof(model.CategoryId), $"Choose a {model.Type} category.");
+            ModelState.AddModelError(nameof(model.CategoryId), $"Choose an {model.Type.ToLowerInvariant()} category.");
     }
 
     private async Task<MemberTransactionDraftViewModel> WithCategoriesAsync(

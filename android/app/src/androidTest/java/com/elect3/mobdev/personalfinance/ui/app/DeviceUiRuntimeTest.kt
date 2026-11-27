@@ -317,6 +317,62 @@ class DeviceUiRuntimeTest {
      * ui-test-junit4-accessibility artifact, which this project does not depend on. Fallback: every clickable
      * node (merged tree) must expose a non-empty text, editable text or contentDescription.
      */
+    /** Rotation: the app keeps the signed-in session and the half-filled form (found by the E2E run). */
+    @Test fun configurationChangeKeepsSessionAndForm() {
+        signIn()
+        nav(R.string.navigation_transactions)
+        compose.onNodeWithContentDescription(text(R.string.navigation_add)).performClick()
+        val groceries = hasText("Groceries") and clickable and hasAnyAncestor(isDialog())
+        waitFor(groceries); compose.onNode(groceries).performClick()
+        waitFor(field(text(R.string.form_amount)))
+        compose.onNode(field(text(R.string.form_amount))).performTextReplacement("12.34")
+        compose.onNode(field(text(R.string.form_description))).performScrollTo().performTextReplacement("rotate-$runId")
+        hideKeyboard()
+        // A real rotation (and back), as a user turning the phone would.
+        shell("settings put system accelerometer_rotation 0"); shell("settings put system user_rotation 1")
+        Thread.sleep(2_500); compose.waitForIdle()
+        val amount = runCatching { compose.onNode(field(text(R.string.form_amount))).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text }.getOrNull()
+        val description = runCatching { compose.onNode(field(text(R.string.form_description))).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text }.getOrNull()
+        shell("settings put system user_rotation 0"); Thread.sleep(1_500); compose.waitForIdle()
+        log("rotation: amount='$amount' description='$description'")
+        assertTrue("still signed in after rotation", !exists(field(text(R.string.auth_email))))
+        assertEquals("amount kept across rotation", "12.34", amount)
+        assertEquals("description kept across rotation", "rotate-$runId", description)
+    }
+
+    /** Opt-in `owliEmail2`: Back leaves an unsaved form without saving; switching accounts shows only the new data. */
+    @Test fun backDiscardsUnsavedFormAndAccountSwitchIsIsolated() {
+        val second = args.getString("owliEmail2"); assumeTrue("owliEmail2 not set", second != null)
+        signIn()
+        nav(R.string.navigation_transactions)
+        val mine = hasText("ui-offline-", substring = true)
+        refreshActivity(); waitFor(mine)
+        compose.onNodeWithContentDescription(text(R.string.navigation_add)).performClick()
+        val groceries = hasText("Groceries") and clickable and hasAnyAncestor(isDialog())
+        waitFor(groceries); compose.onNode(groceries).performClick()
+        compose.onNode(field(text(R.string.form_amount))).performTextReplacement("9.99")
+        compose.onNode(field(text(R.string.form_description))).performScrollTo().performTextReplacement("back-$runId")
+        hideKeyboard(); back(); compose.waitForIdle()
+        // A draft with input asks before discarding (no silent loss); confirm like a user.
+        waitFor(hasText(text(R.string.tx_discard_title)), 10_000)
+        log("back: '${text(R.string.tx_discard_title)}' asked before leaving")
+        compose.onNode(hasText(text(R.string.form_discard)) and hasClickAction()).performClick(); compose.waitForIdle()
+        repeat(2) { if (!exists(tab(text(R.string.navigation_transactions)))) { back(); compose.waitForIdle() } }
+        refreshActivity(); Thread.sleep(2_000)
+        assertEquals("Back must not save the form", 0, compose.onAllNodes(hasText("back-$runId", substring = true)).fetchSemanticsNodes().size)
+        log("back: unsaved form closed, nothing saved")
+        nav(R.string.navigation_dashboard)
+        waitFor(logOut); compose.onNode(logOut).performClick()
+        val login = field(text(R.string.auth_email)); waitFor(login)
+        compose.onNode(login).performTextReplacement(second!!)
+        compose.onNode(field(text(R.string.auth_password))).performTextReplacement(arg("owliPassword"))
+        compose.onNode(field(text(R.string.auth_password))).performImeAction()
+        waitFor(logOut)
+        nav(R.string.navigation_transactions); refreshActivity(); Thread.sleep(3_000)
+        assertEquals("the previous account's transactions must not appear", 0, compose.onAllNodes(mine).fetchSemanticsNodes().size)
+        log("switch: second account sees none of the first account's transactions")
+    }
+
     // ---- Validation feedback (system-wide inspection) ----
 
     private fun shown(message: String) = waitFor(hasText(message, substring = true), 15_000)

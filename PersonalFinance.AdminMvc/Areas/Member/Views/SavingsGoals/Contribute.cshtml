@@ -19,7 +19,7 @@
         {
             <p class="owli-caption">Goal: @goal.Name · @goal.SavedAmount.ToString("0.00") of @goal.TargetAmount.ToString("0.00") @goal.BaseCurrency saved.</p>
         }
-        <form class="member-form" method="post" asp-action="Contribute" asp-route-id="@(goal?.GoalId)" data-busy>
+        <form class="member-form" method="post" asp-action="Contribute" asp-route-id="@(goal?.GoalId)" data-busy><input type="hidden" asp-for="ClientId" />
             <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
             <div class="member-field">
                 <label class="member-label" for="Amount">Amount</label>
