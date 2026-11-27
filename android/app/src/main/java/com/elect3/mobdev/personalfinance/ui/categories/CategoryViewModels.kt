@@ -226,7 +226,7 @@ class CategoryCatalogViewModel(
     }
 }
 
-enum class NameProblem { Required, TooLong, Duplicate }
+enum class NameProblem { Required, TooLong, ControlCharacters, Duplicate }
 enum class EditorError { Failed, Unknown, NameConflict, TypeConflict, Denied }
 
 data class CategoryEditorState(
@@ -280,6 +280,7 @@ class CategoryEditorViewModel(
         return when {
             n.isEmpty() -> NameProblem.Required
             n.length > CATEGORY_NAME_MAX -> NameProblem.TooLong
+            n.any(Char::isISOControl) -> NameProblem.ControlCharacters
             siblings.any { it.categoryId != s.editingId && it.type == s.type && categoryNamesMatch(it.name, n) } -> NameProblem.Duplicate
             else -> null
         }

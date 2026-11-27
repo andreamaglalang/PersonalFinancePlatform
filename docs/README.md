@@ -8,7 +8,7 @@ Reviewed on 26 November 2026 for `handoff/owli-20261125` in
 **Production deployment:** follow only [the deployment handoff guide](../deployment/README.md) and its templates.
 Other setup or deployment descriptions in this repository, such as `docs/handoff/`, `docs/Phase*_*.md`,
 `deployment/VALIDATION.md` and the original-PC notes, are historical records. The latest verification is in
-[the end-to-end acceptance record](audits/OWLI_E2E_Acceptance.md). Academic requirement coverage: [traceability matrix](audits/OWLI_Academic_Traceability.md).
+[the end-to-end acceptance record](audits/OWLI_E2E_Acceptance.md). Academic requirement coverage: [traceability matrix](audits/OWLI_Academic_Traceability.md). Input validation policy and audit: [input validation record](audits/OWLI_Input_Validation_Audit.md).
 
 Approved requirements are in [PRODUCT.md](../PRODUCT.md); current source-backed
 client contracts are in [backend integration](backend-integration.md).

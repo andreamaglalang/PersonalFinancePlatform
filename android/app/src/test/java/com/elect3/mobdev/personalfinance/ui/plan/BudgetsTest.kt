@@ -56,8 +56,10 @@ class BudgetsTest {
         assertEquals(99, percentUsed(budget(1, "100.00", "99.99")))
         assertEquals(100, percentUsed(budget(1, "100.00", "100.00", BudgetStatus.Warning)))
         assertEquals(102, percentUsed(budget(1, "1800.00", "1849.00", BudgetStatus.Exceeded)))
-        assertEquals(BigDecimal("1250.50"), parseLimit(" 1,250.50 "))
-        listOf("0", "-5", "1.005", "abc", "", "99999999999999999.00").forEach { assertNull(it, parseLimit(it)) }
+        assertEquals(BigDecimal("1250.50"), parseLimit(" 1250.50 "))
+        // Same reading as every other amount field: a comma is the decimal separator, never a thousands separator.
+        assertEquals(0, BigDecimal("10.50").compareTo(parseLimit("10,50")))
+        listOf("0", "-5", "1.005", "abc", "", "99999999999999999.00", "1,250.50", "1e5", "+5", "₱100").forEach { assertNull(it, parseLimit(it)) }
         assertThrows(IllegalArgumentException::class.java) { BudgetLimits(BigDecimal("10"), 0) }
     }
 

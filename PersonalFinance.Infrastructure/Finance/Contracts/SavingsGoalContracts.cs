@@ -9,9 +9,10 @@ public sealed class CreateSavingsGoalRequest : UpdateSavingsGoalRequest { }
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public class UpdateSavingsGoalRequest
 {
-    [Required, StringLength(100)]
+    [Required(ErrorMessage = "Enter a goal name."), StringLength(100, ErrorMessage = "Goal name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Goal names can't contain line breaks or control characters.")]
     public string Name { get; set; } = string.Empty;
-    [Required]
+    [Required(ErrorMessage = "Enter a target amount.")]
     public decimal? TargetAmount { get; set; }
     public DateOnly? TargetDate { get; set; }
 }
@@ -26,18 +27,18 @@ public sealed class SavingsGoalQuery
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class CreateGoalContributionRequest : UpdateGoalContributionRequest
 {
-    [Required]
+    [Required(ErrorMessage = "A client-generated ClientId is required.")]
     public Guid? ClientId { get; set; }
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public class UpdateGoalContributionRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Enter an amount.")]
     public decimal? Amount { get; set; }
-    [Required]
+    [Required(ErrorMessage = "Choose a contribution date.")]
     public DateOnly? ContributedOn { get; set; }
-    [StringLength(200)]
+    [StringLength(200, ErrorMessage = "Notes can be up to 200 characters.")]
     public string? Note { get; set; }
 }
 

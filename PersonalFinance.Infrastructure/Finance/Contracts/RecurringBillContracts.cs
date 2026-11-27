@@ -7,15 +7,16 @@ namespace PersonalFinance.Infrastructure.Finance.Contracts;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public class UpdateRecurringBillRequest
 {
-    [Required, StringLength(100)]
+    [Required(ErrorMessage = "Enter a bill name."), StringLength(100, ErrorMessage = "Bill name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Bill names can't contain line breaks or control characters.")]
     public string Name { get; set; } = string.Empty;
-    [Required, Range(1, int.MaxValue)]
+    [Required(ErrorMessage = "Choose an expense category."), Range(1, int.MaxValue, ErrorMessage = "Choose an expense category.")]
     public int? CategoryId { get; set; }
-    [Required]
+    [Required(ErrorMessage = "Enter an amount.")]
     public decimal? Amount { get; set; }
-    [Required, StringLength(3, MinimumLength = 3)]
+    [Required(ErrorMessage = "Choose a currency."), RegularExpression("^[A-Z]{3}$", ErrorMessage = "Use a three-letter uppercase currency code, for example PHP.")]
     public string CurrencyCode { get; set; } = string.Empty;
-    [Required, Range(0, 30)]
+    [Required(ErrorMessage = "Enter reminder days from 0 to 30."), Range(0, 30, ErrorMessage = "Enter reminder days from 0 to 30.")]
     public int? ReminderDaysBefore { get; set; }
     public bool? IsActive { get; set; }
 }
@@ -24,10 +25,10 @@ public class UpdateRecurringBillRequest
 public sealed class CreateRecurringBillRequest : UpdateRecurringBillRequest
 {
     /// <summary>Weekly, Monthly, Quarterly or Yearly.</summary>
-    [Required, StringLength(20)]
+    [Required(ErrorMessage = "Choose how often the bill repeats."), StringLength(20, ErrorMessage = "Frequency must be Weekly, Monthly, Quarterly or Yearly.")]
     public string Frequency { get; set; } = string.Empty;
     /// <summary>The first due date; later due dates follow the frequency from this date.</summary>
-    [Required]
+    [Required(ErrorMessage = "Choose the first due date.")]
     public DateOnly? FirstDueDate { get; set; }
 }
 

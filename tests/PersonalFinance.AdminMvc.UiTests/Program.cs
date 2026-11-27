@@ -54,6 +54,7 @@ await SavingsGoalContributionMvcChecks.RunAsync();
 await SavingsGoalResponseChecks.RunAsync();
 await BillPaymentResponseChecks.RunAsync();
 await ValidationFeedbackChecks.RunAsync();
+await InputValidationChecks.RunAsync();
 E2eRegressionChecks.Run();
 
 var categories = new PageFixture();

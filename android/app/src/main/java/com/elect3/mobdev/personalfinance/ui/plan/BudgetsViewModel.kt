@@ -58,12 +58,8 @@ fun budgetSummary(budgets: List<Budget>, month: YearMonth, today: LocalDate): Bu
 /** Whole percent of the limit used, rounded down (100% is shown only once the limit is reached). */
 fun percentUsed(b: Budget): Int = b.spentAmount.multiply(BigDecimal(100)).divide(b.limitAmount, 0, RoundingMode.FLOOR).toInt()
 
-/** Parses a typed amount exactly ("1,250.50" allowed); null if it is not a valid API limit. */
-fun parseLimit(raw: String): BigDecimal? {
-    val clean = raw.trim().replace(",", "")
-    if (!clean.matches(Regex("[0-9]{1,16}(\\.[0-9]{1,2})?"))) return null
-    return BigDecimal(clean).takeIf { validBudgetLimit(it) && it <= MAX_MONEY }
-}
+/** Parses a typed limit with the device-wide amount rules ([typedAmount]); null if it is not a valid API limit. */
+fun parseLimit(raw: String): BigDecimal? = positiveAmount(raw)?.takeIf { validBudgetLimit(it) && it <= MAX_MONEY }
 
 enum class BudgetFormError {
     Amount, Category, Duplicate, Rejected, Unknown, Failed, NotFound,

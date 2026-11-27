@@ -27,6 +27,9 @@ import com.elect3.mobdev.personalfinance.ui.theme.LocalOwliTypography
 import com.elect3.mobdev.personalfinance.ui.transactions.formatTransactionAmount
 import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.elect3.mobdev.personalfinance.domain.currency.SupportedCurrencies
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -35,12 +38,20 @@ import java.util.UUID
 
 /** Reads a field of a persisted request body (never a server record; those are parsed into typed models). */
 internal fun JsonObject.text(key: String): String = get(key)?.takeUnless { it.isJsonNull }?.asString.orEmpty()
-internal fun positiveAmount(value: String): BigDecimal? = value.toBigDecimalOrNull()?.takeIf { it.signum() > 0 && it.scale() <= 2 && it.precision() <= 18 }
+/**
+ * A typed amount read exactly: digits with at most one decimal separator, "." or the "," that some decimal keyboards
+ * produce ("10,50" is 10.50). Grouping separators, signs, currency symbols and exponents ("1e5") are refused, never
+ * removed or reinterpreted. Every amount field on the device uses this, so equal input means an equal amount.
+ */
+internal fun typedAmount(value: String): BigDecimal? =
+    value.trim().takeIf { it.length <= 32 && it.matches(AMOUNT_SHAPE) }?.let { BigDecimal(it.replace(',', '.')) }
+private val AMOUNT_SHAPE = Regex("[0-9]+([.,][0-9]*)?|[.,][0-9]+")
+internal fun positiveAmount(value: String): BigDecimal? = typedAmount(value)?.takeIf { amountProblem(value) == null }
 /** Which amount rule a typed value breaks (the server's wording), or null when [positiveAmount] accepts it. */
 @androidx.annotation.StringRes internal fun amountProblem(value: String): Int? {
     val text = value.trim()
     if (text.isEmpty()) return R.string.amount_error_empty
-    val amount = text.toBigDecimalOrNull() ?: return R.string.amount_error_number
+    val amount = typedAmount(text) ?: return R.string.amount_error_number
     return when {
         amount.signum() <= 0 -> R.string.amount_error_positive
         amount.scale() > 2 -> R.string.amount_error_decimals
@@ -246,7 +257,8 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
         title = { Text(if (record == null) stringResource(if (bills) R.string.plan_add_bill else R.string.plan_add_goal) else stringResource(R.string.plan_edit_title, record.name)) },
         text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(name, { if (it.length <= 100) name = it }, enabled = editable, label = { Text(stringResource(R.string.plan_field_name)) })
-            OutlinedTextField(amount, { amount = it }, enabled = editable, label = { Text(stringResource(if (bills) R.string.plan_field_amount else R.string.goal_field_target)) })
+            OutlinedTextField(amount, { amount = it }, enabled = editable, label = { Text(stringResource(if (bills) R.string.plan_field_amount else R.string.goal_field_target)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
             if (!bills || record == null) OutlinedTextField(date, { date = it }, enabled = editable, label = { Text(stringResource(if (bills) R.string.bill_field_first_due else R.string.goal_field_target_date)) })
             if (bills) {
                 OutlinedTextField(currency, { currency = it.uppercase().take(3) }, enabled = editable, label = { Text(stringResource(R.string.bill_field_currency)) })
@@ -258,7 +270,8 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
                 }
                 if (bill == null) BillFrequency.entries.forEach { value -> SelectableOption(stringResource(value.label), frequency == value, editable) { frequency = value } }
                 else Text(stringResource(R.string.bill_schedule_fixed, stringResource(bill.frequency.label)))
-                OutlinedTextField(reminder, { reminder = it }, enabled = editable, label = { Text(stringResource(R.string.bill_field_reminder)) })
+                OutlinedTextField(reminder, { reminder = it }, enabled = editable, label = { Text(stringResource(R.string.bill_field_reminder)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(active, { active = it }, enabled = editable); Text(stringResource(R.string.bill_field_active)) }
             }
             (detail ?: error?.let { stringResource(it) })?.let { PlanMessage(it, error = true) }
@@ -271,7 +284,7 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
                 amountProblem(amount)?.let(::add)
                 if ((!bills || record == null) && date.isNotEmpty() && !validPlanDate(date)) add(R.string.plan_error_date)
                 if (bills && categoryId == null) add(R.string.bill_error_category)
-                if (bills && !currency.matches(Regex("[A-Z]{3}"))) add(R.string.bill_error_currency)
+                if (bills && !SupportedCurrencies.isSupported(currency)) add(R.string.bill_error_currency)
                 if (bills && reminder.toIntOrNull() !in 0..30) add(R.string.bill_error_reminder)
                 if (bills && record == null && date.isEmpty()) add(R.string.plan_error_first_due)
             }
@@ -341,7 +354,8 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
                 TextButton(enabled = !busy && ledgerPage * 50L < total, onClick = { ledgerPage++ }) { Text(stringResource(R.string.plan_next)) }
             }
             Text(stringResource(if (selected == null) R.string.contribution_add else R.string.contribution_edit), style = LocalOwliTypography.current.bodyStrong)
-            OutlinedTextField(amount, { amount = it }, enabled = editable, label = { Text(stringResource(R.string.plan_field_amount)) })
+            OutlinedTextField(amount, { amount = it }, enabled = editable, label = { Text(stringResource(R.string.plan_field_amount)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
             OutlinedTextField(date, { date = it }, enabled = editable, label = { Text(stringResource(R.string.contribution_field_date)) })
             OutlinedTextField(note, { if (it.length <= 200) note = it }, enabled = editable, label = { Text(stringResource(R.string.contribution_field_note)) })
             error?.let { PlanMessage(it) }

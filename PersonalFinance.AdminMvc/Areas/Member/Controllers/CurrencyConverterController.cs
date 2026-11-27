@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.AdminMvc.Authentication;
@@ -25,9 +24,10 @@ public sealed class CurrencyConverterController(ExchangeRateApiClient quotes, Ad
         model.To = model.To?.ToUpperInvariant() ?? "";
         if (!MemberCurrencyPreferences.IsSupported(model.From)) ModelState.AddModelError(nameof(model.From), "Choose a currency supported by OWLI.");
         if (!MemberCurrencyPreferences.IsSupported(model.To)) ModelState.AddModelError(nameof(model.To), "Choose a currency supported by OWLI.");
-        if (!decimal.TryParse(model.Amount, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount)
-            || amount <= 0 || amount > 1_000_000_000m)
-            ModelState.AddModelError(nameof(model.Amount), "Enter a positive amount using a decimal point.");
+        // Same exact reading as every amount field; never round (10.555 was sent as 10.56 and then reported as an outage).
+        if (!string.IsNullOrWhiteSpace(model.Amount) && MoneyInput.Problem(model.Amount, 1_000_000_000m) is { } problem)
+            ModelState.AddModelError(nameof(model.Amount), problem);
+        MoneyInput.TryParse(model.Amount, out var amount);
         if (!ModelState.IsValid)
         {
             Response.StatusCode = StatusCodes.Status400BadRequest;

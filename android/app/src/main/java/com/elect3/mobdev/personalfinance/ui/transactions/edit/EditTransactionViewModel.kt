@@ -56,7 +56,7 @@ data class EditTransactionUiState(
     /** Bill-payment transactions cannot be edited (the API answers 409). */
     val locked get() = original.billId != null || original.billDueDate != null
     val amountValid get() = validAmount(amount)
-    val parsedAmount: BigDecimal? get() = if (amountValid) BigDecimal(amount.replace(',', '.')) else null
+    val parsedAmount: BigDecimal? get() = if (amountValid) com.elect3.mobdev.personalfinance.ui.plan.typedAmount(amount) else null
     val normalizedDescription get() = description.trim().takeIf { it.isNotEmpty() }
     val descriptionValid get() = description.length <= 200
     val dateValid get() = date.year in 1..9999

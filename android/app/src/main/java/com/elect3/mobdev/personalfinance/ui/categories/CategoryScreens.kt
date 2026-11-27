@@ -379,6 +379,7 @@ fun CategoryEditorScreen(editor: CategoryEditorViewModel, state: CategoryEditorS
                             showProblem -> ErrorLine(when (problem) {
                                 NameProblem.Required -> stringResource(R.string.ce_name_required)
                                 NameProblem.TooLong -> stringResource(R.string.ce_name_long)
+                                NameProblem.ControlCharacters -> stringResource(R.string.ce_name_single_line)
                                 else -> stringResource(R.string.ce_name_duplicate, state.name.trim(), stringResource(typeWord(state.type)).lowercase())
                             })
                             state.error == EditorError.NameConflict -> ErrorLine(stringResource(R.string.ce_name_conflict))

@@ -6,6 +6,7 @@ public sealed class MemberCurrencyConverterViewModel
 {
     public string From { get; set; } = "USD";
     public string To { get; set; } = MemberCurrencyPreferences.AccountCurrency;
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter an amount.")]
     public string Amount { get; set; } = "1.00";
     public ExchangeRateQuoteResponse? Quote { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever] public string? Error { get; set; }
@@ -26,7 +27,7 @@ public sealed class MemberCategoryIndexViewModel
 
 public sealed class MemberCategoryFormViewModel : System.ComponentModel.DataAnnotations.IValidatableObject
 {
-    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter a category name."), System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Category names can be up to 50 characters.")]
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter a category name."), System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Category names can be up to 50 characters."), SingleLineText(ErrorMessage = "Category names can't contain line breaks or control characters.")]
     public string Name { get; set; } = string.Empty;
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose Income or Expense."), System.ComponentModel.DataAnnotations.RegularExpression("^(Income|Expense)$", ErrorMessage = "Choose Income or Expense.")]
     public string Type { get; set; } = "Expense";

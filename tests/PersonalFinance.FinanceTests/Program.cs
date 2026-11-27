@@ -331,5 +331,6 @@ await Check("Amount rules name the specific restriction",async f=>{
 await ApiWorkerIsolationTests.RunAsync(Check);
 await MonthlySummaryReferenceTests.RunAsync(Check);
 await ExchangeRateQuoteTests.RunAsync(Check);
+await InputValidationTests.RunAsync(Check);
 Console.WriteLine($"Finance checks: {passed} passed, {failed} failed. In-memory EF + actual JWT/MVC; SQL Server locking/constraints NOT executed.");
 return failed==0?0:1;

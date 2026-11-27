@@ -6,7 +6,7 @@ namespace PersonalFinance.Infrastructure.Finance.Contracts;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class CreateTransactionRequest : TransactionWriteRequest
 {
-    [Required]
+    [Required(ErrorMessage = "A client-generated ClientId is required.")]
     public Guid? ClientId { get; set; }
 }
 
@@ -21,17 +21,17 @@ public sealed class UpdateTransactionRequest : TransactionWriteRequest
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public class TransactionWriteRequest
 {
-    [Required, RegularExpression("^(Income|Expense)$")]
+    [Required(ErrorMessage = "Choose Income or Expense."), RegularExpression("^(Income|Expense)$", ErrorMessage = "Choose Income or Expense.")]
     public string Type { get; set; } = string.Empty;
-    [Required, Range(1, int.MaxValue)]
+    [Required(ErrorMessage = "Choose a category."), Range(1, int.MaxValue, ErrorMessage = "Choose a category.")]
     public int? CategoryId { get; set; }
-    [Required]
+    [Required(ErrorMessage = "Enter an amount.")]
     public decimal? Amount { get; set; }
-    [Required, RegularExpression("^[A-Z]{3}$")]
+    [Required(ErrorMessage = "Choose a currency."), RegularExpression("^[A-Z]{3}$", ErrorMessage = "Use a three-letter uppercase currency code, for example PHP.")]
     public string CurrencyCode { get; set; } = string.Empty;
-    [Required]
+    [Required(ErrorMessage = "Choose a date.")]
     public DateOnly? TransactionDate { get; set; }
-    [StringLength(200)]
+    [StringLength(200, ErrorMessage = "Description must be 200 characters or fewer.")]
     public string? Description { get; set; }
 }
 
@@ -50,11 +50,12 @@ public sealed class TransactionQuery
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class CategoryWriteRequest
 {
-    [Required, StringLength(50)]
+    [Required(ErrorMessage = "Enter a category name."), StringLength(50, ErrorMessage = "Category names can be up to 50 characters."),
+     SingleLineText(ErrorMessage = "Category names can't contain line breaks or control characters.")]
     public string Name { get; set; } = string.Empty;
-    [Required, RegularExpression("^(Income|Expense)$")]
+    [Required(ErrorMessage = "Choose Income or Expense."), RegularExpression("^(Income|Expense)$", ErrorMessage = "Choose Income or Expense.")]
     public string Type { get; set; } = string.Empty;
-    [RegularExpression("^#[0-9A-Fa-f]{6}$")]
+    [RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Use a six-digit hex color, for example #2E7D32.")]
     public string? ColorHEX { get; set; }
     public bool? IsActive { get; set; }
 }

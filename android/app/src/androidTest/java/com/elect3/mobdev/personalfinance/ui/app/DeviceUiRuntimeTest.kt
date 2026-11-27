@@ -467,6 +467,60 @@ class DeviceUiRuntimeTest {
         compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
     }
 
+    /**
+     * Input-validation audit on the real plan forms: exponents, signs and grouping are refused (never reinterpreted),
+     * a decimal comma is read exactly (10,50 = 10.50 in the goal and budget forms alike, never 1050), and a bill with
+     * an unsupported currency, a fractional reminder or a two-line name names each problem and saves nothing.
+     */
+    @Test fun inputValidationThroughUi() {
+        signIn()
+        nav(R.string.navigation_plan)
+        val save = hasText(text(R.string.plan_save)) and hasAnyAncestor(isDialog())
+        compose.onNode(planTab(R.string.plan_tab_goals)).performClick()
+        val addGoal = hasText(text(R.string.plan_add_goal)) and clickable
+        compose.waitUntil(20_000) { exists(addGoal and isEnabled()) }
+        compose.onNode(addGoal).performClick()
+        val goalName = "UI Comma $runId"
+        compose.onNode(field(text(R.string.plan_field_name))).performTextReplacement(goalName)
+        for (raw in listOf("1e5", "+5", "1,250.50", "₱100")) {
+            compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement(raw)
+            hideKeyboard(); compose.onNode(save).performClick()
+            shown(text(R.string.amount_error_number)); log("goal target '$raw' refused: '${text(R.string.amount_error_number)}'")
+        }
+        compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement("10,50")
+        hideKeyboard(); compose.onNode(save).performClick()
+        waitFor(hasText(goalName)); log("goal saved name=$goalName typed='10,50'")
+
+        compose.onNode(planTab(R.string.plan_tab_bills)).performClick()
+        val addBill = hasText(text(R.string.plan_add_bill)) and clickable
+        compose.waitUntil(20_000) { exists(addBill and isEnabled()) }
+        compose.onNode(addBill).performClick()
+        val billName = "Line\nBreak $runId"
+        compose.onNode(field(text(R.string.plan_field_name))).performTextReplacement(billName)
+        compose.onNode(field(text(R.string.plan_field_amount))).performTextReplacement("300")
+        compose.onNode(field(text(R.string.bill_field_currency))).performTextReplacement("ZZZ")
+        compose.onNode(field(text(R.string.bill_field_reminder))).performScrollTo().performTextReplacement("1.5")
+        hideKeyboard(); compose.onNode(save).performClick()
+        for (message in listOf(R.string.plan_error_name, R.string.bill_error_currency, R.string.bill_error_reminder)) shown(text(message))
+        log("bill refused before sending: name, currency ZZZ and reminder 1.5 each named")
+        compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
+
+        compose.onNode(planTab(R.string.plan_tab_budgets)).performClick()
+        val create = (hasText(text(R.string.budget_create)) or hasText(text(R.string.budget_new))) and clickable
+        compose.waitUntil(20_000) { exists(create and isEnabled()) }
+        compose.onAllNodes(create).onFirst().performClick()
+        waitFor(hasText(text(R.string.budget_new_title)))
+        val chip = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton) and hasClickAction()
+        waitFor(chip)
+        val category = compose.onAllNodes(chip).onFirst().fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }
+        compose.onAllNodes(chip).onFirst().performScrollTo().performClick()
+        compose.onNode(field(text(R.string.budget_limit))).performTextReplacement("10,50")
+        hideKeyboard()
+        compose.onAllNodes(hasText(text(R.string.budget_create)) and clickable).onLast().performScrollTo().performClick()
+        waitFor(hasText(php("10.50"), substring = true), 30_000)
+        log("budget saved for $category typed='10,50' shown=${php("10.50")}")
+    }
+
     /** Opt-in `owliFxDown=true`, with the API unable to reach the FX provider: a JPY save stores nothing. */
     @Test fun foreignSaveDuringFxOutageSavesNothing() {
         assumeTrue("owliFxDown not set", args.getString("owliFxDown") == "true")

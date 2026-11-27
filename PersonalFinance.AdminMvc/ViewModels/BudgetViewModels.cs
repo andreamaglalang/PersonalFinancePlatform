@@ -24,6 +24,8 @@ public class BudgetEditViewModel
     [Display(Name = "Alert threshold (%)")]
     public int? AlertThresholdPct { get; set; }
 
+    // Read only after ModelState is valid; validation must not evaluate it (unparseable text would throw).
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public decimal Amount => decimal.Parse(LimitAmount!, CultureInfo.InvariantCulture);
 
 }

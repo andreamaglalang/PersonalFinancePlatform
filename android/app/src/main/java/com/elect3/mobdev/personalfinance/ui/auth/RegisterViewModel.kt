@@ -24,7 +24,7 @@ fun registerInputErrors(
     isValidEmail: (String) -> Boolean = { Patterns.EMAIL_ADDRESS.matcher(it).matches() },
 ): Set<RegisterInputError> = buildSet {
     val trimmedEmail = email.trim()
-    if (fullName.trim().length !in 1..100) add(RegisterInputError.FullName)
+    if (fullName.trim().length !in 1..100 || fullName.trim().any(Char::isISOControl)) add(RegisterInputError.FullName)
     if (trimmedEmail.length !in 1..256 || !isValidEmail(trimmedEmail)) add(RegisterInputError.Email)
     if (PasswordPolicy.unmet(password).isNotEmpty()) add(RegisterInputError.Password)
     if (password != confirmPassword) add(RegisterInputError.PasswordMismatch)

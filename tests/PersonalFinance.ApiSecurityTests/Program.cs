@@ -173,6 +173,22 @@ await Check("Rejected registrations return field-specific ProblemDetails without
     foreach (var body in new[] { weak.Body, many.Body })
         Require(!body.Contains("Exception") && !body.Contains("stack", StringComparison.OrdinalIgnoreCase) && !body.Contains("The field "), body);
 });
+await Check("Registration names reject control characters and unusable emails get a field message, not a generic failure", async () =>
+{
+    await using var f = new ApiFixture();
+    foreach (var name in new[] { "Line\nBreak", "Bell\u0007", "Nul\0" })
+    {
+        var r = await f.SendAsync("POST", "/api/auth/register", new { fullName = name, email = "person@example.test", password = "TestingOnly!123a", confirmPassword = "TestingOnly!123a" });
+        Require(r.Status == 400 && r.Body.Contains("\"FullName\":[\"Full name can't contain line breaks or control characters.\"]"), r.Body);
+    }
+    var spaced = await f.SendAsync("POST", "/api/auth/register", new { fullName = "Person", email = "per son@example.test", password = "TestingOnly!123a", confirmPassword = "TestingOnly!123a" });
+    Require(spaced.Status == 400 && spaced.Body.Contains("\"Email\":[\"Enter a valid email address.\"]"), spaced.Body);
+    var apostrophe = await f.SendAsync("POST", "/api/auth/register", new { fullName = "Person", email = "o'hara@example.test", password = "TestingOnly!123a", confirmPassword = "TestingOnly!123a" });
+    Require(apostrophe.Status == 400 && apostrophe.Body.Contains(AuthenticationService.EmailCharacters) && !apostrophe.Body.Contains("could not be completed"), apostrophe.Body);
+    Require(f.Users.Users.Count == 0, "a rejected registration created an account");
+    var unicode = await f.SendAsync("POST", "/api/auth/register", new { fullName = "  José Ñúñez-O'Hara  ", email = " Person@Example.test ", password = "TestingOnly!123a", confirmPassword = "TestingOnly!123a" });
+    Require(unicode.Status == 201 && unicode.Body.Contains("\"fullName\":\"José Ñúñez-O'Hara\""), unicode.Body);
+});
 await Check("Auth responses contain no Identity security fields or persisted hash metadata", async () =>
 {
     await using var f = new ApiFixture(); await f.RegisterAsync();

@@ -191,7 +191,7 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                         } ?: stringResource(R.string.form_currency_unavailable),
                         style = typography.caption)
                     if (state.amountValid && state.currency != null) Text(
-                        formatTransactionAmount(java.math.BigDecimal(state.amount.replace(',', '.')), state.currency),
+                        formatTransactionAmount(checkNotNull(com.elect3.mobdev.personalfinance.ui.plan.typedAmount(state.amount)), state.currency),
                         style = typography.bodyStrong)
                     Text(stringResource(if (state.type == TransactionType.Income) R.string.transaction_income else R.string.transaction_expense),
                         color = if (state.type == TransactionType.Income) colors.income else colors.expense, style = typography.bodyStrong)

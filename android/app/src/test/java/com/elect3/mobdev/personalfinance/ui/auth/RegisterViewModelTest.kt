@@ -40,6 +40,10 @@ class RegisterViewModelTest {
         vm.register("A", "a@b.test", "short", "short"); assertEquals(setOf(RegisterInputError.Password), errors())
         vm.register("A", "a@b.test", strong, "$strong-x"); assertEquals(setOf(RegisterInputError.PasswordMismatch), errors())
         vm.register("x".repeat(101), "a@b.test", strong, strong); assertEquals(setOf(RegisterInputError.FullName), errors())
+        for (name in listOf("Line\nBreak", "Bell\u0007", "Tab\tInside")) {
+            vm.register(name, "a@b.test", strong, strong); assertEquals(name, setOf(RegisterInputError.FullName), errors())
+        }
+        assertTrue(registerInputErrors("  José Ñúñez-O'Hara ", "a@b.test", strong, strong, isValidEmail = { true }).isEmpty())
         runCurrent()
         assertTrue(repository.calls.isEmpty())
     }

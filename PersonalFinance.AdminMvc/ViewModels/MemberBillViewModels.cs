@@ -15,7 +15,8 @@ public sealed class MemberBillIndexViewModel
 /// <summary>Editable bill fields. Frequency and first due date are fixed at creation and never submitted as edits.</summary>
 public class MemberBillFormModel
 {
-    [Required(ErrorMessage = "Enter a bill name."), StringLength(100, ErrorMessage = "Bill name must be 100 characters or fewer.")]
+    [Required(ErrorMessage = "Enter a bill name."), StringLength(100, ErrorMessage = "Bill name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Bill names can't contain line breaks or control characters.")]
     [Display(Name = "Bill name")]
     public string? Name { get; set; }
 
@@ -45,6 +46,8 @@ public class MemberBillFormModel
     [Required(ErrorMessage = "Choose the first due date."), Display(Name = "First due date")]
     public DateOnly? FirstDueDate { get; set; }
 
+    // Read only after ModelState is valid; validation must not evaluate it (unparseable text would throw).
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public decimal Value => decimal.Parse(Amount!, System.Globalization.CultureInfo.InvariantCulture);
 
 }

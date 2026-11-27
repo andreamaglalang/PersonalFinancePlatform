@@ -210,7 +210,7 @@ private fun FormStep(
     val currentLeave by rememberUpdatedState(leave)
     DisposableEffect(model) { registerBack { currentLeave() }; onDispose { registerBack(null) } }
     fun receipt(replayed: Boolean, queued: Boolean = false) = TransactionReceipt(state.type, category.name,
-        formatTransactionAmount(BigDecimal(state.amount.replace(',', '.')), checkNotNull(state.currency)),
+        formatTransactionAmount(checkNotNull(com.elect3.mobdev.personalfinance.ui.plan.typedAmount(state.amount)), checkNotNull(state.currency)),
         formatTransactionDate(state.date), demo = workflow == FormWorkflow.MockDemo, replayed = replayed, queuedOffline = queued,
         converted = if (queued) null else state.savedTransaction, baseCurrency = state.baseCurrency,
         pendingConversion = queued && state.foreignCurrency)
@@ -218,7 +218,7 @@ private fun FormStep(
     LaunchedEffect(state.completed) {
         if (state.completed && !finished && workflow == FormWorkflow.MockDemo && isCurrent()) {
             finished = true
-            demoLedger?.add(state.type, category, BigDecimal(state.amount.replace(',', '.')), state.date,
+            demoLedger?.add(state.type, category, checkNotNull(com.elect3.mobdev.personalfinance.ui.plan.typedAmount(state.amount)), state.date,
                 state.description.trim().takeIf { it.isNotEmpty() })
             onCompleted(receipt(false))
         }
