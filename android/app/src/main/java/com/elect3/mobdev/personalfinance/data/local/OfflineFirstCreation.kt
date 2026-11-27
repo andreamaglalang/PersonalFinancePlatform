@@ -26,7 +26,7 @@ class OfflineFirstCreationRepository(
     private val remote: TransactionCreationRepository,
     private val ledger: LocalLedger,
     private val accountId: () -> Int?,
-    private val categoryName: (Int) -> String? = { null },
+    private val categoryName: suspend (Int) -> String? = { null },
 ) : TransactionCreationRepository {
     override suspend fun create(request: CreateTransactionRequest): CreationResult {
         val result = remote.create(request)

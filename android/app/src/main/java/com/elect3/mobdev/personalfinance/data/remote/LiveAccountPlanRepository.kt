@@ -161,9 +161,11 @@ internal fun fields(vararg values: Pair<String, Any?>) = JsonObject().apply {
         else -> addProperty(key, value.toString())
     } }
 }
-internal fun liveFailure(reason: FinanceFailure, writing: Boolean = false): String = when (reason) {
+/** [account] marks account (profile/password) writes; plan writes never mention passwords. */
+internal fun liveFailure(reason: FinanceFailure, writing: Boolean = false, account: Boolean = false): String = when (reason) {
     FinanceFailure.MissingSession, FinanceFailure.SessionExpired -> "Session ended. Sign in again."
-    FinanceFailure.InvalidInput -> "Check your entries. The current password may be incorrect, or an account rule was not met."
+    FinanceFailure.InvalidInput -> if (account) "Check your entries. The current password may be incorrect, or an account rule was not met."
+        else "Check your entries. A value was not accepted, for example a date later than today."
     FinanceFailure.Conflict -> "This record changed or has financial history. Reload before editing."
     FinanceFailure.NotFound -> "This operation is not available on the running API, or the record no longer exists."
     FinanceFailure.AccessDenied -> "This operation is not permitted."
