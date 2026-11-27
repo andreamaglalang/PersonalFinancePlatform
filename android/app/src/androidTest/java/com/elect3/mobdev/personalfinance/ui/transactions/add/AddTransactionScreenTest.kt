@@ -21,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Compile-only in UI-2. All dependencies are local fakes; no HTTP implementation is created. */
+/** Inputs use performTextReplacement: these tests check validation and flow, and IME-routed typing dropped input on emulators. */
 class AddTransactionScreenTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var model: AddTransactionViewModel
@@ -48,9 +49,18 @@ class AddTransactionScreenTest {
         }
     }
     private fun field(id: Int) = compose.onNode(hasSetTextAction() and hasText(text(id)))
+    /** Close the soft keyboard the way a user would (IME Done on the focused field); otherwise it covers lower controls. */
+    private fun hideKeyboard() {
+        val focused = isFocused() and hasSetTextAction()
+        if (compose.onAllNodes(focused).fetchSemanticsNodes().isNotEmpty()) compose.onNode(focused).performImeAction()
+        compose.waitForIdle()
+    }
     private fun choose(name: String) {
+        hideKeyboard()
         compose.onNodeWithText(text(R.string.form_category) + ": " + text(R.string.form_choose_category)).performScrollTo().performClick()
-        field(R.string.form_search).performTextInput(name)
+        // The picker opens in a dialog; wait until its search field exists and is focused before typing.
+        compose.waitUntil(15_000) { compose.onAllNodes(hasSetTextAction() and hasText(text(R.string.form_search))).fetchSemanticsNodes().isNotEmpty() }
+        field(R.string.form_search).performTextReplacement(name)
         compose.onNode(hasText(name) and hasClickAction() and !hasSetTextAction()).performClick()
     }
     @After fun cleanup() { compose.runOnUiThread { owner.clear() } }
@@ -58,25 +68,25 @@ class AddTransactionScreenTest {
     @Test fun demoModeSearchSelectionAndPreviewAreExplicitlyNonPersistent() {
         show()
         compose.onNode(hasText(text(R.string.transaction_income)) and hasClickAction()).performClick()
-        field(R.string.form_amount).performTextInput("12.34")
+        field(R.string.form_amount).performTextReplacement("12.34")
         choose("Salary")
         compose.onNodeWithText(text(R.string.form_preview)).assertIsEnabled().performClick()
-        compose.waitUntil(5000) { model.state.value.completed }
+        compose.waitUntil(15_000) { model.state.value.completed }
         compose.onAllNodesWithText(text(R.string.form_demo_complete)).onFirst().assertIsDisplayed()
         assertTrue(model.state.value.completed)
     }
     @Test fun authenticatedSaveStaysDisabledAndUsesAccountCurrency() {
         show(FormWorkflow.Authenticated)
-        field(R.string.form_amount).performTextInput("12.34")
+        field(R.string.form_amount).performTextReplacement("12.34")
         choose("Food")
         compose.onNodeWithText(text(R.string.form_save_unavailable_short)).assertIsNotEnabled()
-        compose.onNodeWithText(compose.activity.getString(R.string.form_currency, "USD")).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.fx_currency_account, "USD")).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(text(R.string.form_save_unavailable)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.auth_demo_title)).assertDoesNotExist()
     }
     @Test fun dirtyBackConfirmationKeepsOrErasesDraft() {
         show()
-        field(R.string.form_amount).performTextInput("8")
+        field(R.string.form_amount).performTextReplacement("8")
         compose.onNodeWithText(text(R.string.form_back)).performClick()
         compose.onNodeWithText(text(R.string.form_discard_title)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.form_keep_editing)).performClick()
@@ -106,7 +116,9 @@ class AddTransactionScreenTest {
         show(large = true)
         compose.onNodeWithText(text(R.string.form_title)).assertIsDisplayed()
         field(R.string.form_amount).performScrollTo().assertIsDisplayed()
-        field(R.string.form_description).performScrollTo().performTextInput("x".repeat(201))
+        field(R.string.form_description).performScrollTo().performTextReplacement("x".repeat(201))
+        hideKeyboard()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(text(R.string.form_description_error)).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(text(R.string.form_description_error)).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(text(R.string.form_preview)).assertIsNotEnabled()
     }
@@ -114,7 +126,7 @@ class AddTransactionScreenTest {
         show(dark = true)
         compose.onNodeWithText(text(R.string.form_date), substring = true).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.form_cancel)).performClick()
-        field(R.string.form_description).performScrollTo().performTextInput("Offline note")
+        field(R.string.form_description).performScrollTo().performTextReplacement("Offline note")
         assertEquals("Offline note", model.state.value.description)
         compose.onNodeWithText(text(R.string.form_demo_notice)).assertIsDisplayed()
     }

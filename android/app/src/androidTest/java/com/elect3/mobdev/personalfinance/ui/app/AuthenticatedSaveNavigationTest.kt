@@ -150,7 +150,7 @@ class AuthenticatedSaveNavigationTest {
     }
     private fun fillValidExpense() {
         compose.onNode(hasText(text(R.string.form_amount)) and SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText))
-            .performTextInput("12.34")
+            .performTextReplacement("12.34")
     }
 
     @Test fun signedInExpenseIsSavedThroughTheApiAndAppearsAfterTheListRefreshes() {
@@ -179,6 +179,8 @@ class AuthenticatedSaveNavigationTest {
         postStatus = 401
         show(); authenticate(); openAddForm(); fillValidExpense()
         compose.onNodeWithText(text(R.string.form_save_expense)).performClick()
+        // The 401 is handled asynchronously; wait for the return to Login before asserting.
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(text(R.string.auth_session_expired)).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(text(R.string.auth_session_expired)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.auth_sign_in)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.form_account_success)).assertDoesNotExist()
@@ -255,7 +257,8 @@ class AuthenticatedSaveNavigationTest {
             .onFirst().performScrollTo().assertIsDisplayed()
         repeat(2) {
             compose.onNodeWithText(text(R.string.navigation_transactions)).performClick()
-            compose.onNodeWithText(text(R.string.auth_demo_title)).assertIsDisplayed()
+            // Transactions shows the session strip and the list's own data-source label; both carry this text.
+            compose.onAllNodesWithText(text(R.string.auth_demo_title)).assertCountEquals(2).onFirst().assertIsDisplayed()
             compose.onNodeWithText(description, substring = true).performScrollTo().assertIsDisplayed()
             compose.runOnIdle {
                 assertEquals(originalFilter, demoListing.activeFilter.value)
