@@ -19,8 +19,11 @@ CreateTransactionRequest Tx(int category=2,string type="Expense",decimal amount=
 };
 async Task<ApiReply> Create(FinanceFixture f,CreateTransactionRequest? tx=null,int user=1)=>await f.SendAsync("POST","/api/transactions",tx??Tx(),f.Issue(user));
 async Task<int> Created(FinanceFixture f,CreateTransactionRequest? tx=null) {var r=await Create(f,tx);Assert(r.Status==201,r.Body);return Json(r).GetProperty("transactionId").GetInt32();}
-TransactionWriteRequest Edit(string currency="PHP",decimal amount=20m,DateOnly? date=null)=>new() {CategoryId=2,Type="Expense",Amount=amount,CurrencyCode=currency,TransactionDate=date??new(2026,10,10),Description="Edited"};
-async Task<ApiReply> Update(FinanceFixture f,int id,TransactionWriteRequest dto,int user=1)=>await f.SendAsync("PUT",$"/api/transactions/{id}",dto,f.Issue(user));
+const string NoVersion="0000000000000000000000000000000000000000000000000000000000000000";
+UpdateTransactionRequest Edit(string currency="PHP",decimal amount=20m,DateOnly? date=null)=>new() {CategoryId=2,Type="Expense",Amount=amount,CurrencyCode=currency,TransactionDate=date??new(2026,10,10),Description="Edited",Version=NoVersion};
+async Task<string> VersionOf(FinanceFixture f,int id,int user=1){var r=await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(user));return r.Status==200?Json(r).GetProperty("version").GetString()!:NoVersion;}
+// Ordinary edits send the version the caller just read (C1); concurrency checks below send stale or missing versions explicitly.
+async Task<ApiReply> Update(FinanceFixture f,int id,UpdateTransactionRequest dto,int user=1){var send=new UpdateTransactionRequest{Type=dto.Type,CategoryId=dto.CategoryId,Amount=dto.Amount,CurrencyCode=dto.CurrencyCode,TransactionDate=dto.TransactionDate,Description=dto.Description,Version=dto.Version==NoVersion?await VersionOf(f,id,user):dto.Version};return await f.SendAsync("PUT",$"/api/transactions/{id}",send,f.Issue(user));}
 await Check("Income creation",async f=>Assert((await Create(f,Tx(1,"Income"))).Status==201));
 await Check("Expense creation and same-currency snapshot",async f=>{var r=await Create(f);Assert(r.Status==201);Assert(Json(r).GetProperty("fxRate").GetDecimal()==1m);});
 foreach(var amount in new[]{0m,-1m,1.001m,10000000000000000m})
@@ -35,7 +38,7 @@ await Check("Ownership overposting rejected",async f=>Assert((await f.SendAsync(
 await Check("Retrieval and safe DTO",async f=>{int id=await Created(f);var r=await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1));Assert(r.Status==200 && !r.Body.Contains("userId",StringComparison.OrdinalIgnoreCase));});
 await Check("Cross-user read update delete and administrator privacy",async f=>{int id=await Created(f);foreach(var user in new[]{2,3}) {Assert((await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(user))).Status==404);Assert((await Update(f,id,Edit(),user)).Status==404);Assert((await f.SendAsync("DELETE",$"/api/transactions/{id}",bearer:f.Issue(user))).Status==404);}});
 await Check("Transaction update and ordinary deletion",async f=>{int id=await Created(f);Assert((await Update(f,id,Edit())).Status==200);var deletion=await f.SendAsync("DELETE",$"/api/transactions/{id}",bearer:f.Issue(1));Assert(deletion.Status==200 && Json(deletion).GetProperty("deleted").GetBoolean() && Json(deletion).GetProperty("transactionId").GetInt32()==id && Json(deletion).GetProperty("affectedBudgets").GetArrayLength()==0);Assert((await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1))).Status==404);});
-await Check("ClientId idempotency preserves original payload",async f=>{var t=Tx();var a=await Create(f,t);t.Amount=50;var b=await Create(f,t);Assert(b.Status==200 && Json(a).GetProperty("transactionId").GetInt32()==Json(b).GetProperty("transactionId").GetInt32() && Json(b).GetProperty("amount").GetDecimal()==10);});
+await Check("ClientId reuse with a different payload is rejected and the original is preserved (C2, L1)",async f=>{var t=Tx();var a=await Create(f,t);t.Amount=50;var b=await Create(f,t);Assert(b.Status==409,b.Body);var id=Json(a).GetProperty("transactionId").GetInt32();Assert(Json(await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1))).GetProperty("amount").GetDecimal()==10);});
 await Check("ClientId namespace is per user",async f=>{var t=Tx();await Create(f,t);t.CategoryId=3;Assert((await Create(f,t,2)).Status==201);});
 await Check("Filtering type category dates sorting pagination and owned history",async f=>{
  await Created(f);await Created(f,Tx(1,"Income",30));await Created(f,Tx(date:new(2026,9,1)));
@@ -268,19 +271,50 @@ foreach (var verb in new[] { "PUT", "DELETE" })
         {
             var id = await Created(f); string linked = "";
             var scope = (MemoryWriteScope)f.Services.GetRequiredService<IFinancialWriteScope>();
+            var edit = Edit(); edit.Version = await VersionOf(f, id);
             scope.BeforeWrite = async () => { await LinkPayment(f, id, mode); linked = await ProtectionState(f); };
-            PaymentConflict(await f.SendAsync(verb, $"/api/transactions/{id}", verb == "PUT" ? Edit() : null, f.Issue(1)));
+            PaymentConflict(await f.SendAsync(verb, $"/api/transactions/{id}", verb == "PUT" ? edit : null, f.Issue(1)));
             Assert(linked.Length > 0 && await ProtectionState(f) == linked);
         });
 foreach (var verb in new[] { "PUT", "DELETE" })
     await Check("Deletion between reads retains 404 for " + verb, async f =>
     {
         var id = await Created(f);
+        var edit = Edit(); edit.Version = await VersionOf(f, id);
         var scope = (MemoryWriteScope)f.Services.GetRequiredService<IFinancialWriteScope>();
         scope.BeforeWrite = () => f.DbAsync(async db => { db.Transactions.Remove(await db.Transactions.SingleAsync()); await db.SaveChangesAsync(); });
-        Assert((await f.SendAsync(verb, $"/api/transactions/{id}", verb == "PUT" ? Edit() : null, f.Issue(1))).Status == 404);
+        Assert((await f.SendAsync(verb, $"/api/transactions/{id}", verb == "PUT" ? edit : null, f.Issue(1))).Status == 404);
         await f.DbAsync(async db => Assert(!await db.Transactions.AnyAsync()));
     });
+// ---------- R4: C1 transaction version token and C2 ClientId payload mismatch ----------
+await Check("C1 every transaction response carries a 64-hex version that changes on edit",async f=>{
+ int id=await Created(f);var v1=await VersionOf(f,id);
+ Assert(System.Text.RegularExpressions.Regex.IsMatch(v1,"^[0-9A-F]{64}$"),v1);
+ var list=Json(await f.SendAsync("GET","/api/transactions",bearer:f.Issue(1)));
+ Assert(list.GetProperty("items")[0].GetProperty("version").GetString()==v1,"list and get disagree");
+ var r=await Update(f,id,Edit(amount:21m));Assert(r.Status==200,r.Body);
+ var v2=Json(r).GetProperty("version").GetString();Assert(v2!=v1 && v2==await VersionOf(f,id),"version unchanged after edit");});
+await Check("C1 PUT without a version or with a malformed version is rejected 400 and changes nothing",async f=>{
+ int id=await Created(f);var before=await VersionOf(f,id);
+ Assert((await f.SendAsync("PUT",$"/api/transactions/{id}",new{categoryId=2,type="Expense",amount=33m,currencyCode="PHP",transactionDate="2026-10-10",description="x"},f.Issue(1))).Status==400);
+ var bad=Edit(amount:33m);bad.Version="abc";Assert((await f.SendAsync("PUT",$"/api/transactions/{id}",bad,f.Issue(1))).Status==400);
+ Assert(await VersionOf(f,id)==before,"state changed");});
+await Check("C1 concurrent clients: the second edit from a stale version gets 409 and the first edit is kept",async f=>{
+ int id=await Created(f);var seen=await VersionOf(f,id);
+ var android=Edit(amount:40m);android.Version=seen;var mvc=Edit(amount:55m);mvc.Version=seen;
+ Assert((await f.SendAsync("PUT",$"/api/transactions/{id}",android,f.Issue(1))).Status==200);
+ var stale=await f.SendAsync("PUT",$"/api/transactions/{id}",mvc,f.Issue(1));Assert(stale.Status==409,stale.Body);
+ var now=Json(await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1)));Assert(now.GetProperty("amount").GetDecimal()==40m,"lost update");});
+await Check("C1 resending an edit with the version it already replaced is a 409, not a silent overwrite",async f=>{
+ int id=await Created(f);var seen=await VersionOf(f,id);var e=Edit(amount:41m);e.Version=seen;
+ Assert((await f.SendAsync("PUT",$"/api/transactions/{id}",e,f.Issue(1))).Status==200);
+ Assert((await f.SendAsync("PUT",$"/api/transactions/{id}",e,f.Issue(1))).Status==409);});
+await Check("C2 identical ClientId replay returns the original; a different payload is rejected 409",async f=>{
+ var tx=Tx();var first=await Create(f,tx);Assert(first.Status==201,first.Body);
+ var replay=await Create(f,tx);Assert(replay.Status==200 && Json(replay).GetProperty("transactionId").GetInt32()==Json(first).GetProperty("transactionId").GetInt32(),replay.Body);
+ foreach(var change in new Action<CreateTransactionRequest>[]{t=>t.Amount=t.Amount+1,t=>t.Description="other",t=>t.TransactionDate=t.TransactionDate!.Value.AddDays(1),t=>t.Type="Income",t=>t.CurrencyCode="USD"})
+ {var other=Tx();other.ClientId=tx.ClientId;change(other);var r=await Create(f,other);Assert(r.Status==409,"accepted changed payload: "+r.Body);}
+ await f.DbAsync(async db=>Assert(await db.Transactions.CountAsync()==1,"extra row"));});
 // Existing ordinary update/delete and ClientId replay checks above remain unchanged.
 await BudgetTests.RunAsync(Check);
 await SavingsGoalTests.RunAsync(Check);

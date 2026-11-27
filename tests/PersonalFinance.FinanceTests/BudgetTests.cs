@@ -28,10 +28,14 @@ internal static class BudgetTests
         string date = "2026-10-10", string type = "Expense", Guid? client = null, string currency = "PHP") =>
         f.SendAsync("POST", "/api/transactions", new { clientId = client ?? Guid.NewGuid(), categoryId = category,
             transactionDate = date, type, amount, currencyCode = currency }, f.Issue(1));
-    private static Task<ApiReply> Edit(FinanceFixture f, int id, decimal amount = 10m, int category = 2,
-        string date = "2026-10-10", string type = "Expense") =>
-        f.SendAsync("PUT", $"/api/transactions/{id}", new { categoryId = category, transactionDate = date,
-            type, amount, currencyCode = "PHP" }, f.Issue(1));
+    private static async Task<ApiReply> Edit(FinanceFixture f, int id, decimal amount = 10m, int category = 2,
+        string date = "2026-10-10", string type = "Expense")
+    {
+        var current = await f.SendAsync("GET", $"/api/transactions/{id}", bearer: f.Issue(1));
+        var version = current.Status == 200 ? Json(current).GetProperty("version").GetString() : new string('0', 64);
+        return await f.SendAsync("PUT", $"/api/transactions/{id}", new { categoryId = category, transactionDate = date,
+            type, amount, currencyCode = "PHP", version }, f.Issue(1));
+    }
     private static async Task ExpectUsage(FinanceFixture f, int id, decimal spent, string status)
     {
         var result = await Get(f, id);
@@ -237,9 +241,10 @@ internal static class BudgetTests
         {
             var id = await CreateBudget(f); var client = Guid.NewGuid();
             await Transaction(f, 10, client: client);
-            var r = await Transaction(f, 99, 4, "2026-11-10", client: client);
+            var r = await Transaction(f, 10, client: client);
             Assert(r.Status == 200 && Json(r).GetProperty("amount").GetDecimal() == 10);
             Assert(Json(r).GetProperty("affectedBudgets")[0].GetProperty("budgetId").GetInt32() == id);
+            Assert((await Transaction(f, 99, 4, "2026-11-10", client: client)).Status == 409, "C2: changed payload must be rejected");
             await ExpectUsage(f, id, 10, "OK");
             await f.DbAsync(async db => Assert(await db.Transactions.CountAsync() == 1));
         });

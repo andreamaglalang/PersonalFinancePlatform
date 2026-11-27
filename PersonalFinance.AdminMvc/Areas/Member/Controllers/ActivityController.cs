@@ -251,6 +251,7 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
         var draft = new MemberTransactionDraftViewModel
         {
             TransactionId = id,
+            Version = result.Value.Version,
             Type = result.Value.Type,
             CategoryId = result.Value.CategoryId,
             Amount = result.Value.Amount,
@@ -352,10 +353,18 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
             }
         }
 
+        // C1: send the version the member saw when opening the form, not the one just re-read, so an edit made
+        // elsewhere in the meantime (for example on Android) is reported instead of silently overwritten.
+        if (ModelState.IsValid && (model.Version is null || !System.Text.RegularExpressions.Regex.IsMatch(model.Version, "^[0-9A-F]{64}$")))
+        {
+            Response.StatusCode = 400;
+            ModelState.AddModelError(string.Empty, "This edit form is out of date. Reload the transaction and try again.");
+            return View("Create", model);
+        }
         if (ModelState.IsValid)
         {
             var request = new UpdateTransactionRequest(model.Type, model.CategoryId!.Value, model.Amount!.Value,
-                model.CurrencyCode, model.TransactionDate!.Value, model.Description);
+                model.CurrencyCode, model.TransactionDate!.Value, model.Description, model.Version!);
             var result = await transactions.UpdateAsync(id, request, token!, ct);
             if (result.Succeeded)
             {
@@ -368,7 +377,9 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
                 return RedirectToAction("Login", "Account", new { area = "" });
             }
             Response.StatusCode = result.Status is 400 or 404 or 409 or 429 ? result.Status : 503;
-            ModelState.AddModelError(string.Empty, MemberSessionGate.Message(result.Status, mutation: true));
+            ModelState.AddModelError(string.Empty, result.Status == 409
+                ? "This transaction was changed elsewhere, for example in the OWLI app. Reload it to see the latest version before saving your edit."
+                : MemberSessionGate.Message(result.Status, mutation: true));
         }
         else Response.StatusCode = 400;
         return View("Create", model);

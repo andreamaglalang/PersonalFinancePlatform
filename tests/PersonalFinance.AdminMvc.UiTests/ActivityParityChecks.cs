@@ -62,8 +62,11 @@ internal static class ActivityParityChecks
         var editView = (MemberTransactionDraftViewModel)((ViewResult)await controller.Edit(1, default)).Model!;
         Check(editView.Categories.Any(category => category.CategoryId == 2 && !category.IsActive), "An edit keeps the existing archived category available.");
         controller.ModelState.Clear();
-        var edited = new MemberTransactionDraftViewModel { Type="Expense",CategoryId=2,Amount=20,CurrencyCode="PHP",TransactionDate=Month.AddDays(4),Description="Isolated edit" };
+        var edited = new MemberTransactionDraftViewModel { Type="Expense",CategoryId=2,Amount=20,CurrencyCode="PHP",TransactionDate=Month.AddDays(4),Description="Isolated edit",Version=new string('A',64) }; // hidden C1 field
         Check(await controller.Edit(1, edited, default) is RedirectToActionResult, "The existing archived category can be retained while editing a transaction through the owner-scoped PUT contract.");
+        controller.ModelState.Clear(); var writesBefore = handler.Writes; edited.Version = null;
+        Check(await controller.Edit(1, edited, default) is ViewResult && handler.Writes == writesBefore && !controller.ModelState.IsValid,
+            "C1: an edit form without its version is refused before any PUT and asks for a reload.");
         handler.ArchiveOriginal = false; controller.ModelState.Clear();
         var payload=protector.CreateProtector(MemberCurrencyPreferences.ProtectorPurpose).Protect(Encoding.UTF8.GetBytes(MemberCurrencyPreferences.Pack("91",new("USD",true,true))));
         context.Request.Headers.Cookie=MemberCurrencyPreferences.CookieName+"="+Convert.ToBase64String(payload).TrimEnd('=').Replace('+','-').Replace('/','_');
