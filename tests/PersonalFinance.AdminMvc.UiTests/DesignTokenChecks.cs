@@ -54,6 +54,13 @@ internal static class DesignTokenChecks
             throw new InvalidOperationException("Shared form sizing must exclude checkboxes and radio buttons.");
         if (css.Split("@media (min-width: 900px)").Length - 1 != 1)
             throw new InvalidOperationException("The Member desktop shell must have a single consolidated breakpoint.");
-        Console.WriteLine("PASS: shared and Member styles use the approved Owlight palette, responsive widths and type scale.");
+        // Every literal _NavIcon name must exist: an unknown name renders an empty icon container ("category" did).
+        var icons = System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(MvcProject.FindFile("Views", "Shared", "_NavIcon.cshtml")), "case \"([A-Za-z-]+)\"")
+            .Select(m => m.Groups[1].Value).ToHashSet();
+        foreach (var view in Directory.EnumerateFiles(MvcProject.FindDirectory(), "*.cshtml", SearchOption.AllDirectories))
+            foreach (System.Text.RegularExpressions.Match use in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(view), "_NavIcon\" model='\"([A-Za-z-]+)\"'"))
+                if (!icons.Contains(use.Groups[1].Value))
+                    throw new InvalidOperationException($"{Path.GetFileName(view)} uses unknown icon '{use.Groups[1].Value}', which renders empty.");
+        Console.WriteLine("PASS: shared and Member styles use the approved Owlight palette, responsive widths and type scale; every icon name exists.");
     }
 }
