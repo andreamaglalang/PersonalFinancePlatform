@@ -204,5 +204,11 @@ Not exercised on a device in this round (still covered by instrumented Compose t
 
 ## Final verified commit
 
-The verified head and its `dev` merge commit are recorded here after PRs #28 and #29 are reviewed and merged. Until
-then, the last verified `dev` code commit remains `600244d` (Phase 5).
+| Item | Value |
+| --- | --- |
+| Final verified `dev` code commit | **`bc652ce`**: merge of PR #29, after PR #28 (`4e0b97f`), merged in dependency order on 27 November 2026 |
+| Equivalence | `git diff e85c0ef bc652ce` is empty: merged `dev` is byte-identical to the tested PR head |
+| Hosted CI | dotnet, android and sql green on #28, #29 and the `dev` push of `bc652ce` |
+| Later commits | Documentation only (this record). Confirm with the command in the handoff guide §3 |
+| Not merged | `main` (owner approval required) |
+| Production | Not performed by this team (D10) |

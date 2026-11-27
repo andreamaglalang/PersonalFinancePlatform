@@ -11,6 +11,7 @@
 | Phase 3 start (`dev` with PRs #4–#11) | `0cb05e7` |
 | Combined review candidate (PR #19, closed without merging) | `integration/phase3-candidate` at `4c74878` |
 | Final verified code commit (PRs #12–#25 merged) | `600244d` |
+| Superseded by | `bc652ce` (PRs #28–#29); see [the end-to-end record](OWLI_E2E_Acceptance.md) |
 | `dev` head after the record PR #26 | `a5c30d2` (documentation only beyond `600244d`; hosted CI green) |
 | Independent-review gate | **Done.** The owner approved the merges and checked the integration and handoff through GitHub |
 
