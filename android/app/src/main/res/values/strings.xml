@@ -459,6 +459,7 @@
     <string name="ce_name_hint">Up to 50 characters</string>
     <string name="ce_name_required">Enter a category name.</string>
     <string name="ce_name_long">Use 50 characters or fewer.</string>
+    <string name="ce_name_single_line">Category names can\'t contain line breaks or control characters.</string>
     <string name="ce_name_duplicate">“%1$s” already exists in %2$s categories. Choose a different name.</string>
     <string name="ce_name_conflict">A category with this name and type already exists. Choose a different name.</string>
     <string name="ce_type_conflict">Transactions use this category, so its type can\'t change.</string>
@@ -842,7 +843,7 @@
     <string name="register_creating">Creating account…</string>
     <string name="register_back_to_sign_in">Back to sign in</string>
     <string name="register_success">Your OWLI account is ready. Sign in with your email and password.</string>
-    <string name="register_error_full_name">Enter your full name (up to 100 characters).</string>
+    <string name="register_error_full_name">Enter your full name on one line (up to 100 characters).</string>
     <string name="register_error_email">Enter a valid email address.</string>
     <string name="register_error_password_mismatch">Passwords do not match.</string>
     <string name="register_error_invalid">Your account couldn\'t be created with these details. Check each field and try again.</string>
@@ -874,7 +875,7 @@
     <string name="password_error_same">Choose a new password that is different from your current password.</string>
     <!-- Amounts (same rules and wording as the server) -->
     <string name="amount_error_empty">Enter an amount.</string>
-    <string name="amount_error_number">Enter the amount as a number, for example 1250.50.</string>
+    <string name="amount_error_number">Enter the amount as a number without symbols or separators, for example 1250.50.</string>
     <string name="amount_error_positive">Enter an amount greater than zero.</string>
     <string name="amount_error_decimals">Amounts can have no more than two decimal places.</string>
     <string name="amount_error_large">That amount is too large.</string>
@@ -882,6 +883,6 @@
     <string name="plan_error_date">Enter the date as YYYY-MM-DD.</string>
     <string name="plan_error_first_due">Enter the first due date.</string>
     <string name="bill_error_category">Choose an expense category.</string>
-    <string name="bill_error_currency">Choose a currency.</string>
+    <string name="bill_error_currency">Use a supported three-letter currency, for example PHP or USD.</string>
     <string name="bill_error_reminder">Reminder days must be a whole number from 0 to 30.</string>
 </resources>

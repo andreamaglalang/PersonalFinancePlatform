@@ -15,6 +15,8 @@ public sealed class AuthenticationService(
     IRefreshTokenService sessions,
     DummyPasswordVerifier dummy, TimeProvider clock) : IAuthenticationService
 {
+    public const string EmailCharacters = "Use an email address with only letters, numbers and . _ - + before the @.";
+
     public async Task<AuthResult<CurrentUserResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         if (AuthRules.Errors(request) is { } errors)
@@ -44,7 +46,11 @@ public sealed class AuthenticationService(
                     return created.Errors.Any(e => e.Code.StartsWith("Password", StringComparison.Ordinal))
                         ? AuthResult<CurrentUserResponse>.Invalid(nameof(RegisterRequest.Password),
                             PasswordPolicy.Describe(request.Password) ?? "This password does not meet the requirements.")
-                        : AuthResult<CurrentUserResponse>.Failure(400, "Registration could not be completed.");
+                        // Identity's default user-name characters (the email is the user name) are ASCII letters,
+                        // digits and - . _ @ +; say so instead of a generic failure.
+                        : created.Errors.Any(e => e.Code is "InvalidUserName" or "InvalidEmail")
+                            ? AuthResult<CurrentUserResponse>.Invalid(nameof(RegisterRequest.Email), EmailCharacters)
+                            : AuthResult<CurrentUserResponse>.Failure(400, "Registration could not be completed.");
                 var assigned = await users.AddToRoleAsync(user, ApplicationRoles.User);
                 if (!assigned.Succeeded)
                     throw new InvalidOperationException("Role assignment failed; registration transaction must roll back.");

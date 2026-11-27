@@ -8,8 +8,9 @@ public sealed record AccountProfileResponse(int Id, string FullName, string Emai
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class AccountUpdateProfileRequest
 {
-    [Required(ErrorMessage = "Enter your full name."), StringLength(100, ErrorMessage = "Full name must be 100 characters or fewer.")] public string FullName { get; set; } = string.Empty;
-    [Required, RegularExpression("^[A-F0-9]{64}$")] public string Version { get; set; } = string.Empty;
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, ErrorMessage = "Full name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Full name can't contain line breaks or control characters.")] public string FullName { get; set; } = string.Empty;
+    [Required(ErrorMessage = "The profile version is required. Reload and retry."), RegularExpression("^[A-F0-9]{64}$", ErrorMessage = "The profile version is not valid. Reload and retry.")] public string Version { get; set; } = string.Empty;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

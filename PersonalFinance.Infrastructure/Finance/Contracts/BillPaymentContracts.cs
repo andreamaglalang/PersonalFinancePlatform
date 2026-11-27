@@ -7,10 +7,10 @@ namespace PersonalFinance.Infrastructure.Finance.Contracts;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class PayBillRequest
 {
-    [Required]
+    [Required(ErrorMessage = "A client-generated ClientId is required.")]
     public Guid? ClientId { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Choose the due date being paid.")]
     public DateOnly? DueDate { get; set; }
 }
 

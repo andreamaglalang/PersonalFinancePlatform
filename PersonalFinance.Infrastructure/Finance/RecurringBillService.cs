@@ -21,17 +21,20 @@ public interface IRecurringBillService
 /// category locks as <see cref="BillPaymentService"/>, so an edit can never interleave with a payment. Payment
 /// (creating the expense transaction and advancing NextDueDate) stays in BillPaymentService.
 /// </summary>
-public sealed class RecurringBillService(ApplicationDbContext db, ICurrentUser current, IFinancialWriteScope writes)
-    : FinanceServiceBase(db, current, writes), IRecurringBillService
+public sealed class RecurringBillService(ApplicationDbContext db, ICurrentUser current, IFinancialWriteScope writes,
+    IFrankfurterClient provider) : FinanceServiceBase(db, current, writes), IRecurringBillService
 {
     public Task<FinanceResult<RecurringBillResponse>> CreateAsync(CreateRecurringBillRequest request, CancellationToken ct) => Guard(async () =>
     {
         var userId = UserId;
         Validate(request);
-        if (!Enum.TryParse<BillFrequency>(request.Frequency, ignoreCase: false, out var frequency) || !Enum.IsDefined(frequency))
+        // Names only: Enum.TryParse would also accept numeric strings such as "1".
+        if (!Enum.GetNames<BillFrequency>().Contains(request.Frequency, StringComparer.Ordinal))
             throw new FinanceException(400, "Frequency must be Weekly, Monthly, Quarterly or Yearly.");
+        var frequency = Enum.Parse<BillFrequency>(request.Frequency);
         var first = request.FirstDueDate ?? throw new FinanceException(400, "FirstDueDate is required.");
         if (first.Year is < 2000 or > 9998) throw new FinanceException(400, "FirstDueDate is out of range.");
+        await RequireSupportedCurrencyAsync(userId, request.CurrencyCode, null, ct);
         return await Writes.ExecuteAsync([FinanceValidation.UserLock(userId), FinanceValidation.CategoryLock(request.CategoryId!.Value)], async token =>
         {
             var category = await AccessibleExpenseCategory(userId, request.CategoryId.Value, token);
@@ -80,6 +83,7 @@ public sealed class RecurringBillService(ApplicationDbContext db, ICurrentUser c
         Validate(request);
         var original = await Owned(id, userId).AsNoTracking().SingleOrDefaultAsync(ct);
         if (original is null) return FinanceResult<RecurringBillResponse>.Failure(404, "Bill not found.");
+        await RequireSupportedCurrencyAsync(userId, request.CurrencyCode, original.CurrencyCode, ct);
         var locks = new[] { FinanceValidation.UserLock(userId), $"finance:write:bill:{id}",
             FinanceValidation.CategoryLock(original.CategoryId), FinanceValidation.CategoryLock(request.CategoryId!.Value) }
             .Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -131,6 +135,15 @@ public sealed class RecurringBillService(ApplicationDbContext db, ICurrentUser c
         if (category is null || category.Type != TransactionType.Expense || (!category.IsActive && category.CategoryId != allowCurrent))
             throw new FinanceException(400, "An active, accessible expense category is required.");
         return category;
+    }
+
+    // A bill in a currency the rate provider does not offer could never be paid. The account currency and an
+    // unchanged currency need no provider call, so those saves still work while rates are unavailable.
+    private async Task RequireSupportedCurrencyAsync(int userId, string currency, string? current, CancellationToken ct)
+    {
+        if (currency == current || currency == await FinanceData.BaseCurrencyAsync(Db, userId, false, ct)) return;
+        if (!await provider.SupportsAsync(currency, ct))
+            throw new FinanceException(400, "The currency is not supported by the exchange-rate provider.");
     }
 
     private static void Validate(UpdateRecurringBillRequest request)

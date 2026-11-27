@@ -123,6 +123,9 @@ class CategoryViewModelsTest {
         vm.name("  FOOD "); assertEquals(NameProblem.Duplicate, vm.nameProblem())
         vm.type(TransactionType.Income); assertNull(vm.nameProblem()) // other type is fine
         vm.type(TransactionType.Expense); vm.name("x".repeat(51)); assertEquals(NameProblem.TooLong, vm.nameProblem())
+        vm.name("Two\nLines"); assertEquals(NameProblem.ControlCharacters, vm.nameProblem())
+        vm.name("Café Ñandú "); assertNull(vm.nameProblem())
+        vm.name("x".repeat(51))
         vm.save(); advanceUntilIdle()
         assertTrue(writes.calls.isEmpty()); assertNull(vm.state.value.saved)
     }

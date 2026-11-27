@@ -50,9 +50,9 @@ class AddTransactionViewModelTest {
     private fun valid(model: AddTransactionViewModel) { model.amount("12.34"); model.category(1) }
 
     @Test fun decimalBoundariesAreExactAndInvalidInputIsNotRounded() {
-        for (raw in listOf("0.01", "1", "1.", "12,34", "9999999999999999.99")) assertTrue(raw, validAmount(raw))
-        for (raw in listOf("", ".", "0", "0.00", "-1", "1.001", "1e3", "NaN", "1,234.56", "10000000000000000", " 1 "))
-            assertFalse(raw, validAmount(raw))
+        for (raw in listOf("0.01", "1", "1.", "12,34", "9999999999999999.99", " 1 ", ".5", "000100")) assertTrue(raw, validAmount(raw))
+        for (raw in listOf("", ".", "0", "0.00", "-1", "1.001", "1e3", "1E5", "+5", "NaN", "Infinity", "1,234.56", "10..50", "₱100", "1 000",
+            "10000000000000000")) assertFalse(raw, validAmount(raw))
     }
     @Test fun injectedClockSetsLocalCalendarDateAndPickerRoundTripNeverShiftsDate() = runTest(main.dispatcher) {
         val f = form()

@@ -20,7 +20,7 @@ public sealed class MemberTransactionDraftViewModel
     [Required(ErrorMessage = "Choose a category."), Range(1, int.MaxValue, ErrorMessage = "Choose a category.")]
     public int? CategoryId { get; set; }
 
-    [Required(ErrorMessage = "Enter an amount."), MoneyAmount(100_000_000)]
+    [Required(ErrorMessage = "Enter an amount."), MoneyAmount(100_000_000), ModelBinder(typeof(MoneyModelBinder))]
     public decimal? Amount { get; set; }
 
     [Required(ErrorMessage = "Choose a currency."), RegularExpression("^[A-Z]{3}$", ErrorMessage = "Choose a currency.")]

@@ -108,3 +108,10 @@
 - Updated: OWLI verification limits and architectural decisions
 - Actual fresh-shell API/MVC, synthetic authentication, Android normal TLS and guarded disposable worker lifecycle passed; owner confirmed VS Code terminals.
 - No operational activation, migrations or unrelated environment/worktree changes; platform/debugger limits preserved.
+
+## [2026-11-28] ingest | Input validation audit
+- Disposition: Update
+- Raw: raw/owli/2026-11-28-input-validation-audit.md
+- Updated: OWLI financial invariants (input boundary)
+- Twelve defects reproduced and fixed. The worst were silent amount reinterpretation ("10,50" read as 1050 in the MVC transaction form and the Android budget limit) and MVC error pages on unparseable amounts.
+- Owner decisions open: the MVC transaction cap and the MVC decimal comma.

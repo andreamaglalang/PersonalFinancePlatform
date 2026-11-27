@@ -25,7 +25,8 @@ public class MemberSavingsGoalFormModel
     /// <summary>Edit only: the goal version the form was opened with (a stale form is refused, never applied).</summary>
     public string? Version { get; set; }
 
-    [Required(ErrorMessage = "Enter a goal name."), StringLength(100, ErrorMessage = "Goal name must be 100 characters or fewer.")]
+    [Required(ErrorMessage = "Enter a goal name."), StringLength(100, ErrorMessage = "Goal name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Goal names can't contain line breaks or control characters.")]
     [Display(Name = "Goal name")]
     public string? Name { get; set; }
 
@@ -36,6 +37,8 @@ public class MemberSavingsGoalFormModel
     [Display(Name = "Target date")]
     public DateOnly? TargetDate { get; set; }
 
+    // Read only after ModelState is valid; validation must not evaluate it (unparseable text would throw).
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public decimal Amount => decimal.Parse(TargetAmount!, System.Globalization.CultureInfo.InvariantCulture);
 
 }
@@ -59,6 +62,8 @@ public sealed class MemberContributionFormModel
     [Display(Name = "Note")]
     public string? Note { get; set; }
 
+    // Read only after ModelState is valid; validation must not evaluate it (unparseable text would throw).
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public decimal Value => decimal.Parse(Amount!, System.Globalization.CultureInfo.InvariantCulture);
 
 }

@@ -66,6 +66,9 @@ public static class AuthenticationConfiguration
             .AddPolicy(UserPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(ApplicationRoles.User))
             .AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(ApplicationRoles.Administrator));
 
+        services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+            options.InvalidModelStateResponseFactory = SafeValidationResponses.Create);
+
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

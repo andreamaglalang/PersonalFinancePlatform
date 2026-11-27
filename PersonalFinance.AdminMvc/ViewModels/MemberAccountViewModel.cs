@@ -16,7 +16,8 @@ public sealed class MemberAccountViewModel
 
 public sealed class MemberProfileInput
 {
-    [Required(ErrorMessage = "Enter your full name."), StringLength(100, MinimumLength = 1, ErrorMessage = "Full name must be 100 characters or fewer.")]
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, MinimumLength = 1, ErrorMessage = "Full name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Full name can't contain line breaks or control characters.")]
     public string FullName { get; set; } = string.Empty;
 }
 

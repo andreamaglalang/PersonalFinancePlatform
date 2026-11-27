@@ -6,18 +6,18 @@ namespace PersonalFinance.Infrastructure.Finance.Contracts;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class CreateBudgetRequest : UpdateBudgetRequest
 {
-    [Required, Range(1, int.MaxValue)]
+    [Required(ErrorMessage = "Choose an expense category."), Range(1, int.MaxValue, ErrorMessage = "Choose an expense category.")]
     public int? CategoryId { get; set; }
-    [Required]
+    [Required(ErrorMessage = "Choose a month.")]
     public DateOnly? PeriodMonth { get; set; }
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public class UpdateBudgetRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Enter a limit amount.")]
     public decimal? LimitAmount { get; set; }
-    [Required, Range(1, 100)]
+    [Required(ErrorMessage = "Enter an alert threshold from 1 to 100."), Range(1, 100, ErrorMessage = "Enter an alert threshold from 1 to 100.")]
     public int? AlertThresholdPct { get; set; }
 }
 

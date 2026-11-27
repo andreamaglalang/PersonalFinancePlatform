@@ -1,8 +1,8 @@
 # OWLI financial invariants and storage boundaries
 
 > Sources: Project owner, 2026-11-26; OWLI application source, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md)
-> Updated: 2026-11-26
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md); [Input validation audit](../../raw/owli/2026-11-28-input-validation-audit.md)
+> Updated: 2026-11-28
 
 ## Required invariants
 
@@ -39,6 +39,17 @@ schema preparation. No separate worker financial database is required.
 Use approved disposable targets for mutating tests; preserve the existing
 finance database and migration history. Private diagnostics and real financial
 records do not belong in this wiki's raw sources.
+
+## Input boundary (2026-11-28)
+
+The API is the authoritative input boundary; clients only repeat its rules for
+feedback. Typed money is read exactly: digits with one decimal separator. Grouping,
+signs, symbols and exponents are refused and never reinterpreted. Android also
+accepts a decimal comma; MVC asks for a decimal point. Names are single-line (no
+control characters). Malformed JSON gets plain field messages without type names.
+Bill currencies must be offered by the rate provider. See
+`docs/audits/OWLI_Input_Validation_Audit.md` for the policy, matrix and open decisions
+(the MVC 100,000,000 transaction cap and the MVC decimal comma).
 
 ## See Also
 

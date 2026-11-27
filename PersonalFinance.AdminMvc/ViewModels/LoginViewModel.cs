@@ -14,7 +14,8 @@ public sealed class LoginViewModel
 
 public sealed class RegisterViewModel
 {
-    [Required(ErrorMessage = "Enter your full name."), StringLength(100, ErrorMessage = "Full name must be 100 characters or fewer.")]
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, ErrorMessage = "Full name must be 100 characters or fewer."),
+     SingleLineText(ErrorMessage = "Full name can't contain line breaks or control characters.")]
     [Display(Name = "Full name")]
     public string FullName { get; set; } = string.Empty;
 

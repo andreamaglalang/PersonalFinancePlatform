@@ -71,13 +71,8 @@ data class AddTransactionUiState(
     val inputLocked get() = submitting || completed || invalidated || saveState is FormSaveState.Succeeded || saveState == FormSaveState.QueuedOffline ||
         (saveState is FormSaveState.OutcomeUnknown && !unknownEditing)
 }
-fun validAmount(raw: String): Boolean {
-    if (raw.length > 32 || !raw.matches(Regex("[0-9]+([.,][0-9]{0,2})?"))) return false
-    return try {
-        val amount = BigDecimal(raw.replace(',', '.'))
-        amount.signum() > 0 && amount <= BigDecimal("9999999999999999.99")
-    } catch (_: NumberFormatException) { false }
-}
+/** The same amount rules as every other amount field on the device (see [com.elect3.mobdev.personalfinance.ui.plan.typedAmount]). */
+fun validAmount(raw: String): Boolean = com.elect3.mobdev.personalfinance.ui.plan.positiveAmount(raw) != null
 
 /**
  * The specific amount problem to show, or null. Save stays disabled while the amount is invalid, so the reason is shown
@@ -148,7 +143,7 @@ class AddTransactionViewModel(
     private fun mappedDraft(): TransactionDraft? {
         val s = mutable.value
         if (!s.valid) return null
-        return TransactionDraft(s.type, checkNotNull(s.selectedCategoryId), BigDecimal(s.amount.replace(',', '.')),
+        return TransactionDraft(s.type, checkNotNull(s.selectedCategoryId), checkNotNull(com.elect3.mobdev.personalfinance.ui.plan.typedAmount(s.amount)),
             checkNotNull(s.currency), s.date, s.description.takeIf { it.isNotBlank() })
     }
 

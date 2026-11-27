@@ -73,6 +73,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
+        RequireSupportedCurrency(model);
         if (!ModelState.IsValid || loaded.Status != 200)
         {
             if (loaded.Status != 200) ViewData["CategoryError"] = "Expense categories are unavailable. The bill was not saved.";
@@ -153,6 +154,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
         // Frequency and first due date are fixed at creation; the edit form never posts them.
         ModelState.Remove(nameof(model.Frequency));
         ModelState.Remove(nameof(model.FirstDueDate));
+        RequireSupportedCurrency(model);
         if (!ModelState.IsValid || loaded.Status != 200)
         {
             if (loaded.Status != 200) ViewData["CategoryError"] = "Expense categories are unavailable. The bill was not saved.";
@@ -289,5 +291,11 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
         Response.StatusCode = status is 400 or 404 or 409 or 429 ? status : 503;
         TempData["BillError"] = MemberSessionGate.Message(status, mutation, reason);
         return RedirectToAction(nameof(Index));
+    }
+
+    private void RequireSupportedCurrency(MemberBillFormModel model)
+    {
+        if (model.CurrencyCode is not null && !MemberCurrencyPreferences.IsSupported(model.CurrencyCode.ToUpperInvariant()))
+            ModelState.AddModelError(nameof(model.CurrencyCode), "Choose one of the supported currencies.");
     }
 }
