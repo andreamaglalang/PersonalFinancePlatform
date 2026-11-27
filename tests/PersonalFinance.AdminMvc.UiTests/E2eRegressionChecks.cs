@@ -119,7 +119,8 @@ internal static class E2eRegressionChecks
         if (System.Text.RegularExpressions.Regex.Matches(register, "data-password-toggle").Count != 2 || register.Contains("Registration creates a member account", StringComparison.Ordinal)
             || !register.Contains("[\"PasswordRulesCollapsible\"] = true", StringComparison.Ordinal))
             throw new InvalidOperationException("Registration must offer Show/Hide on both password fields, a collapsible checklist and no redundant footer.");
-        if (!rules.Contains("password-rules-hint", StringComparison.Ordinal) || !rules.Contains("<svg class=\"password-rule-mark\"", StringComparison.Ordinal) || rules.Contains('○') || rules.Contains('✓'))
+        if (!rules.Contains("password-rules-hint", StringComparison.Ordinal) || !rules.Contains("<svg class=\"password-rule-mark\"", StringComparison.Ordinal) || rules.Contains('○') || rules.Contains('✓')
+            || rules.Contains("data-collapsible", StringComparison.Ordinal)) // Razor renders a null data-* attribute as present, collapsing every page
             throw new InvalidOperationException("The password checklist must show a hint and drawn marks, not text glyphs.");
         Console.WriteLine("PASS: end-to-end regressions (contribution/payment identities and versions from the form; contribution links bind; bill edit saves; budget status uses themed colours; site icon present; R3: goal surplus, rate confirmation, transaction identity and replay, plain validation wording).");
     }

@@ -367,7 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
   input.addEventListener("input", update); update();
   // Collapsible lists start as a one-line hint and open on focus or typing; they open at once after a failed
   // submission so every rule is visible next to the error, and stay open once shown.
-  if (list.hasAttribute("data-collapsible")) {
+  if (list.classList.contains("is-collapsible")) {
    const message = input.form?.querySelector('[data-valmsg-for="' + input.name + '"]');
    const expand = () => list.classList.remove("is-collapsed");
    if (!input.value && input.getAttribute("aria-invalid") !== "true" && !message?.textContent.trim()) list.classList.add("is-collapsed");
