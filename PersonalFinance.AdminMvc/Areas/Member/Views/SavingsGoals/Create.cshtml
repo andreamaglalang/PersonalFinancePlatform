@@ -24,7 +24,7 @@
             </div>
             <div class="member-field">
                 <label class="member-label" for="TargetAmount">Target amount</label>
-                <input id="TargetAmount" name="TargetAmount" inputmode="decimal" maxlength="19" value="@Model.TargetAmount" />
+                <input id="TargetAmount" name="TargetAmount" inputmode="decimal" maxlength="19" data-money-input autocomplete="off" value="@Model.TargetAmount" />
                 <span asp-validation-for="TargetAmount" class="member-field-error"></span>
             </div>
             <div class="member-field">

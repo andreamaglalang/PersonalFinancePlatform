@@ -39,8 +39,8 @@
         <details class="category-options">
             <summary>API page options</summary>
             <label asp-for="Sort">Sort this page</label><select asp-for="Sort"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option><option value="type">Type</option><option value="state">Active first</option></select>
-            <label asp-for="Page">API page</label><input asp-for="Page" type="number" min="1" />
-            <label asp-for="PageSize">Page size</label><input asp-for="PageSize" type="number" min="1" max="100" />
+            <label asp-for="Page">API page</label><input asp-for="Page" type="text" inputmode="numeric" maxlength="9" data-whole-input autocomplete="off" />
+            <label asp-for="PageSize">Page size</label><input asp-for="PageSize" type="text" inputmode="numeric" maxlength="3" data-whole-input autocomplete="off" />
         </details>
         <button type="submit" class="filter-submit">Apply filters</button>
     </form>

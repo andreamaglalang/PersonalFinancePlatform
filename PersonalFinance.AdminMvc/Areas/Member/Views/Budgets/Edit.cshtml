@@ -25,14 +25,14 @@
 
             <div class="member-field">
                 <label class="member-label" for="LimitAmount">Limit amount</label>
-                <input id="LimitAmount" name="LimitAmount" inputmode="decimal" maxlength="19"
+                <input id="LimitAmount" name="LimitAmount" inputmode="decimal" maxlength="19" data-money-input autocomplete="off"
                        value="@(Model.LimitAmount)" />
                 <span asp-validation-for="LimitAmount" class="member-field-error"></span>
             </div>
 
             <div class="member-field">
                 <label class="member-label" for="AlertThresholdPct">Alert threshold (%)</label>
-                <input id="AlertThresholdPct" name="AlertThresholdPct" type="number" min="1" max="100"
+                <input id="AlertThresholdPct" name="AlertThresholdPct" type="text" inputmode="numeric" maxlength="3" data-whole-input autocomplete="off"
                        value="@(Model.AlertThresholdPct)" />
                 <span asp-validation-for="AlertThresholdPct" class="member-field-error"></span>
             </div>

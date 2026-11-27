@@ -875,6 +875,10 @@
     <string name="password_error_same">Choose a new password that is different from your current password.</string>
     <!-- Amounts (same rules and wording as the server) -->
     <string name="amount_error_empty">Enter an amount.</string>
+    <string name="input_amount_characters">Amounts use digits and one decimal separator only.</string>
+    <string name="input_amount_one_separator">Use only one decimal separator.</string>
+    <string name="input_whole_digits">Use whole numbers only (digits 0–9).</string>
+    <string name="input_number_long">That number is too long.</string>
     <string name="amount_error_number">Enter the amount as a number without symbols or separators, for example 1250.50.</string>
     <string name="amount_error_positive">Enter an amount greater than zero.</string>
     <string name="amount_error_decimals">Amounts can have no more than two decimal places.</string>

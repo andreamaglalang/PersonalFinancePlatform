@@ -23,7 +23,7 @@
             <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
             <div class="member-field">
                 <label class="member-label" for="Amount">Amount</label>
-                <input id="Amount" name="Amount" inputmode="decimal" maxlength="19" value="@Model.Amount" />
+                <input id="Amount" name="Amount" inputmode="decimal" maxlength="19" data-money-input autocomplete="off" value="@Model.Amount" />
                 <span asp-validation-for="Amount" class="member-field-error"></span>
             </div>
             <div class="member-field">

@@ -172,14 +172,16 @@ fun AddTransactionScreen(model: AddTransactionViewModel, state: AddTransactionUi
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(state.currency?.let { stringResource(R.string.fx_amount_in, it) } ?: stringResource(R.string.form_amount),
                         style = typography.label)
-                    OutlinedTextField(state.amount, model::amount, enabled = editable, singleLine = true,
+                    var amountRefusal by remember { mutableStateOf<Int?>(null) }
+                    OutlinedTextField(state.amount, com.elect3.mobdev.personalfinance.ui.plan.amountEdit({ amountRefusal = it }, model::amount), enabled = editable, singleLine = true,
                         label = { Text(stringResource(R.string.form_amount)) },
                         prefix = state.currency?.let { code -> { Text(SupportedCurrencies.symbol(code) + " ", style = typography.amountMedium) } },
                         suffix = state.currency?.let { code -> { Text(code, style = typography.label) } },
                         textStyle = typography.heroAmount, shape = shapes.field, colors = owliFieldColors(),
                         modifier = Modifier.fillMaxWidth().onFocusChanged { if (!it.isFocused && state.amount.isNotEmpty()) model.touch(FormField.Amount) },
                         isError = addAmountProblem(state.amount, FormField.Amount in state.touched) != null,
-                        supportingText = { addAmountProblem(state.amount, FormField.Amount in state.touched)?.let { ErrorText(it) } },
+                        supportingText = { amountRefusal?.let { com.elect3.mobdev.personalfinance.ui.plan.InputRefusal(it) }
+                            ?: addAmountProblem(state.amount, FormField.Amount in state.touched)?.let { ErrorText(it) } },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus(); model.touch(FormField.Amount) }))
                     Text(state.currency?.let {

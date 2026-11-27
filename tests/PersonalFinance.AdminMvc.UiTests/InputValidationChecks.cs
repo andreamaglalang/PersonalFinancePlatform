@@ -101,6 +101,36 @@ internal static class InputValidationChecks
             && MoneyInput.Problem("1000000000.01", 1_000_000_000m) == "Enter an amount up to 1,000,000,000.", "converter amount rules.");
         Check(Validate(new MemberCurrencyConverterViewModel { Amount = "" }).SequenceEqual(["Enter an amount."]), "empty converter amount wording.");
 
+        // 5. Input restriction: every amount and whole-number field refuses invalid keys and pastes as typed (owli-ui.js),
+        //    on a text input with the right keyboard; type="number" would accept e, + and - and hide the typed text.
+        var views = Directory.EnumerateFiles(MvcProject.FindDirectory(), "*.cshtml", SearchOption.AllDirectories)
+            .Where(p => !p.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") && !p.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"));
+        var moneyNames = new[] { "Amount", "LimitAmount", "TargetAmount" };
+        var wholeNames = new[] { "AlertThresholdPct", "ReminderDaysBefore", "PageSize", "Page" };
+        var seen = 0;
+        foreach (var view in views)
+            foreach (System.Text.RegularExpressions.Match input in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(view), "<input\\b[^>]*>"))
+            {
+                var tag = input.Value;
+                var name = System.Text.RegularExpressions.Regex.Match(tag, "(?:name|asp-for)=\"([^\"]+)\"").Groups[1].Value;
+                if (tag.Contains("type=\"hidden\"")) continue;
+                if (moneyNames.Contains(name))
+                {
+                    seen++;
+                    Check(tag.Contains("data-money-input") && tag.Contains("inputmode=\"decimal\"") && !tag.Contains("type=\"number\""), $"{Path.GetFileName(view)} {name} must be a restricted decimal text input: {tag}");
+                }
+                else if (wholeNames.Contains(name))
+                {
+                    seen++;
+                    Check(tag.Contains("data-whole-input") && tag.Contains("inputmode=\"numeric\"") && tag.Contains("maxlength=") && !tag.Contains("type=\"number\""), $"{Path.GetFileName(view)} {name} must be a restricted numeric text input: {tag}");
+                }
+            }
+        Check(seen >= 15, $"expected every amount and whole-number input to be checked, saw {seen}.");
+        var script = File.ReadAllText(MvcProject.FindFile("wwwroot", "js", "owli-ui.js"));
+        Check(script.Contains("addEventListener(\"beforeinput\"") && script.Contains("event.preventDefault()") && script.Contains("insertFromPaste")
+            && script.Contains("[data-money-input], [data-whole-input]") && !script.Contains(".replace(/[^0-9"),
+            "owli-ui.js must refuse whole edits (keys and pastes), never strip characters.");
+
         Console.WriteLine("PASS: input validation (exact amount binding, no error page for unparseable amounts, single-line names).");
     }
 }

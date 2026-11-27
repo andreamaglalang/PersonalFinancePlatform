@@ -166,13 +166,15 @@ fun EditTransactionScreen(model: EditTransactionViewModel, state: EditTransactio
             Surface(shape = shapes.hero, color = MaterialTheme.colorScheme.primaryContainer) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.fx_amount_in, state.currency), style = typography.label)
-                    OutlinedTextField(state.amount, model::amount, enabled = state.editable, singleLine = true,
+                    var amountRefusal by remember { mutableStateOf<Int?>(null) }
+                    OutlinedTextField(state.amount, com.elect3.mobdev.personalfinance.ui.plan.amountEdit({ amountRefusal = it }, model::amount), enabled = state.editable, singleLine = true,
                         label = { Text(stringResource(R.string.form_amount)) },
                         prefix = { Text(SupportedCurrencies.symbol(state.currency) + " ", style = typography.amountMedium) },
                         suffix = { Text(state.currency, style = typography.label) },
                         textStyle = typography.heroAmount, shape = shapes.field, colors = owliFieldColors(),
                         modifier = Modifier.fillMaxWidth(), isError = !state.amountValid,
-                        supportingText = { if (!state.amountValid) Text(stringResource(R.string.form_amount_error), color = MaterialTheme.colorScheme.error) },
+                        supportingText = { amountRefusal?.let { com.elect3.mobdev.personalfinance.ui.plan.InputRefusal(it) }
+                            ?: if (!state.amountValid) Text(stringResource(R.string.form_amount_error), color = MaterialTheme.colorScheme.error) else Unit },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }))
                     state.parsedAmount?.let { Text(formatTransactionAmount(it, state.currency), style = typography.bodyStrong) }
