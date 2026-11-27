@@ -140,7 +140,7 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
                         val percent = goalProgressText(record.progressPercentage)
                         val progressLabel = stringResource(R.string.goal_progress_description, saved, target, percent)
                         Text(stringResource(R.string.goal_saved_of, saved, target), style = typography.body, modifier = Modifier.semantics { contentDescription = progressLabel })
-                        LinearProgressIndicator(progress = { record.progressPercentage.divide(BigDecimal(100)).toFloat().coerceIn(0f, 1f) },
+                        LinearProgressIndicator(progress = { goalBarFraction(record.progressPercentage) },
                             modifier = Modifier.fillMaxWidth().semantics { contentDescription = progressLabel })
                         val (captionRes, captionAmount) = goalProgressCaption(record)
                         Text(stringResource(captionRes, percent, money(captionAmount, record.baseCurrency)), style = typography.caption)
@@ -383,3 +383,6 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
 internal fun goalProgressCaption(goal: SavingsGoal): Pair<Int, java.math.BigDecimal> =
     if (goal.remainingAmount.signum() < 0) R.string.goal_progress_over_target to goal.remainingAmount.negate()
     else R.string.goal_progress_remaining to goal.remainingAmount
+
+/** The progress bar is capped at a full bar; the caption shows the real percentage. */
+internal fun goalBarFraction(percentage: java.math.BigDecimal): Float = percentage.divide(java.math.BigDecimal(100)).toFloat().coerceIn(0f, 1f)

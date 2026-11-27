@@ -2,6 +2,7 @@ package com.elect3.mobdev.personalfinance.ui.app
 
 import androidx.compose.runtime.Composable
 import kotlinx.coroutines.launch
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -159,23 +160,37 @@ fun OwliFinanceContent(
         }.value else emptyList()
     var syncing by remember(authenticatedContentKey) { mutableStateOf(false) }
     val syncScope = androidx.compose.runtime.rememberCoroutineScope()
-    val runSync: () -> Unit = {
+    // Single-flight: a sync already running (manual, network event or automatic retry) is never started twice.
+    val syncOnce: suspend () -> Unit = syncOnce@{
         val key = authenticatedContentKey
-        if (key != null && pendingSync != null && accountId != null && !syncing) {
-            syncing = true
-            syncScope.launch {
-                try {
-                    val outcome = pendingSync.sync(accountId) { isSessionCurrent(key) }
-                    if (outcome is com.elect3.mobdev.personalfinance.data.local.SyncOutcome.SessionEnded && isSessionCurrent(key)) onSessionExpired(key)
-                    if (outcome is com.elect3.mobdev.personalfinance.data.local.SyncOutcome.Done && outcome.sent > 0) {
-                        account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard()
-                    }
-                } finally { syncing = false }
+        if (key == null || pendingSync == null || accountId == null || syncing) return@syncOnce
+        syncing = true
+        try {
+            val outcome = pendingSync.sync(accountId) { isSessionCurrent(key) }
+            if (outcome is com.elect3.mobdev.personalfinance.data.local.SyncOutcome.SessionEnded && isSessionCurrent(key)) onSessionExpired(key)
+            if (outcome is com.elect3.mobdev.personalfinance.data.local.SyncOutcome.Done && outcome.sent > 0) {
+                account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard()
+            }
+        } finally { syncing = false }
+    }
+    val runSync: () -> Unit = { syncScope.launch { syncOnce() } }
+    // Sync at sign-in and whenever the device regains a network connection.
+    LaunchedEffect(authenticatedContentKey, pendingSync) { runSync() }
+    // Automatic retry while entries are pending and the app is in the foreground (covers API-only outages, which
+    // raise no network event). Rejected entries wait for the user; nothing runs when the queue is empty.
+    val hasPending = unsynced.any { !it.rejected }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(authenticatedContentKey, pendingSync, hasPending) {
+        if (!hasPending) return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            var attempt = 0
+            while (true) {
+                kotlinx.coroutines.delay(com.elect3.mobdev.personalfinance.data.local.autoSyncDelayMillis(attempt++))
+                // Runs in the screen's scope, so leaving the foreground never cancels a request mid-flight.
+                syncScope.launch { syncOnce() }.join()
             }
         }
     }
-    // Sync at sign-in and whenever the device regains a network connection.
-    LaunchedEffect(authenticatedContentKey, pendingSync) { runSync() }
     val context2 = LocalContext.current
     DisposableEffect(authenticatedContentKey, pendingSync) {
         val cm = context2.getSystemService(android.net.ConnectivityManager::class.java)

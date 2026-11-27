@@ -27,6 +27,12 @@ class GoalsBillsModelsTest {
     private fun edit(base: String, key: String, value: String?): JsonObject = json(base).apply { if (value == null) remove(key) else add(key, JsonParser.parseString(value)) }
     private fun fails(block: () -> Unit) = assertTrue(runCatching(block).isFailure)
 
+    @Test fun overFundedGoalBarIsFullButTextIsReal() {
+        assertEquals(1f, goalBarFraction(BigDecimal("115.38")), 0f)
+        assertEquals(0.25f, goalBarFraction(BigDecimal("25.00")), 0.0001f)
+        assertEquals("115.4", goalProgressText(BigDecimal("115.38"), Locale.US))
+    }
+
     @Test fun overFundedGoalShowsSurplusNotNegativeRemaining() {
         val over = parseSavingsGoal(edit(edit(goal, "savedAmount", "10025.50").toString(), "remainingAmount", "-25.50"))
         assertEquals(R.string.goal_progress_over_target to BigDecimal("25.50"), goalProgressCaption(over))
@@ -117,7 +123,8 @@ class GoalsBillsModelsTest {
     @Test fun progressTextIsClampedWithOneDecimal() {
         assertEquals("25", goalProgressText(BigDecimal("25.00"), Locale.US))
         assertEquals("33.4", goalProgressText(BigDecimal("33.35"), Locale.US))
-        assertEquals("100", goalProgressText(BigDecimal("140"), Locale.US))
+        assertEquals("140", goalProgressText(BigDecimal("140"), Locale.US)) // real percentage, as on MVC
+        assertEquals("115.4", goalProgressText(BigDecimal("115.38"), Locale.US))
     }
 
     @Test fun failuresMapToStringResources() {

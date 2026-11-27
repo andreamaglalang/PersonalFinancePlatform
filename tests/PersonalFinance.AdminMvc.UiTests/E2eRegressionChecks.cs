@@ -56,6 +56,8 @@ internal static class E2eRegressionChecks
         var billsController = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Controllers", "BillsController.cs"));
         string Body(string source, string signature) { var start = source.IndexOf(signature, StringComparison.Ordinal); var next = source.IndexOf("[Http", start + 1, StringComparison.Ordinal); return source[start..(next < 0 ? source.Length : next)]; }
         var contributePost = Body(goalsController, "public async Task<IActionResult> Contribute([FromRoute] int id, [FromForm]");
+        if (contributePost.IndexOf("return Expired(id)", StringComparison.Ordinal) is var expiredAt && (expiredAt < 0 || expiredAt > contributePost.IndexOf("ModelState.IsValid", StringComparison.Ordinal)))
+            throw new InvalidOperationException("A contribution form with a missing or malformed ClientId must be treated as expired before other validation.");
         if (contributePost.Contains("Guid.NewGuid()") || !contributePost.Contains("model.ClientId"))
             throw new InvalidOperationException("F1: a contribution must use the ClientId minted when its form opened.");
         if (goalsController.Contains("current.Value.Version") || goalsController.Contains("current.Value!.Version"))

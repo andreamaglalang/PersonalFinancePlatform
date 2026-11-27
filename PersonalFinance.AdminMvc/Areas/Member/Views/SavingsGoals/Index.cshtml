@@ -41,7 +41,7 @@
                         <a class="member-goal-name" href="@Url.Action("Details", new { id = goal.GoalId })">@goal.Name</a>
                         <div class="member-goal-amount"><strong>@goal.SavedAmount.ToString("N2", invariant)</strong><span>of @goal.TargetAmount.ToString("N2", invariant) @goal.BaseCurrency</span></div>
                         <div class="member-goal-progress" role="progressbar" aria-label="@goal.Name progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progress.ToString("0.#", invariant)"><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect class="member-progress-fill" width="@progress.ToString("0.#", invariant)" height="10" rx="5" /></svg></div>
-                        <p class="owli-caption">@Math.Max(0m, goal.TargetAmount - goal.SavedAmount).ToString("N2", invariant) @goal.BaseCurrency remaining · @progress.ToString("0.#", invariant)%</p>
+                        <p class="owli-caption">@(goal.SurplusAmount > 0 ? $"{goal.SurplusAmount.ToString("N2", invariant)} {goal.BaseCurrency} over target" : $"{Math.Max(0m, goal.TargetAmount - goal.SavedAmount).ToString("N2", invariant)} {goal.BaseCurrency} remaining") · @Math.Max(0m, goal.ProgressPercentage).ToString("0.#", invariant)%</p>
                         <footer class="member-goal-actions">
                             <a class="member-row-link" href="@Url.Action("Details", new { id = goal.GoalId })">Details</a>
                             @if (goal.Status == "Active")

@@ -152,6 +152,8 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
         if (model.ClientId is not { } clientId || clientId == Guid.Empty)
         {
             // A form without its identity (opened before this release, or altered) cannot be saved safely.
+            // Drop the posted value (empty or malformed) and its binding error so the new identity is what renders.
+            ModelState.Remove(nameof(model.ClientId));
             model.ClientId = Guid.NewGuid();
             ModelState.AddModelError(string.Empty, "This form has expired. Check the details and save again.");
             Response.StatusCode = 400;

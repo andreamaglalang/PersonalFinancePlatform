@@ -56,6 +56,14 @@ internal static class ActivityParityChecks
         Check(await controller.Delete(24,default) is RedirectToActionResult && handler.Writes==0 && await controller.Edit(24,default) is RedirectToActionResult,"Direct edit/delete routes refuse protected bill payments without financial writes.");
         var stale=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=25,CurrencyCode="PHP",TransactionDate=Month,Description="Isolated create"};
         Check(await controller.Create(stale,default) is ViewResult && handler.Writes==0 && !controller.ModelState.IsValid,"R3-3: a create form without its ClientId is refused before any POST.");controller.ModelState.Clear();
+        // A malformed posted ClientId leaves its attempted value and binding error in ModelState; the returned form must
+        // carry a fresh identity (input tag helpers prefer ModelState values over the model).
+        stale.ClientId=null; controller.ModelState.SetModelValue("ClientId","not-a-guid","not-a-guid"); controller.ModelState.AddModelError("ClientId","bad");
+        var recovered=(MemberTransactionDraftViewModel)((ViewResult)await controller.Create(stale,default)).Model!;
+        Check(handler.Writes==0 && recovered.ClientId is {} fresh && fresh!=Guid.Empty && !controller.ModelState.ContainsKey("ClientId"),"R3-3: an expired form returns a fresh ClientId that is not masked by the stale posted value.");
+        controller.ModelState.Clear(); recovered.CategoryId=2;
+        Check(await controller.Create(recovered,default) is RedirectToActionResult && handler.Writes==1,"R3-3: the recovered form then saves once.");
+        handler.Writes=0; controller.ModelState.Clear();
         var create=new MemberTransactionDraftViewModel{Type="Expense",CategoryId=2,Amount=25,CurrencyCode="PHP",TransactionDate=Month,Description="Isolated create",ClientId=Guid.NewGuid()};
         Check(await controller.Create(create,default) is RedirectToActionResult && handler.Writes==1,"A valid PHP creation uses the existing authenticated POST contract in isolated infrastructure.");
         handler.FailWrites=true;controller.ModelState.Clear();

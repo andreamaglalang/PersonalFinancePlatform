@@ -118,7 +118,7 @@ fun planListState(loading: Boolean, error: Int?, available: Boolean, count: Int)
 /** Progress as MVC shows it: clamped to 0–100 with at most one decimal. */
 fun goalProgressText(percentage: BigDecimal, locale: Locale = Locale.getDefault()): String =
     NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1; roundingMode = RoundingMode.HALF_UP }
-        .format(percentage.max(BigDecimal.ZERO).min(BigDecimal(100)))
+        .format(percentage.max(BigDecimal.ZERO)) // the real percentage, as on MVC; only the progress bar is capped at 100%
 
 /** The server's reviewed reason (ApiMessages) for a definitive rejection, else the generic message for [failure]. */
 fun planFailureText(res: android.content.res.Resources, failure: com.elect3.mobdev.personalfinance.domain.repository.FinanceResult.Failure, writing: Boolean = false): String =

@@ -14,6 +14,13 @@ import org.junit.Test
 
 /** Offline-first recording: queue on connectivity loss, sync with the same ClientId, never duplicate. */
 class OfflineFirstTest {
+    @Test fun automaticRetryBacksOffAndIsBounded() {
+        org.junit.Assert.assertEquals(listOf(10_000L, 20_000L, 40_000L, 80_000L, 160_000L, 300_000L, 300_000L),
+            (0..6).map { autoSyncDelayMillis(it) })
+        org.junit.Assert.assertEquals(300_000L, autoSyncDelayMillis(Int.MAX_VALUE))
+        org.junit.Assert.assertEquals(10_000L, autoSyncDelayMillis(-1))
+    }
+
     private val draft = TransactionDraft(TransactionType.Expense, 7, BigDecimal("12.34"), "PHP", LocalDate.of(2026, 11, 19), "Lunch")
     private fun tx(req: CreateTransactionRequest, id: Int = 501) = Transaction(id, req.clientId, req.draft.type, req.draft.categoryId, "Food",
         req.draft.amount, req.draft.currencyCode, BigDecimal.ONE, req.draft.transactionDate, req.draft.amount, req.draft.transactionDate,
