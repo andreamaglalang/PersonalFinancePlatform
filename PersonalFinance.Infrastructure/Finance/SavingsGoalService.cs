@@ -73,6 +73,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
             goal.TargetAmount = request.TargetAmount!.Value;
             goal.TargetDate = request.TargetDate;
             RecalculateAndTouch(goal, total);
+            await FinanceNotifications.AddGoalProgressAsync(Db, goal, total, currency, clock.GetUtcNow().UtcDateTime, token);
             await Db.SaveChangesAsync(token);
             return FinanceResult<SavingsGoalResponse>.Success(GoalResponse(goal, total, currency));
         }, ct);
@@ -139,6 +140,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
                     ContributedOn = request.ContributedOn.Value, Note = GoalContributionIdempotency.CanonicalizeNote(request.Note) };
                 Db.GoalContributions.Add(contribution);
                 RecalculateAndTouch(goal, total);
+                await FinanceNotifications.AddGoalProgressAsync(Db, goal, total, currency, now, token);
                 await Db.SaveChangesAsync(token);
                 var receipt = new GoalContributionRequest { UserId = userId, ClientId = clientId, GoalId = goalId,
                     ContributionId = contribution.ContributionId, OriginalAmount = contribution.Amount,
@@ -217,6 +219,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
             // Even an identical correction receives a new version; accepted original receipt stays immutable.
             Db.Entry(contribution).Property(c => c.Amount).IsModified = true;
             RecalculateAndTouch(goal, total);
+            await FinanceNotifications.AddGoalProgressAsync(Db, goal, total, currency, clock.GetUtcNow().UtcDateTime, token);
             await Db.SaveChangesAsync(token);
             return FinanceResult<GoalContributionMutationResponse>.Success(new(
                 ContributionResponse(contribution, currency), GoalResponse(goal, total, currency)));

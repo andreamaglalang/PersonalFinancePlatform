@@ -421,7 +421,91 @@ internal static class SavingsGoalTests
             var id = await Goal(f); var c = await Contribute(f, id, 100); Expect(await Edit(f, id, ContributionId(c), 50)); Expect(await Remove(f, id, ContributionId(c)));
             Assert(Expect(await Send(f, "GET", $"/api/budgets/{budget}")).GetProperty("spentAmount").GetDecimal() == 10); });
         await check("Savings regression: base-currency allocations never consult FX", async f => { f.Fx.Unavailable = true; var id = await Goal(f); var c = await Contribute(f, id); Expect(await Edit(f, id, ContributionId(c))); Expect(await Remove(f, id, ContributionId(c))); Assert(f.Fx.Calls == 0); });
-        await check("Savings regression: savings lifecycle does not emit notifications", async f => { var id = await Goal(f); await Contribute(f, id, 100); Expect(await Cancel(f, id)); await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync())); });
+        await check("Savings lifecycle emits only its completion notification (cancel emits none)", async f => { var id = await Goal(f); await Contribute(f, id, 100); Expect(await Cancel(f, id)); await f.DbAsync(async db => Assert((await db.Notifications.SingleAsync()).Type == FinanceNotifications.GoalCompletedType)); });
+        // ---- Goal milestone and completion notifications ----
+        static async Task<string[]> Inbox(FinanceFixture f, int user = 1)
+        {
+            var rows = Array.Empty<string>();
+            await f.DbAsync(async db => rows = await db.Notifications.Where(n => n.UserId == user).OrderBy(n => n.NotificationId)
+                .Select(n => n.Type + "|" + n.DeduplicationKey + "|" + n.ReferenceType + ":" + n.ReferenceId + "|" + n.Message).ToArrayAsync());
+            return rows;
+        }
+        await check("Goal notifications: each milestone once, in order, then completion", async f =>
+        {
+            var id = await Goal(f, 100m, name: "New Laptop");
+            await Contribute(f, id, 24.99m); Assert((await Inbox(f)).Length == 0, "below 25% notifies nothing");
+            await Contribute(f, id, 0.01m); await Contribute(f, id, 25m); await Contribute(f, id, 25m); await Contribute(f, id, 25m);
+            var inbox = await Inbox(f);
+            Assert(inbox.SequenceEqual([
+                $"GoalMilestone|goal:{id}:milestone:25|SavingsGoal:{id}|Great start! You've saved 25% of your New Laptop goal.",
+                $"GoalMilestone|goal:{id}:milestone:50|SavingsGoal:{id}|You're halfway there! You've reached 50% of your New Laptop savings goal.",
+                $"GoalMilestone|goal:{id}:milestone:75|SavingsGoal:{id}|Almost there! You've saved 75% of your New Laptop target.",
+                $"GoalCompleted|goal:{id}:completed|SavingsGoal:{id}|Congratulations! You've reached your PHP 100.00 New Laptop goal."]), string.Join("\n", inbox));
+        });
+        await check("Goal notifications: one contribution crossing several milestones gives only the highest", async f =>
+        {
+            var id = await Goal(f, 1000m, name: "Travel Fund");
+            await Contribute(f, id, 800m); await Contribute(f, id, 100m);
+            var inbox = await Inbox(f);
+            Assert(inbox.Length == 1 && inbox[0].StartsWith($"GoalMilestone|goal:{id}:milestone:75|"), string.Join("\n", inbox));
+            await Contribute(f, id, 5000m); // completion takes priority and overfunding is allowed
+            inbox = await Inbox(f);
+            Assert(inbox.Length == 2 && inbox[1].StartsWith($"GoalCompleted|goal:{id}:completed|"), string.Join("\n", inbox));
+            await Progress(f, id, 5900m, "Completed");
+        });
+        await check("Goal notifications: exact target and an overfunding first contribution give one completion", async f =>
+        {
+            var a = await Goal(f, 250m, name: "Exact"); await Contribute(f, a, 250m);
+            var b = await Goal(f, 250m, name: "Over"); await Contribute(f, b, 999m);
+            var inbox = await Inbox(f);
+            Assert(inbox.Length == 2 && inbox.All(n => n.StartsWith("GoalCompleted|")), string.Join("\n", inbox));
+        });
+        await check("Goal notifications: reopening by edit or deletion and completing again never repeats", async f =>
+        {
+            var id = await Goal(f, 100m); var c = ContributionId(await Contribute(f, id, 100m));
+            Expect(await Edit(f, id, c, 30m)); await Progress(f, id, 30m, "Active");
+            Expect(await Edit(f, id, c, 100m)); await Progress(f, id, 100m, "Completed");
+            Expect(await Remove(f, id, c)); await Contribute(f, id, 60m); await Contribute(f, id, 60m);
+            var inbox = await Inbox(f);
+            Assert(inbox.Length == 1 && inbox[0].StartsWith("GoalCompleted|"), string.Join("\n", inbox));
+        });
+        await check("Goal notifications: an edit that raises a contribution across a milestone notifies it", async f =>
+        {
+            var id = await Goal(f, 100m); var c = ContributionId(await Contribute(f, id, 10m));
+            Expect(await Edit(f, id, c, 60m));
+            var inbox = await Inbox(f);
+            Assert(inbox.Length == 1 && inbox[0].Contains(":milestone:50|"), string.Join("\n", inbox));
+        });
+        await check("Goal notifications: a lowered target can complete the goal; a raised one never re-notifies", async f =>
+        {
+            var id = await Goal(f, 200m, name: "Bike"); await Contribute(f, id, 120m); // 60% -> 50
+            Expect(await Send(f, "PUT", Path(id), GoalBody(100m, "Bike"), tag: Tag(await Read(f, id))));
+            Expect(await Send(f, "PUT", Path(id), GoalBody(1000m, "Bike"), tag: Tag(await Read(f, id))));
+            Expect(await Send(f, "PUT", Path(id), GoalBody(110m, "Bike"), tag: Tag(await Read(f, id))));
+            var inbox = await Inbox(f);
+            Assert(inbox.Select(n => n.Split('|')[1]).SequenceEqual([$"goal:{id}:milestone:50", $"goal:{id}:completed"]), string.Join("\n", inbox));
+        });
+        await check("Goal notifications: replays, concurrent requests and rejected contributions add nothing extra", async f =>
+        {
+            var id = await Goal(f, 100m); var client = Guid.NewGuid();
+            await Contribute(f, id, 50m, client);
+            Expect(await Send(f, "POST", Path(id) + "/contributions", ContributionBody(client, 50m, Today, "Saved")), 200);
+            Assert((await Send(f, "POST", Path(id) + "/contributions", ContributionBody(Guid.NewGuid(), 50m, "2099-01-01", null))).Status == 400);
+            Assert((await Send(f, "POST", Path(id) + "/contributions", ContributionBody(Guid.NewGuid(), 0m, Today, null))).Status == 400);
+            var replies = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Send(f, "POST", Path(id) + "/contributions", ContributionBody(Guid.NewGuid(), 10m, Today, null))));
+            Assert(replies.All(r => r.Status == 201));
+            var inbox = await Inbox(f);
+            Assert(inbox.Select(n => n.Split('|')[1]).SequenceEqual([$"goal:{id}:milestone:50", $"goal:{id}:milestone:75"]), string.Join("\n", inbox));
+        });
+        await check("Goal notifications are private to their owner and cannot be read or marked by another account", async f =>
+        {
+            var id = await Goal(f, 100m); await Contribute(f, id, 100m);
+            var mine = Expect(await Send(f, "GET", "/api/notifications")).GetProperty("items")[0];
+            Assert(mine.GetProperty("type").GetString() == "GoalCompleted" && mine.GetProperty("referenceType").GetString() == "SavingsGoal");
+            Assert(Expect(await Send(f, "GET", "/api/notifications", user: 2)).GetProperty("totalCount").GetInt64() == 0);
+            Assert((await Send(f, "POST", $"/api/notifications/{mine.GetProperty("notificationId").GetInt32()}/read", user: 2)).Status == 404);
+            Assert(Expect(await Send(f, "GET", "/api/notifications?unreadOnly=true")).GetProperty("totalCount").GetInt64() == 1);
+        });
         await check("Savings regression: category identity and financial relationships preserved", async f => { var id = await Goal(f); await Contribute(f, id); Expect(await Send(f, "POST", "/api/categories", new { name = "Savings unaffected", type = "Expense" }), 201);
             await f.DbAsync(async db => { Assert(await db.Categories.CountAsync() == 6); Assert((await db.GoalContributions.SingleAsync()).GoalId == id); Assert(!await db.RecurringBills.AnyAsync()); }); });
         await check("Savings regression: prior finance routes retain HTTPS and no-cache behavior", async f => { foreach (var path in new[] { "/api/categories", "/api/transactions", "/api/budgets" }) {

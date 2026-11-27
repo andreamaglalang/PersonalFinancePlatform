@@ -28,6 +28,12 @@ public sealed class SqlAuthSessionStore(ApplicationDbContext db) : IAuthSessionS
 
     public Task ReloadUserAsync(ApplicationUser user, CancellationToken ct) => db.Entry(user).ReloadAsync(ct);
 
+    public async Task AddNotificationAsync(PersonalFinance.Domain.Entities.Notification notification, CancellationToken ct)
+    {
+        db.Notifications.Add(notification);
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task AddAsync(RefreshToken token, CancellationToken ct)
     {
         db.RefreshTokens.Add(token);

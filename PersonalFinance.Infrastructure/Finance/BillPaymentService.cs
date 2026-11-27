@@ -226,6 +226,8 @@ public sealed class BillPaymentService(
 
                     Db.BillPaymentReceipts.Add(receipt);
                     bill.NextDueDate = next;
+                    // Same save as the receipt: the confirmation exists exactly when the payment does. Replays return earlier.
+                    Db.Notifications.Add(FinanceNotifications.BillPaymentRecorded(bill, due, now));
 
                     await Db.SaveChangesAsync(token);
 

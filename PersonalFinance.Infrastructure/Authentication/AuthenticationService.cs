@@ -144,6 +144,7 @@ public sealed class AuthenticationService(
             var reset = await users.ResetAccessFailedCountAsync(user);
             if (!reset.Succeeded) throw new InvalidOperationException("Password update could not reset lockout state.");
             await store.RevokeAllAsync(userId, clock.GetUtcNow().UtcDateTime, token);
+            await store.AddNotificationAsync(Finance.FinanceNotifications.PasswordChanged(userId, clock.GetUtcNow().UtcDateTime), token);
             return AuthResult<bool>.Success(true, 204);
         }, ct);
     }

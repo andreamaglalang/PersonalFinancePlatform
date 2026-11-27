@@ -37,6 +37,8 @@ public interface IAuthSessionStore
     Task<bool> FamilyRevokedAsync(int userId, Guid familyId, CancellationToken ct);
     Task RevokeFamilyAsync(int userId, Guid familyId, DateTime now, CancellationToken ct);
     Task RevokeAllAsync(int userId, DateTime now, CancellationToken ct);
+    /// <summary>Adds an inbox notification inside the current ExecuteAsync transaction.</summary>
+    Task AddNotificationAsync(Domain.Entities.Notification notification, CancellationToken ct);
 }
 
 public interface ICurrentUser

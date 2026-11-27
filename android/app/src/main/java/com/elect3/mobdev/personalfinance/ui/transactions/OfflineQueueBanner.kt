@@ -18,6 +18,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -39,11 +43,20 @@ data class OfflineQueueUi(
     val onSync: () -> Unit,
     /** Removes a pending or rejected item from this device only. */
     val onDiscard: (UUID) -> Unit,
+    /** The last sync that the server confirmed for at least one entry (null otherwise); shown once, then dismissed. */
+    val synced: SyncedReport? = null,
+    val onSyncedShown: () -> Unit = {},
 )
+
+/** Entries the server confirmed in one sync run, and what is still on the device afterwards. */
+data class SyncedReport(val sent: Int, val remaining: Int, val rejected: Int)
 
 @Composable
 fun OfflineQueueBanner(queue: OfflineQueueUi) {
-    if (queue.items.isEmpty()) return
+    val synced = queue.synced
+    // A confirmed sync is reported once, briefly; automatic retries that send nothing never produce a report.
+    if (synced != null) LaunchedEffect(synced) { kotlinx.coroutines.delay(8_000); queue.onSyncedShown() }
+    if (queue.items.isEmpty()) { if (synced != null) CaughtUp(synced); return }
     val owli = LocalOwliColors.current
     val typography = LocalOwliTypography.current
     val waiting = queue.items.filter { !it.rejected }
@@ -51,6 +64,8 @@ fun OfflineQueueBanner(queue: OfflineQueueUi) {
     Surface(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 10.dp), shape = LocalOwliShapes.current.group,
         color = owli.accentSoft, border = BorderStroke(1.dp, owli.hairline)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (synced != null) Text(pluralStringResource(R.plurals.offline_synced_some, synced.sent, synced.sent), style = typography.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
             if (waiting.isNotEmpty()) {
                 Text(stringResource(R.string.offline_pending_title, waiting.size), style = typography.bodyStrong,
                     modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite })
@@ -78,6 +93,25 @@ fun OfflineQueueBanner(queue: OfflineQueueUi) {
                 border = BorderStroke(1.dp, owli.hairline), modifier = Modifier.heightIn(min = 48.dp)) {
                 if (queue.syncing) { CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp); Spacer(Modifier.size(8.dp)) }
                 Text(stringResource(if (queue.syncing) R.string.offline_syncing else R.string.offline_sync_now))
+            }
+        }
+    }
+}
+
+/** Every offline entry is now on the server: a short confirmation in the banner's place. */
+@Composable
+private fun CaughtUp(report: SyncedReport) {
+    val owli = LocalOwliColors.current
+    val typography = LocalOwliTypography.current
+    Surface(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 10.dp), shape = LocalOwliShapes.current.group,
+        color = owli.accentSoft, border = BorderStroke(1.dp, owli.hairline)) {
+        Row(Modifier.padding(14.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(painterResource(R.drawable.ic_cat_check), null, modifier = Modifier.size(20.dp), tint = owli.accent)
+            Column {
+                Text(stringResource(R.string.offline_caught_up_title), style = typography.bodyStrong)
+                Text(pluralStringResource(R.plurals.offline_caught_up_message, report.sent, report.sent), style = typography.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

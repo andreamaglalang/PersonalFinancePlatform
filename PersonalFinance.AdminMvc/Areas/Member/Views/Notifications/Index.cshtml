@@ -59,17 +59,22 @@
                 @foreach (var notification in Model.Results.Items)
                 {
                     var unread = notification.IsRead is false;
-                    var label = notification.Type switch
+                    var (label, icon) = notification.Type switch
                     {
-                        "BillReminder" => "Bill reminder",
-                        "BudgetAlert" => "Budget alert",
-                        "MonthlySummary" => "Monthly summary",
-                        _ => "Account update"
+                        "BillReminder" => ("Bill reminder", "calendar"),
+                        "BillOverdue" => ("Overdue bill", "alert"),
+                        "BillPaymentRecorded" => ("Bill payment recorded", "list"),
+                        "BudgetAlert" => ("Budget alert", "budget"),
+                        "GoalMilestone" => ("Savings milestone", "goal"),
+                        "GoalCompleted" => ("Goal achieved", "goal"),
+                        "MonthlySummary" => ("Monthly summary", "report"),
+                        "PasswordChanged" => ("Password updated", "lock"),
+                        _ => ("Account update", "info")
                     };
                     var manilaTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(notification.CreatedAtUtc, DateTimeKind.Utc), manilaZone);
                     <li class="member-list-item@(unread ? " member-list-item-unread" : "")">
                         <div class="member-list-main">
-                            <span class="member-notification-icon" aria-hidden="true"><partial name="_NavIcon" model='@(notification.Type == "BillReminder" ? "calendar" : notification.Type == "BudgetAlert" ? "budget" : "report")' /></span>
+                            <span class="member-notification-icon" aria-hidden="true"><partial name="_NavIcon" model="icon" /></span>
                             <p class="member-list-title">
                                 <span class="member-list-message">@notification.Message</span>
                                 @if (unread)

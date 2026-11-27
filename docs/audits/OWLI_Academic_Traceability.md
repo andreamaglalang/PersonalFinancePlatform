@@ -38,6 +38,20 @@ interface.
 | A15 | **Android–MVC Member parity** | Same features on both clients: dashboard, transactions, categories, budgets, goals and contributions, bills and payments, converter, reports, notifications, account | Both clients; shared contracts in `docs/backend-integration.md` | Android, MVC | P3 parity rows; E2E coverage table; cross-client gate; shared validation messages and allowlist (V) | Both suites | **PASS** | Round 3: all 273 MVC controls exercised; Android search/filters, Insights months, converter, category edit/reorder and inbox actions run on a device. Goal progress: same real percentage on both clients (bars capped at 100%) |
 | A16 | **Shared API and database; bidirectional sync** | One API and one SQL Server database for both clients; changes visible both ways | API + `PersonalFinanceDb` schema (5 migrations) | All | Cross-client gate 14/14 (Android → MVC and MVC → Android); stale-form protection both ways (F3 and the transaction gate); notifications read both ways (P3 row 8) | SqlIntegration, SchemaValidation 65 | **PASS** | — |
 
+## Enhancements beyond the original requirements (financial notifications, 28 November 2026)
+
+These are additions, not original requirements. Policies and triggers are documented in [notifications](../NOTIFICATIONS.md). Branch `feature/financial-notifications`; there are no migrations or configuration changes.
+
+| # | Enhancement | Trigger | Runtime evidence | Regression tests | Status |
+| --- | --- | --- | --- | --- | --- |
+| N1 | Savings milestones (25/50/75%) | API, same save as the contribution or goal change | API + SQL: 25→50→75→completed in order. One contribution crossing three milestones gives only 75. Replay (200), a rejected future-dated contribution (400) and 4 concurrent contributions created no duplicates. Android contribution → MVC inbox shows "Savings milestone" (unread) | FinanceTests (7 goal-notification cases) | **PASS** |
+| N2 | Goal achieved | API, same save | API + SQL: exact target, overfunding, a lowered target. Reopened by edit and by deletion, then completed again: one completion | FinanceTests | **PASS** |
+| N3 | Overdue bills | Existing worker job `owli-bill-reminders` (07:00 Manila) | Real worker on disposable Hangfire storage (HangfireTests): one overdue notice. Concurrent and repeated triggers: still one. Paid and inactive bills: none | HangfireTests 14; FinanceTests overdue case | **PASS** (worker on disposable storage). Not run against the shared runtime catalog, whose test storage is used by the owner's worker |
+| N4 | Bill payment recorded | API, same save as the receipt | API + SQL: one notice with the recorded amount; replay and a rejected payment add none | FinanceTests `BillPaymentTests` | **PASS** |
+| N5 | Password updated | API, same transaction as the password change | API + SQL: a failed change creates none; success creates one; the old token is still rejected | AuthenticationTests | **PASS** |
+| N6 | Offline sync feedback (local only) | Android sync layer | Emulator: queued offline → reconnect → "You're all caught up" once with the count; a second sync shows nothing; SQL has one transaction | Device step `offlineExpenseSyncsOnceAfterReconnect` | **PASS** |
+| N7 | Cross-client read state | Shared API and rows | Milestone created on Android → marked read on MVC → shown read on Android after refresh (SQL `IsRead = 1`) | Device steps `goalMilestoneNotificationThroughUi`, `noticeReadElsewhereShowsReadAfterRefresh` | **PASS** |
+
 ## Error handling, integrity and recovery (applies across rows)
 
 - **Validation:** every rule names the actual problem on both clients (V, 17 fixes). No safeguard was weakened.
@@ -55,6 +69,7 @@ interface.
 - **Merged in `dev`:** A1–A16 were implemented by PRs up to #27.
 - **Changed after #27:** the fixes in PR #28 (validation) and PR #29 (E1–E7, F1–F4, guide).
 - **Round 3:** the fixes R3-1 to R3-6 (end-to-end record, round 3). The final verified commit is recorded there after merge.
+- **Enhancements N1–N7** (financial notifications): pull request into `dev` from `feature/financial-notifications`.
 
 ## Not claimed
 

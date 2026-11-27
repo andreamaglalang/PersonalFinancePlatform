@@ -46,6 +46,8 @@ class NotificationsApiContractTest {
         assertEquals(NotificationKind.BillReminder, NotificationKind.fromWire("BillReminder"))
         assertEquals(NotificationKind.MonthlySummary, NotificationKind.fromWire("MonthlySummary"))
         assertEquals(NotificationKind.Other, NotificationKind.fromWire("Other"))
+        for (wire in listOf("GoalMilestone", "GoalCompleted", "BillOverdue", "BillPaymentRecorded", "PasswordChanged"))
+            assertEquals(wire, NotificationKind.fromWire(wire).name)
     }
 
     @Test fun inconsistentPagesAreRejected() = runTest {

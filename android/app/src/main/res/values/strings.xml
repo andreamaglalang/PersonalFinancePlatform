@@ -637,6 +637,15 @@
     <string name="offline_sync_now">Sync now</string>
     <string name="offline_discard">Discard</string>
     <string name="offline_syncing">Syncing…</string>
+    <string name="offline_caught_up_title">You\'re all caught up</string>
+    <plurals name="offline_caught_up_message">
+        <item quantity="one">Your %1$d offline transaction has been synchronized.</item>
+        <item quantity="other">Your %1$d offline transactions have been synchronized.</item>
+    </plurals>
+    <plurals name="offline_synced_some">
+        <item quantity="one">%1$d synced to your account.</item>
+        <item quantity="other">%1$d synced to your account.</item>
+    </plurals>
     <string name="offline_rejected_label">Not accepted</string>
     <string name="local_history_title">Offline · On-device history</string>
     <string name="local_history_notice">Up to 200 saved entries. Incomplete history; totals unavailable. Synced entries may be out of date.</string>

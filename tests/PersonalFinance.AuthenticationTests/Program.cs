@@ -223,8 +223,12 @@ await Check("Password change verifies old password, follows policy and revokes e
     Require((await f.Account.ChangePasswordAsync(user.Id, new() { CurrentPassword = "WrongPassword!123", NewPassword = "DifferentValid!234", ConfirmPassword = "DifferentValid!234" }, default)).StatusCode == 400);
     Require(user.SecurityStamp == oldStamp && f.Store.Tokens.Values.All(t => t.RevokedAtUtc is null));
     Require((await f.Account.ChangePasswordAsync(user.Id, new() { CurrentPassword = Fixture.Password, NewPassword = "aaaaaaaaaaaa", ConfirmPassword = "aaaaaaaaaaaa" }, default)).StatusCode == 400);
+    Require(f.Store.Notifications.IsEmpty, "a failed password change must not notify");
     var result = await f.Account.ChangePasswordAsync(user.Id, new() { CurrentPassword = Fixture.Password, NewPassword = "DifferentValid!234", ConfirmPassword = "DifferentValid!234" }, default);
     Require(result.Succeeded && result.StatusCode == 204 && user.SecurityStamp != oldStamp);
+    var notice = f.Store.Notifications.Single();
+    Require(notice.UserId == user.Id && notice.Type == "PasswordChanged" && notice.ReferenceType is null
+        && notice.Message == "Your OWLI account password was successfully changed." && !notice.Message.Contains("DifferentValid"));
     Require(f.Store.Tokens.Values.All(t => t.RevokedAtUtc is not null));
     Require((await f.Sessions.RotateAsync(new() { RefreshToken = login.RefreshToken }, default)).StatusCode == 401);
     Require((await f.Auth.LoginAsync(new() { Email = login.User.Email, Password = Fixture.Password }, default)).StatusCode == 401);

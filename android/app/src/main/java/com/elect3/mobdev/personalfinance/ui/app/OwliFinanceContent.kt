@@ -159,6 +159,7 @@ fun OwliFinanceContent(
             offlineLedger.unsynced(accountId).collect { value = it }
         }.value else emptyList()
     var syncing by remember(authenticatedContentKey) { mutableStateOf(false) }
+    var syncedReport by remember(authenticatedContentKey) { mutableStateOf<com.elect3.mobdev.personalfinance.ui.transactions.SyncedReport?>(null) }
     val syncScope = androidx.compose.runtime.rememberCoroutineScope()
     // Single-flight: a sync already running (manual, network event or automatic retry) is never started twice.
     val syncOnce: suspend () -> Unit = syncOnce@{
@@ -169,6 +170,8 @@ fun OwliFinanceContent(
             val outcome = pendingSync.sync(accountId) { isSessionCurrent(key) }
             if (outcome is com.elect3.mobdev.personalfinance.data.local.SyncOutcome.SessionEnded && isSessionCurrent(key)) onSessionExpired(key)
             if (outcome is com.elect3.mobdev.personalfinance.data.local.SyncOutcome.Done && outcome.sent > 0) {
+                // Only entries the server confirmed are reported; a run that sends nothing reports nothing.
+                syncedReport = com.elect3.mobdev.personalfinance.ui.transactions.SyncedReport(outcome.sent, outcome.remaining, outcome.rejected)
                 account?.model()?.refreshAfterConfirmedCreation(); account?.refreshDashboard()
             }
         } finally { syncing = false }
@@ -294,9 +297,9 @@ fun OwliFinanceContent(
                 showOriginalAmounts = currencyPreferences.showOriginalAmounts,
                 baseCurrency = authenticatedCurrency() ?: "PHP",
                 offlineQueue = if (account != null && offlineLedger != null && accountId != null)
-                    com.elect3.mobdev.personalfinance.ui.transactions.OfflineQueueUi(unsynced, syncing, runSync) { id ->
+                    com.elect3.mobdev.personalfinance.ui.transactions.OfflineQueueUi(unsynced, syncing, runSync, { id ->
                         syncScope.launch { offlineLedger.discardUnsynced(accountId, id) }
-                    } else null,
+                    }, syncedReport, { syncedReport = null }) else null,
                 onAddTransaction = openAdd?.let { add -> { add(null) } },
                 onEditTransaction = if (account != null && accountUpdates != null) ({ editing = it }) else null)
         },

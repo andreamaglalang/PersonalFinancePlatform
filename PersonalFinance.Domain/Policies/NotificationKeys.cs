@@ -16,5 +16,8 @@ public static class NotificationKeys
 
     public static string BillReminder(int billId, DateOnly dueDate) =>
         FormattableString.Invariant($"bill:{billId}:due:{dueDate:yyyy-MM-dd}");
+
+    public static string BillOverdue(int billId, DateOnly dueDate) =>
+        FormattableString.Invariant($"bill:{billId}:overdue:{dueDate:yyyy-MM-dd}");
 }
 

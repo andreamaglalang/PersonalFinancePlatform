@@ -134,6 +134,14 @@ class NotificationsViewModelTest {
         assertEquals(R.string.notifications_type_budget, notificationTypeLabel(NotificationKind.BudgetAlert))
         assertEquals(R.string.notifications_type_summary, notificationTypeLabel(NotificationKind.MonthlySummary))
         assertEquals(R.string.notifications_type_other, notificationTypeLabel(NotificationKind.Other))
+        assertEquals(R.string.notifications_type_goal_milestone, notificationTypeLabel(NotificationKind.GoalMilestone))
+        assertEquals(R.string.notifications_type_goal_completed, notificationTypeLabel(NotificationKind.GoalCompleted))
+        assertEquals(R.string.notifications_type_bill_overdue, notificationTypeLabel(NotificationKind.BillOverdue))
+        assertEquals(R.string.notifications_type_bill_paid, notificationTypeLabel(NotificationKind.BillPaymentRecorded))
+        assertEquals(R.string.notifications_type_password, notificationTypeLabel(NotificationKind.PasswordChanged))
+        // Every kind has its own label and an icon.
+        assertEquals(NotificationKind.entries.size, NotificationKind.entries.map(::notificationTypeLabel).toSet().size)
+        NotificationKind.entries.forEach { notificationTypeIcon(it) }
     }
 
     private companion object {

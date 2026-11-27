@@ -229,7 +229,7 @@ fun TransactionListScreen(
                     ActivityHeader(isAuthenticated, searchOpen && !showingLocalHistory, filterCount, enabled = state !is TransactionListUiState.SessionExpired && !showingLocalHistory,
                         onSearch = { searchOpen = !searchOpen; if (!searchOpen) onSearch("") }, onFilter = onOpenFilter)
                 }
-                if (offlineQueue != null && offlineQueue.items.isNotEmpty()) item(key = "offline-queue") { OfflineQueueBanner(offlineQueue) }
+                if (offlineQueue != null && (offlineQueue.items.isNotEmpty() || offlineQueue.synced != null)) item(key = "offline-queue") { OfflineQueueBanner(offlineQueue) }
                 if (state is TransactionListUiState.SessionExpired) {
                     item(key = "session-expired") {
                         Box(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {

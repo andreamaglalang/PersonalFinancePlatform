@@ -15,6 +15,11 @@
     <string name="notifications_type_bill">Bill reminder</string>
     <string name="notifications_type_budget">Budget alert</string>
     <string name="notifications_type_summary">Monthly summary</string>
+    <string name="notifications_type_bill_overdue">Overdue bill</string>
+    <string name="notifications_type_bill_paid">Bill payment recorded</string>
+    <string name="notifications_type_goal_milestone">Savings milestone</string>
+    <string name="notifications_type_goal_completed">Goal achieved</string>
+    <string name="notifications_type_password">Password updated</string>
     <string name="notifications_type_other">Account update</string>
     <string name="notifications_unread">Unread</string>
     <string name="notifications_read">Read</string>

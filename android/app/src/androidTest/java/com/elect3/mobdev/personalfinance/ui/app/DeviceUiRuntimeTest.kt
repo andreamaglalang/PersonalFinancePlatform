@@ -139,13 +139,21 @@ class DeviceUiRuntimeTest {
         compose.waitForIdle()
         assertTrue("precondition: no queued items", !exists(anyWaiting))
         val confirmedRow = hasText(description, substring = true) and clickable
+        var categoryName = ""
+        val choice = clickable and hasAnyAncestor(isDialog()) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Text) and
+            !hasText(text(R.string.form_cancel)) and !hasText("Retry") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+        // Precondition: categories loaded once online, so the offline picker can offer them from the device cache.
+        compose.onNodeWithContentDescription(text(R.string.navigation_add)).performClick()
+        waitFor(choice)
+        compose.onNode(hasText(text(R.string.form_cancel)) and hasAnyAncestor(isDialog())).performClick(); compose.waitForIdle()
         try {
             networkOff()
             compose.waitUntil(20_000) { !connected() }
             compose.onNodeWithContentDescription(text(R.string.navigation_add)).performClick()
-            val groceries = hasText("Groceries") and clickable and hasAnyAncestor(isDialog())
-            waitFor(groceries)
-            compose.onNode(groceries).performClick()
+            // The first offered expense category (synthetic accounts differ; the lazy picker may not compose "Groceries").
+            waitFor(choice)
+            categoryName = compose.onAllNodes(choice).onFirst().fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }.orEmpty()
+            compose.onAllNodes(choice).onFirst().performClick()
             waitFor(field(text(R.string.form_amount)))
             compose.onNode(field(text(R.string.form_amount))).performTextReplacement("23.45")
             compose.onNode(field(text(R.string.form_description))).performScrollTo().performTextReplacement(description)
@@ -158,7 +166,7 @@ class DeviceUiRuntimeTest {
             val pendingRow = compose.onNode(hasText(php("23.45"), substring = true) and !clickable).fetchSemanticsNode()
                 .config.getOrNull(SemanticsProperties.Text).orEmpty().joinToString(" | ") { it.text }
             log("offline: pending banner row='$pendingRow'")
-            if (!pendingRow.contains("Groceries")) defects += "offline queue banner row names the category '$pendingRow' instead of 'Groceries'"
+            if (!pendingRow.contains(categoryName)) defects += "offline queue banner row names the category '$pendingRow' instead of '$categoryName'"
             assertEquals("queued item must not be a confirmed Activity row", 0, compose.onAllNodes(confirmedRow).fetchSemanticsNodes().size)
             log("offline: banner shows '${text(R.string.offline_pending_title, 1)}', item pending (no confirmed row)")
         } finally {
@@ -171,6 +179,12 @@ class DeviceUiRuntimeTest {
             compose.onNodeWithText(text(R.string.offline_sync_now)).performScrollTo().performClick()
             compose.waitUntil(30_000) { !exists(anyWaiting) }
         }
+        // Local feedback for a confirmed sync (no server inbox record): shown once with the confirmed count.
+        val caughtUp = hasText(text(R.string.offline_caught_up_title))
+        waitFor(caughtUp, 10_000)
+        shown(compose.activity.resources.getQuantityString(R.plurals.offline_caught_up_message, 1, 1))
+        log("offline: '${text(R.string.offline_caught_up_title)}' shown after the confirmed sync")
+        compose.waitUntil(15_000) { !exists(caughtUp) }
         runCatching { waitFor(confirmedRow) }.onFailure {
             refreshActivity()
             waitFor(confirmedRow)
@@ -185,6 +199,7 @@ class DeviceUiRuntimeTest {
         compose.waitUntil(20_000) { exists(confirmedRow) }
         assertEquals("exactly one synced row after a second sync attempt", 1, compose.onAllNodes(confirmedRow).fetchSemanticsNodes().size)
         assertTrue(!exists(anyWaiting))
+        assertTrue("a sync that sends nothing must not repeat the confirmation", !exists(caughtUp))
         log("offline: synced; exactly one confirmed row '$description'")
         assertTrue("Product defects:\n" + defects.joinToString("\n"), defects.isEmpty())
     }
@@ -617,6 +632,50 @@ class DeviceUiRuntimeTest {
         waitFor(entry); compose.onNode(entry).performScrollTo().performClick()
         waitFor(field(text(R.string.cur_amount)))
         exercise("Converter amount", field(text(R.string.cur_amount)))
+    /** A contribution made on the device creates the 50% milestone in the shared inbox (unread), shown with its type. */
+    @Test fun goalMilestoneNotificationThroughUi() {
+        val name = "UI Notify $runId"
+        signIn()
+        nav(R.string.navigation_plan)
+        compose.onNode(planTab(R.string.plan_tab_goals)).performClick()
+        val add = hasText(text(R.string.plan_add_goal)) and clickable
+        compose.waitUntil(20_000) { exists(add and isEnabled()) }
+        compose.onNode(add).performClick()
+        compose.onNode(field(text(R.string.plan_field_name))).performTextReplacement(name)
+        compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement("100")
+        hideKeyboard()
+        compose.onNode(hasText(text(R.string.plan_save)) and hasAnyAncestor(isDialog())).performClick()
+        waitFor(hasText(name))
+        after(name, hasText(text(R.string.goal_contributions)) and clickable).performScrollTo().performClick()
+        waitFor(hasText(text(R.string.contributions_empty)))
+        compose.onNode(field(text(R.string.plan_field_amount))).performTextReplacement("60")
+        hideKeyboard()
+        compose.onNode(hasText(text(R.string.plan_save)) and hasAnyAncestor(isDialog())).performClick()
+        waitFor(hasText(text(R.string.contribution_saved)))
+        compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
+        nav(R.string.navigation_dashboard)
+        compose.onNodeWithContentDescription(text(R.string.notifications_open)).performClick()
+        val message = "You're halfway there! You've reached 50% of your $name savings goal."
+        val row = hasContentDescription(message, substring = true)
+        waitFor(row)
+        val description = compose.onNode(row).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString(" ").orEmpty()
+        assertTrue(description, description.contains(text(R.string.notifications_type_goal_milestone)) && description.contains(text(R.string.notifications_unread)))
+        log("notice created on device: '$message' shown as '${text(R.string.notifications_type_goal_milestone)}', unread")
+        back()
+    }
+
+    /** Opt-in `owliNotice` (message text): after it was marked read on the MVC site, the device inbox shows it read. */
+    @Test fun noticeReadElsewhereShowsReadAfterRefresh() {
+        val message = requireNotNull(args.getString("owliNotice")) { "owliNotice missing" }
+        signIn()
+        nav(R.string.navigation_dashboard)
+        compose.onNodeWithContentDescription(text(R.string.notifications_open)).performClick()
+        val row = hasContentDescription(message, substring = true)
+        waitFor(row)
+        val description = compose.onNode(row).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString(" ").orEmpty()
+        assertTrue(description, !description.contains(text(R.string.notifications_unread)) && description.contains(text(R.string.notifications_read)))
+        log("device inbox after MVC mark-read: '$message' shown read")
+        back()
     }
 
     /** Opt-in `owliFxDown=true`, with the API unable to reach the FX provider: a JPY save stores nothing. */

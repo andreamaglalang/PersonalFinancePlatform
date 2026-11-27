@@ -71,9 +71,27 @@ fun formatNotificationTime(instant: Instant, locale: Locale): String =
 
 fun notificationTypeLabel(kind: NotificationKind): Int = when (kind) {
     NotificationKind.BillReminder -> R.string.notifications_type_bill
+    NotificationKind.BillOverdue -> R.string.notifications_type_bill_overdue
+    NotificationKind.BillPaymentRecorded -> R.string.notifications_type_bill_paid
     NotificationKind.BudgetAlert -> R.string.notifications_type_budget
+    NotificationKind.GoalMilestone -> R.string.notifications_type_goal_milestone
+    NotificationKind.GoalCompleted -> R.string.notifications_type_goal_completed
     NotificationKind.MonthlySummary -> R.string.notifications_type_summary
+    NotificationKind.PasswordChanged -> R.string.notifications_type_password
     NotificationKind.Other -> R.string.notifications_type_other
+}
+
+/** One existing outlined icon per type (decorative; the type is always stated in text). */
+fun notificationTypeIcon(kind: NotificationKind): Int = when (kind) {
+    NotificationKind.BillReminder -> R.drawable.ic_owli_bell
+    NotificationKind.BillOverdue -> R.drawable.ic_owli_alert
+    NotificationKind.BillPaymentRecorded -> R.drawable.ic_cat_check
+    NotificationKind.BudgetAlert -> R.drawable.ic_cat_wallet
+    NotificationKind.GoalMilestone -> R.drawable.ic_cat_trend
+    NotificationKind.GoalCompleted -> R.drawable.ic_cat_trophy
+    NotificationKind.MonthlySummary -> R.drawable.ic_owli_insights
+    NotificationKind.PasswordChanged -> R.drawable.ic_acc_shield
+    NotificationKind.Other -> R.drawable.ic_cat_info
 }
 
 /** Full-screen inbox over the app shell (signed in only). Its ViewModel lives while the dialog is open. */
@@ -212,6 +230,9 @@ private fun NotificationRow(item: AppNotification, locale: Locale, marking: Bool
     val status = stringResource(if (item.isRead) R.string.notifications_read else R.string.notifications_unread)
     val description = stringResource(R.string.notifications_item_description, type, status, item.message, time)
     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.size(36.dp).clip(CircleShape).background(owli.accentSoft), contentAlignment = Alignment.Center) {
+            Icon(painterResource(notificationTypeIcon(item.kind)), null, modifier = Modifier.size(18.dp), tint = owli.accent)
+        }
         Column(Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = description },
             verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
