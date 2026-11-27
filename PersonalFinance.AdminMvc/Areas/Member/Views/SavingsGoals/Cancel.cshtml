@@ -23,7 +23,7 @@
             <dt>Status</dt><dd>@Model.Status</dd>
         </dl>
         <p class="owli-caption">This cannot be undone. A cancelled goal is financially immutable on every platform.</p>
-        <form class="member-form-actions" method="post" asp-action="Cancel" asp-route-id="@Model.GoalId">
+        <form class="member-form-actions" method="post" asp-action="Cancel" asp-route-id="@Model.GoalId"><input type="hidden" name="version" value="@Model.Version" />
             <button class="member-btn member-btn-danger" type="submit">Cancel goal</button>
             <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Keep goal</a>
         </form>

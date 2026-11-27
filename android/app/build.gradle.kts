@@ -19,8 +19,14 @@ android {
         applicationId = "com.elect3.mobdev.personalfinance"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // Release versioning (handoff guide §11): -PowliVersionCode=<n> -PowliVersionName=<x.y.z>. The deployment team must
+        // raise versionCode for every published update, or Android refuses the in-place upgrade.
+        versionCode = (project.findProperty("owliVersionCode") as String?)?.trim()?.let { raw ->
+            requireNotNull(raw.toIntOrNull()?.takeIf { it in 1..2_100_000_000 }) { "owliVersionCode must be a whole number from 1 to 2100000000." }
+        } ?: 1
+        versionName = (project.findProperty("owliVersionName") as String?)?.trim()?.also { name ->
+            require(Regex("^[0-9]+\\.[0-9]+\\.[0-9]+$").matches(name)) { "owliVersionName must look like 1.0.0." }
+        } ?: "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "OWLI_API_BASE_URL", "\"\"")
     }

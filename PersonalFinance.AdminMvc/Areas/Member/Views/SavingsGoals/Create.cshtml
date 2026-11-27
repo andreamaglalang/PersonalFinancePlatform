@@ -15,7 +15,7 @@
 
     <div class="member-card">
         <form class="member-form" method="post" asp-action="@(ViewData["GoalId"] is null ? "Create" : "Edit")"
-              asp-route-id="@(ViewData["GoalId"])" data-busy>
+              asp-route-id="@(ViewData["GoalId"])" data-busy>@if (ViewData["GoalId"] is not null) { <input type="hidden" asp-for="Version" /> }
             <div asp-validation-summary="ModelOnly" class="notice login-notice" role="alert"></div>
             <div class="member-field">
                 <label class="member-label" for="Name">Goal name</label>

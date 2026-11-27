@@ -15,9 +15,9 @@
 
 | Measure | Count |
 | --- | --- |
-| Interactive elements inventoried | **926**. MVC: 780 on 37 pages (member: 29 pages, 544 elements; administrator: 8 pages, 236). Android: 146 clickable nodes on 8 screens |
+| Interactive elements inventoried (instances, not distinct controls) | **926**. MVC: 780 on 37 pages (member: 29 pages, 544 elements; administrator: 8 pages, 236). Android: 146 clickable nodes on 8 screens |
 | MVC inventory checks on all 780 | Every page returns 200; 0 broken internal links; 0 unnamed controls; 0 POST forms without antiforgery; 1 console error per page (missing icon, fixed) |
-| Functional scenarios executed through the real UI | **151**: MVC member 41, MVC administrator + reliability + worker 16, MVC authentication 3, MVC validation 24, MVC session/outage 3, Android device steps 13, cross-client gate 14, rendered layout/axe 36 page-width-theme cases (counted as 36) |
+| Functional scenarios executed through the real UI (round 1) | **151**: MVC member 41, MVC administrator + reliability + worker 16, MVC authentication 3, MVC validation 24, MVC session/outage 3, Android device steps 13, cross-client gate 14, rendered layout/axe 36 page-width-theme cases (counted as 36) |
 | Passed after fixes | 151 |
 | Failed (open) | 0 |
 | Defects found and fixed in this round | 7 (E1–E7) plus 17 in PR #28 |
@@ -120,6 +120,87 @@ From Phase 3 R12: MVC rate limiting per user and per IP (429 message).
     this (E7).
 - **D6** (administrator cross-user scope) remains unresolved; the administrator scope was not changed.
 - **Production:** deployment and production verification belong to the external deployment team.
+
+## Round 2 — reviewer findings (27 November 2026)
+
+The 926 inventoried elements are **not** 926 tested elements; see "Exercised versus inventoried" below.
+
+### Financial integrity (reproduced first, then fixed)
+
+How it was reproduced: real MVC forms played twice or late, while a second client (standing in for Android) changed
+the same records through the API. Results were checked in SQL Server. Script: `integrity.sh` (local evidence).
+
+| # | Finding | Reproduced before the fix | Root cause | Fix | After the fix |
+| --- | --- | --- | --- | --- | --- |
+| F1 | MVC contribution: a fresh ClientId on every POST | Same form submitted twice → **2** contributions; posted 3× in parallel → **3** | ClientId minted in the POST action | ClientId minted when the form opens and posted back (hidden field); a form without it is refused as expired | 1 contribution (twice, 3× parallel, and after a real 10 s timeout followed by a resubmit); two separately opened forms → 2 (intended) |
+| F2 | MVC bill payment: re-read `NextDueDate` and minted a ClientId at submit | Same form twice → **2** payments. A stale form submitted after Android paid that occurrence **paid the next occurrence** | Occurrence and identity taken at POST time | The form carries the confirmed due date and a ClientId minted when it opened; POST pays exactly that occurrence | Same form twice → 1. Stale form → nothing paid: "This due date was already paid or is not the next one due… Nothing was paid." Three overdue occurrences paid oldest first, one transaction each |
+| F3 | MVC goals: row version re-read just before the write | Stale goal edit **overwrote** Android's rename; stale contribution edit overwrote, stale delete **deleted**, stale cancel **cancelled** after Android's change | Each write fetched the current version | Edit, cancel, delete, contribution edit and contribution delete post the version the page was opened with | All four refused: "This goal or contribution was updated elsewhere… Nothing was changed." Android's values kept |
+| F4 | MVC goal client treated the API's 412 (stale version) as an unknown outcome | Stale cancel showed "could not confirm" | 412 not in the client's definitive statuses | 412 recognised and mapped to the message above | Correct message |
+
+Regression tests:
+- `E2eRegressionChecks` F1–F3 (identities and versions come from the form, never re-read at submit);
+- the updated `MemberGoalBillChecks`;
+- allowlist entries for the API's payment reasons on both clients, with the drift test.
+
+### Handoff items
+
+| Item | Result |
+| --- | --- |
+| Finance database name in templates | **Fixed.** `api.env.template` said `OWLI` and the worker said `PersonalFinanceDb`; both now say `PersonalFinanceDb`, each noting it must match the other |
+| Room 1 → 3 and 2 → 3 | **PASS.** Instrumented tests: v1 (pending, rejected, synced transactions) and v2 (transactions + cached categories), with every column preserved. The v2 test is new |
+| Real in-place APK upgrade | **PASS.** The handoff APK (`69626b3`, Room v2) was installed and signed in, and cached the account's data. A pending offline expense was added. The candidate was then installed over it with `adb install -r`, same debug certificate (SHA-256 `5e04b462…`), install time unchanged. After the upgrade: still signed in, Room v3, 6 cached categories kept, "1 waiting to sync" kept with the category name. On reconnect the expense synced **once** (one server row, local row Synced) |
+| Release versionCode/versionName/signing | **Defined.** `-PowliVersionCode` / `-PowliVersionName` with validation (verified: 3 / 1.0.0; invalid code rejected). Guide §11 sets the rules: higher code every update; one release keystore held by the deployment team; debug→release needs a reinstall, so sync first. No signing credentials created |
+| Migration rehearsal instructions | **Defect fixed in the guide.** Rehearsed: `dotnet ef migrations script` output (idempotent **and** plain) **fails** under `sqlcmd` (`EXEC(CONCAT…)`; columns referenced before they exist). Guide §5 now uses an EF migration bundle, verified from migration 3 → 5 and as a no-op re-run. Backup with checksum, `RESTORE VERIFYONLY` and restore under a new name were verified. A populated pre-migration-4 upgrade is **NOT TESTED** (needs production data; guards protect it) |
+| Hangfire cutover guidance | Reviewed. §9 adds inspection queries, ordering after API/MVC/migrations, the expected catch-up runs, and "one supervised worker" |
+| Historical vs current docs | The guide and `docs/README.md` state that only the guide, publish script and templates are current; Phase/Stage reports, `docs/handoff/`, `deployment/VALIDATION.md` and the original-PC notes are historical |
+
+### Functional checks
+
+| Check | Method | Result |
+| --- | --- | --- |
+| Slow API, Android, with Save tapped 3× | TCP fault proxy delays the HTTP response (~6 s, under the 10 s timeout) | **PASS:** one transaction, "Your account confirmed this transaction." |
+| Response lost after a real write, Android | Proxy forwards the request and drops the response | **PASS:** the app queued it ("Saved on this device"). On reconnect it synced with the same ClientId: one server row, banner cleared |
+| Process death with a pending contribution, Android | Response dropped, then `am force-stop`, network restored, app reopened | **PASS:** "A contribution's outcome is unknown… pending" survived the restart; "Check same contribution" → "Contribution saved."; one server contribution (progress ₱69.44) |
+| Slow API beyond MVC's 10 s timeout | MVC routed through the proxy, 12 s delay | **PASS:** "The API could not confirm the change…" (no false success); API saved once; resubmitting the same form → still one |
+| Repeated Pay / Contribute / Save | MVC: same form twice, 3× parallel, triple-click Save; Android: triple tap | **PASS** (F1, F2, round 1 reliability, slow-API Android) |
+| Month-end, leap-year, Philippine-midnight boundaries | Existing deterministic-clock tests, unchanged code: `BillPaymentTests` (31 Jan → 28 Feb → 31 Mar anchoring; 15:59:59Z/16:00:00Z Philippine boundary; month rollover during conversion; next-day retry); `SavingsGoalTests` (contribution UTC+8 boundary); `DashboardSummaryCalculatorTest`, `ReportPeriodTest`, `ActivityParityChecks` (leap day) | **PASS** (suites green this round); no device clock manipulation |
+
+### Exercised versus inventoried controls
+
+MVC, distinct controls (one entry per unique control per page; repeated list rows counted once):
+
+| Area | Distinct controls | Exercised | Not exercised |
+| --- | --- | --- | --- |
+| Member pages | 170 | 158 | Activity "All" and "Expenses" type links (Income tested); Budgets month picker (summary, input, Go); Reports month picker (summary, input, Go); default-currency select; colour on category edit; target date on goal edit; bill currency select |
+| Member shell (every page) | 12 | 9 | "Skip to main content" link; shell theme toggle; "Stay signed in" (logout dialog cancel) |
+| Administrator (shell + 8 pages) | 91 | 50 | Account-menu Close; category "API page options", page and page-size inputs; Name/Status column sort; 15 of 16 palette colours on create (Teal tested) and all 16 on edit; Income type on create; "Reload current category"; "Activate and save" |
+| **MVC total** | **273** | **217** | **56** |
+
+How a control counted as exercised:
+- **Links** were followed to a 200 page during the crawl and functional runs.
+- **Form controls and buttons** were operated and their effect checked in the page, URL or database. This round's control script covers 24 of them, all PASS. For the administrator palette and budget, the saved values were confirmed in SQL Server (`#238A87`; ₱250.00 at 75%).
+
+Android (146 clickable instances on 8 screens), exercised by device steps:
+- sign-in, registration, Home, Activity add/sync/Back-discard, the category picker, add form, currency picker;
+- Plan goals/bills editors, contributions, Record payment;
+- Account profile/password/logout, Insights stored summary, rotation, dark mode at 130% font.
+
+Not exercised on a device in this round (still covered by instrumented Compose tests):
+- Activity search and filters;
+- Insights month navigation;
+- the currency converter screen;
+- category manager edit and reorder;
+- notification inbox actions (verified on a device in Phase 4, both directions).
+
+### Regression after round 2
+
+| Suite | Result |
+| --- | --- |
+| .NET: Finance 441, Authentication 34, ApiSecurity 35, CategoryUniqueness 15, SchemaValidation 65, AdminProvisioning 40, MVC UiTests | PASS |
+| SqlIntegration 16/16, Hangfire 13/13 | PASS |
+| MVC integrity scenarios | 10/10 PASS |
+| Android unit (debug / release) | 672 / 678, 0 failures |
+| Android instrumented, full suite (incl. new v2 → v3 migration test) | 203 run, 0 failures, 22 skipped (opt-in device steps) |
 
 ## Final verified commit
 

@@ -11,7 +11,16 @@
   repository claims that production deployment or production runtime verification has passed.
 
 The release commit, test evidence and known limitations are in
-[the acceptance record](../docs/audits/OWLI_Phase3_Acceptance.md).
+[the end-to-end acceptance record](../docs/audits/OWLI_E2E_Acceptance.md) (earlier phases:
+[Phase 3–5 record](../docs/audits/OWLI_Phase3_Acceptance.md)).
+
+**Current instructions:** this file, `Publish-OWLI.ps1` and the three `*.env.template` files in this folder.
+Every other document that describes setup or deployment is **historical** and must not be followed for
+production, including:
+- `deployment/VALIDATION.md` and `deployment/evidence/`;
+- `docs/handoff/`;
+- the `docs/Phase*_*.md` and `docs/Stage*` reports;
+- the original-PC notes in `docs/developer-guide/DEPLOYMENT.md`.
 
 ## 1. Components
 
@@ -77,22 +86,40 @@ The schema has 5 EF Core migrations. The applications never migrate on startup.
 1. **Back up** `PersonalFinanceDb`, for example
    `BACKUP DATABASE PersonalFinanceDb TO DISK = N'<path>\PersonalFinanceDb_<date>.bak' WITH COPY_ONLY, CHECKSUM;`,
    and verify it with `RESTORE VERIFYONLY`.
-2. **Rehearse on a restored copy** (for example `PersonalFinanceDb_Rehearsal`) on the same SQL version:
+2. **Build the migration bundle** from the release commit. It is a self-contained executable, so no .NET SDK is
+   needed where it runs:
    ```bash
-   dotnet ef database update --project PersonalFinance.Infrastructure --startup-project PersonalFinance.Api \
-     --connection "<rehearsal connection string>"
+   dotnet ef migrations bundle --project PersonalFinance.Infrastructure --startup-project PersonalFinance.Api \
+     -r <runtime, e.g. linux-x64 or win-x64> --self-contained -o owli-migrate
    ```
-   Or generate a reviewable script:
-   `dotnet ef migrations script --idempotent --project PersonalFinance.Infrastructure --startup-project PersonalFinance.Api -o owli-migrations.sql`
-3. **Guards:** migrations 4 and 5 contain transactional preflight guards (`THROW 5103x/5180x/5104x`). If a guard
+3. **Rehearse on a restored copy** of the production backup (for example `PersonalFinanceDb_Rehearsal`), on the same
+   SQL Server version:
+   ```bash
+   ./owli-migrate --connection "<rehearsal connection string, privileged migration login>"
+   ```
+   Then run step 6's check on the copy, and smoke-test the new API against it.
+   - **Do not** apply `dotnet ef migrations script` output (idempotent or not) with `sqlcmd` or SSMS. Rehearsed on
+     27 November 2026, both forms fail on SQL Server:
+     - the idempotent script uses `EXEC(CONCAT(…))`;
+     - the plain script compiles a migration's later statements before its new columns exist.
+   - The bundle, or `dotnet ef database update --connection …` from the release source, applies each statement
+     correctly.
+4. **Guards:** migrations 4 and 5 contain transactional preflight guards (`THROW 5103x/5180x/5104x`). If a guard
    fires, the migration rolls back and changes nothing. Stop, keep the backup, and reconcile the reported
    condition with the development team. Never edit migrations or remove guards.
-4. Apply to production only after the rehearsal succeeds, inside the deployment team's maintenance window.
-5. Verify with `SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;`. The last entry must be
+5. Apply to production with the same bundle, only after the rehearsal succeeds, inside the maintenance window and
+   with the worker stopped (§7).
+6. Verify with `SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;`. The last entry must be
    `20261123100000_UsePhilippineLocalBillPaymentDates`.
 
-Verified locally: all 5 migrations apply to an empty SQL Server database, also in CI. **Not verified:** an
-upgrade of a populated production database. That is what the rehearsal is for.
+Verified locally (27 November 2026, disposable databases):
+- `BACKUP … WITH COPY_ONLY, CHECKSUM`, `RESTORE VERIFYONLY` and `RESTORE … WITH MOVE` work;
+- the bundle upgrades a database from migration 3 through migrations 4 and 5, and a second run is a no-op;
+- `database update` is a no-op on a populated copy that is already current, and its row counts are unchanged;
+- all 5 migrations apply to an empty database, also in CI.
+
+**Not verified:** upgrading a populated database that predates migration 4. Only the production rehearsal can
+prove that against real data; the guards stop it safely if that data needs reconciliation.
 
 ## 6. Build and publish
 
@@ -169,14 +196,23 @@ dotnet PersonalFinance.Worker.dll       # environment from worker.env.template, 
 The supervisor must stop the worker with **SIGTERM** (or a Windows service stop) and allow 30 s for a
 graceful shutdown.
 
-**Controlled activation** happens only when the owner approves the cutover:
-1. Inspect `OWLI_Hangfire`. It must be empty, or hold only these three jobs.
+**Controlled activation** happens only when the owner approves the cutover. Do it after the API, MVC and
+migrations are live and checked (§7, §12):
+1. Inspect `OWLI_Hangfire`. It must be empty, or hold only these three jobs:
+   ```sql
+   SELECT (SELECT COUNT(*) FROM HangFire.Server) AS servers, (SELECT COUNT(*) FROM HangFire.Job) AS jobs;
+   SELECT Value FROM HangFire.[Set] WHERE [Key] = 'recurring-jobs';
+   ```
 2. Set `Hangfire__Enabled=true` for the worker **only**.
 3. Start the worker and confirm in `OWLI_Hangfire`:
    - `HangFire.Server` has 1 row;
    - the `recurring-jobs` set holds exactly `owli-bill-reminders` (07:00), `owli-budget-alerts` (hourly) and
      `owli-monthly-summaries` (day 1, 00:30), all in `Asia/Manila`.
-4. Never set `Hangfire__Enabled=true` on the API (it has no effect there, by design).
+4. Expect catch-up runs. On first start the worker runs any schedule already due today, for example the 07:00
+   reminders if started later. The jobs are idempotent: one reminder per bill occurrence, one alert per budget
+   threshold, one summary per user and month. Re-runs and restarts were verified to create no duplicates.
+5. Run **one** worker process per environment, and keep it supervised (restart on failure, SIGTERM on stop).
+6. Never set `Hangfire__Enabled=true` on the API (it has no effect there, by design).
 
 ## 10. Cloudflare integration (existing tunnel; deployment team only)
 
@@ -197,8 +233,33 @@ See also [the existing Cloudflare notes](../docs/developer-guide/DEPLOYMENT.md).
 
 ```bash
 cd android
-./gradlew assembleRelease -PowliApiBaseUrl=https://<public-api-hostname>/   # or ORG_GRADLE_PROJECT_owliApiBaseUrl
+./gradlew assembleRelease -PowliApiBaseUrl=https://<public-api-hostname>/ \
+  -PowliVersionCode=<n> -PowliVersionName=<x.y.z>      # or ORG_GRADLE_PROJECT_<name>
 ```
+
+**Versioning:**
+
+| Setting | Rule |
+| --- | --- |
+| `owliVersionCode` | A whole number. It must be **higher** than any build previously installed on users' devices, and must rise with every published update; Android refuses an in-place upgrade otherwise. |
+| `owliVersionName` | The version users see, for example `1.0.0`. |
+| Defaults | Without these properties, builds are `versionCode 1` / `0.1.0`, as used in development and testing. |
+
+Suggested first production release: `-PowliVersionCode=2 -PowliVersionName=1.0.0`. Code 2 is above every
+development build, which all carry code 1.
+
+**Signing:**
+- Use **one** release keystore for the life of the app. Android only installs an update signed with the same key.
+- The keystore, its passwords and alias belong to the deployment team. Never commit them, or put them in CI logs
+  or this repository.
+- Development builds are signed with a local debug key. A device with a debug build cannot be upgraded to the
+  release-signed app; it must uninstall first, which deletes on-device data.
+  - Testers should sync first, so that "waiting to sync" is empty, before uninstalling.
+  - Production users who only ever install release builds are not affected.
+- Verified on 27 November 2026 with the debug key: the original handoff APK upgraded in place to this candidate.
+  - Database version 2 → 3; cached categories kept.
+  - A pending offline expense was kept and synced exactly once after reconnecting.
+  - The same upgrade must be repeated by the deployment team with their release key, between two release builds.
 
 - The value must be an `https://` origin, optionally with a path ending in `/`. Anything else fails the build.
   Without it, the release app starts in its "not configured" state; there is no default host.
@@ -208,7 +269,8 @@ cd android
   ```bash
   zipalign -p -f 4 app-release-unsigned.apk app-release-aligned.apk
   apksigner sign --ks <keystore> --out owli-release.apk app-release-aligned.apk
-  apksigner verify owli-release.apk
+  apksigner verify --print-certs owli-release.apk      # the certificate digest must match every earlier release
+  aapt2 dump badging owli-release.apk | head -1          # shows versionCode and versionName
   ```
 
 ## 12. Post-deployment verification

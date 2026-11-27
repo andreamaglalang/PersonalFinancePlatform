@@ -96,3 +96,8 @@
 - Disposition: Update
 - Updated: OWLI verification limits
 - 926 interactive elements inventoried; 151 UI scenarios pass after fixing 7 defects (MVC contribution edit/delete 404, bill edit silent failure, Android rotation lost forms, dark budget-status contrast, missing icon, password separator, no-category hint). Record: docs/audits/OWLI_E2E_Acceptance.md.
+
+## [2026-11-27] update | Financial integrity and handoff round 2
+- Disposition: Update
+- Updated: OWLI verification limits and architectural decisions
+- MVC contributions/payments/goal writes now use the identity and version from the opened form (F1-F4, reproduced then fixed); Room v2->v3 and real APK upgrade verified; migration guide switched to EF bundles after scripts failed under sqlcmd; release versioning/signing documented; academic traceability matrix added.

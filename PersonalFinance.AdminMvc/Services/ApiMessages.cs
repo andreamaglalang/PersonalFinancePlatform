@@ -30,6 +30,10 @@ public static class ApiMessages
         ["Cancelled goals are financially immutable."] = "Cancelled goals can't be changed.",
         ["This bill has payment history and cannot be deleted. Deactivate it instead."] = "This bill has payment history and can't be deleted. Deactivate it instead.",
         ["Bill payments require a controlled reversal and cannot be deleted."] = "Bill payments can't be deleted.",
+        ["Only the oldest outstanding occurrence may be paid."] = "This due date was already paid or is not the next one due, for example after a payment in the OWLI app. Nothing was paid. Reload the bill and check.",
+        ["This occurrence already has payment history."] = "This due date has already been paid, for example in the OWLI app. Nothing was paid again.",
+        ["Future occurrences cannot be paid."] = "This due date has not arrived yet, so it can't be paid.",
+        ["Inactive bills cannot accept new payments."] = "This bill is inactive. Activate it before recording a payment.",
         ["The operation conflicts with existing related records."] = "This record is linked to other records, so this change isn't allowed.",
         // Concurrency (stale versions)
         ["This transaction was changed elsewhere. Reload it and try again."] = "This transaction was updated elsewhere. Reload before editing.",

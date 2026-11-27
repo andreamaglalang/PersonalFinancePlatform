@@ -23,7 +23,7 @@
             <dt>Paying due date</dt><dd>@Model.NextDueDate.ToString("yyyy-MM-dd", invariant)</dd>
         </dl>
         <p class="owli-caption">This records one expense transaction for that due date and moves the bill to the next one.</p>
-        <form class="member-form-actions" method="post" asp-action="Pay" asp-route-id="@Model.BillId">
+        <form class="member-form-actions" method="post" asp-action="Pay" asp-route-id="@Model.BillId"><input type="hidden" name="clientId" value="@ViewData["ClientId"]" /><input type="hidden" name="dueDate" value="@(((DateOnly)ViewData["DueDate"]!).ToString("yyyy-MM-dd"))" />
             <button class="member-btn" type="submit">Record payment</button>
             <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
         </form>

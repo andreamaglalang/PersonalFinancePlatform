@@ -38,12 +38,31 @@ internal static class E2eRegressionChecks
         var create = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Views", "Activity", "Create.cshtml"));
         if (!create.Contains("data-no-categories", StringComparison.Ordinal) || !create.Contains("asp-controller=\"Categories\"", StringComparison.Ordinal))
             throw new InvalidOperationException("Add transaction must explain when no category of the chosen type exists.");
+        // F1-F3 (financial integrity): identities and versions come from the form the user opened, never re-read at submit.
+        var goalsController = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Controllers", "SavingsGoalsController.cs"));
+        var billsController = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Controllers", "BillsController.cs"));
+        string Body(string source, string signature) { var start = source.IndexOf(signature, StringComparison.Ordinal); var next = source.IndexOf("[Http", start + 1, StringComparison.Ordinal); return source[start..(next < 0 ? source.Length : next)]; }
+        var contributePost = Body(goalsController, "public async Task<IActionResult> Contribute([FromRoute] int id, [FromForm]");
+        if (contributePost.Contains("Guid.NewGuid()") || !contributePost.Contains("model.ClientId"))
+            throw new InvalidOperationException("F1: a contribution must use the ClientId minted when its form opened.");
+        if (goalsController.Contains("current.Value.Version") || goalsController.Contains("current.Value!.Version"))
+            throw new InvalidOperationException("F3: goal/contribution writes must send the version the form was opened with.");
+        var payPost = Body(billsController, "public async Task<IActionResult> PayConfirmed(");
+        if (payPost.Contains("Guid.NewGuid()") || payPost.Contains("NextDueDate") || !payPost.Contains("new(paymentId, confirmedDue)"))
+            throw new InvalidOperationException("F2: a payment must stay bound to the confirmed occurrence and its form identity.");
+        foreach (var (view, marker) in new[] { ("Contribute", "asp-for=\"ClientId\""), ("EditContribution", "asp-for=\"Version\""), ("DeleteContribution", "name=\"version\""),
+                     ("Cancel", "name=\"version\""), ("Delete", "name=\"version\""), ("Create", "asp-for=\"Version\"") })
+            if (!File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Views", "SavingsGoals", view + ".cshtml")).Contains(marker, StringComparison.Ordinal))
+                throw new InvalidOperationException($"SavingsGoals/{view} must post {marker}.");
+        var payView = File.ReadAllText(MvcProject.FindFile("Areas", "Member", "Views", "Bills", "Pay.cshtml"));
+        if (!payView.Contains("name=\"clientId\"") || !payView.Contains("name=\"dueDate\""))
+            throw new InvalidOperationException("Bills/Pay must post the occurrence and its identity.");
         // E2: every page links an icon, so browsers don't request a missing /favicon.ico on each page.
         foreach (var layout in new[] { MvcProject.FindFile("Views", "Shared", "_Layout.cshtml"), MvcProject.FindFile("Areas", "Member", "Views", "Shared", "_MemberLayout.cshtml") })
             if (!File.ReadAllText(layout).Contains("rel=\"icon\"", StringComparison.Ordinal))
                 throw new InvalidOperationException($"{Path.GetFileName(layout)} must link the site icon.");
         if (!File.Exists(Path.Combine(MvcProject.FindDirectory("wwwroot"), "favicon.svg")))
             throw new InvalidOperationException("wwwroot/favicon.svg is missing.");
-        Console.WriteLine("PASS: end-to-end regressions (contribution links bind; bill edit saves; budget status uses themed colours; site icon present).");
+        Console.WriteLine("PASS: end-to-end regressions (contribution/payment identities and versions from the form; contribution links bind; bill edit saves; budget status uses themed colours; site icon present).");
     }
 }

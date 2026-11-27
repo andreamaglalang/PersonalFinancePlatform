@@ -211,11 +211,14 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             return RedirectToAction(nameof(Index));
         }
         ViewData["DueDate"] = result.Value.NextDueDate;
+        // Minted once per opened form: resubmitting this form replays the same payment instead of paying again.
+        ViewData["ClientId"] = Guid.NewGuid();
         return View(result.Value);
     }
 
     [HttpPost, ActionName(nameof(Pay)), ValidateAntiForgeryToken]
-    public async Task<IActionResult> PayConfirmed([FromRoute] int id, CancellationToken ct)
+    public async Task<IActionResult> PayConfirmed([FromRoute] int id, [FromForm] Guid? clientId, [FromForm] DateOnly? dueDate,
+        CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
@@ -228,8 +231,14 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             return RedirectToAction("Login", "Account");
         }
         if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
-        // A fresh ClientId per submission: the server replays the retained receipt instead of paying twice.
-        var result = await bills.PayAsync(id, new(Guid.NewGuid(), current.Value!.NextDueDate), token!, ct);
+        if (clientId is not { } paymentId || paymentId == Guid.Empty || dueDate is not { } confirmedDue)
+        {
+            TempData["BillError"] = "This payment form has expired. Nothing was paid. Open Record payment again.";
+            return RedirectToAction(nameof(Index));
+        }
+        // Pay exactly the occurrence the user confirmed, with the identity of that form. If another client already
+        // paid it, the API refuses (or replays the same receipt); it never moves on to the next occurrence.
+        var result = await bills.PayAsync(id, new(paymentId, confirmedDue), token!, ct);
         if (result.Succeeded)
         {
             TempData["BillNotice"] = "Payment recorded.";

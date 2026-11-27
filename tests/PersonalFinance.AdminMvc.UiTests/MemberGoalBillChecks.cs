@@ -35,9 +35,9 @@ internal static class MemberGoalBillChecks
                 throw new InvalidOperationException($"Every member {name} POST must carry ValidateAntiForgeryToken.");
         }
 
-        // Contributions and payments mint a fresh ClientId; cancellation uses the goal's row version as If-Match.
-        if (goals.Contains("Guid.NewGuid()") is false || goals.Contains("current.Value!.Version") is false)
-            throw new InvalidOperationException("Goals must mint a fresh ClientId and cancel with If-Match.");
+        // Contributions mint their ClientId when the form opens; cancellation sends the version the page was opened with.
+        if (goals.Contains("ClientId = Guid.NewGuid()") is false || goals.Contains("CancelAsync(id, version") is false)
+            throw new InvalidOperationException("Goals must mint a ClientId per opened form and cancel with the form's If-Match version.");
         if (bills.Contains("Guid.NewGuid()") is false)
             throw new InvalidOperationException("Bills must mint a fresh ClientId for each payment.");
         if (goalClient.Contains("If-Match") is false)

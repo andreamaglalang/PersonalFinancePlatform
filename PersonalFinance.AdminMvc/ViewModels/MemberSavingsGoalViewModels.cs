@@ -22,6 +22,9 @@ public sealed class MemberSavingsGoalDetailViewModel
 
 public class MemberSavingsGoalFormModel
 {
+    /// <summary>Edit only: the goal version the form was opened with (a stale form is refused, never applied).</summary>
+    public string? Version { get; set; }
+
     [Required(ErrorMessage = "Enter a goal name."), StringLength(100, ErrorMessage = "Goal name must be 100 characters or fewer.")]
     [Display(Name = "Goal name")]
     public string? Name { get; set; }
@@ -39,6 +42,12 @@ public class MemberSavingsGoalFormModel
 
 public sealed class MemberContributionFormModel
 {
+    /// <summary>New contributions: the identity minted when the form opened, so a resubmitted form records once.</summary>
+    public Guid? ClientId { get; set; }
+
+    /// <summary>Edits: the contribution version the form was opened with.</summary>
+    public string? Version { get; set; }
+
     [Required(ErrorMessage = "Enter an amount."), StringLength(19, ErrorMessage = "That amount is too long."), MoneyText]
     [Display(Name = "Amount")]
     public string? Amount { get; set; }
