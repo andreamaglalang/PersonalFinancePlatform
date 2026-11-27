@@ -331,7 +331,9 @@ private fun CreateBudgetSheet(state: BudgetsState, vm: BudgetsViewModel, onClose
 
 @Composable
 private fun LimitField(value: String, onValue: (String) -> Unit, label: Int, currency: String?) {
-    OutlinedTextField(value, onValue, singleLine = true, label = { Text(stringResource(label)) },
+    var refusal by remember { mutableStateOf<Int?>(null) }
+    OutlinedTextField(value, amountEdit({ refusal = it }, onValue), singleLine = true, label = { Text(stringResource(label)) },
+        supportingText = refusal?.let { { InputRefusal(it) } },
         prefix = currency?.let { c -> { Text("$c ") } }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         shape = LocalOwliShapes.current.field, colors = owliFieldColors(), modifier = Modifier.fillMaxWidth())
 }

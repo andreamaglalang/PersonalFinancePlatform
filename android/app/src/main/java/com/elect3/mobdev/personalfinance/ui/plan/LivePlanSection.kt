@@ -59,6 +59,43 @@ internal fun positiveAmount(value: String): BigDecimal? = typedAmount(value)?.ta
         else -> null
     }
 }
+/**
+ * Why an edit to an amount field is refused while typing, or null to accept it. The whole edit (a key or a paste) is
+ * refused; characters are never stripped, so pasting "100abc" leaves the field unchanged, never "100". Intermediate
+ * states such as "", "0", "0." and ".5" are accepted. Validation of the final value stays with [amountProblem].
+ */
+@androidx.annotation.StringRes internal fun amountEditProblem(text: String): Int? {
+    if (text.any { it !in '0'..'9' && it != '.' && it != ',' }) return R.string.input_amount_characters
+    if (text.count { it == '.' || it == ',' } > 1) return R.string.input_amount_one_separator
+    val parts = text.split('.', ',')
+    return when {
+        parts.getOrElse(1) { "" }.length > 2 -> R.string.amount_error_decimals
+        parts[0].length > 16 -> R.string.amount_error_large
+        else -> null
+    }
+}
+/** Same for whole-number fields (reminder days): ASCII digits only, at most [maxDigits]. */
+@androidx.annotation.StringRes internal fun wholeEditProblem(text: String, maxDigits: Int): Int? = when {
+    text.any { it !in '0'..'9' } -> R.string.input_whole_digits
+    text.length > maxDigits -> R.string.input_number_long
+    else -> null
+}
+/** onValueChange for an amount field: surrounding spaces of a paste are trimmed, any other invalid edit is refused and reported. */
+internal fun amountEdit(onRefused: (Int?) -> Unit, accept: (String) -> Unit): (String) -> Unit = { candidate ->
+    val text = candidate.trim()
+    val problem = amountEditProblem(text)
+    onRefused(problem)
+    if (problem == null) accept(text)
+}
+internal fun wholeEdit(maxDigits: Int, onRefused: (Int?) -> Unit, accept: (String) -> Unit): (String) -> Unit = { candidate ->
+    val text = candidate.trim()
+    val problem = wholeEditProblem(text, maxDigits)
+    onRefused(problem)
+    if (problem == null) accept(text)
+}
+/** The concise reason an edit was refused, announced politely. */
+@Composable internal fun InputRefusal(message: Int) = Text(stringResource(message), color = MaterialTheme.colorScheme.error,
+    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
 internal fun validPlanDate(value: String): Boolean = runCatching { LocalDate.parse(value).year in 1..9999 }.getOrDefault(false)
 private fun displayDate(date: LocalDate): String = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 private fun displayDate(iso: String): String = runCatching { displayDate(LocalDate.parse(iso)) }.getOrDefault(iso)
@@ -229,6 +266,8 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
     val goal = record as? SavingsGoal
     var name by remember { mutableStateOf(record?.name.orEmpty()) }
     var amount by remember { mutableStateOf((bill?.amount ?: goal?.targetAmount)?.toPlainString().orEmpty()) }
+    var amountRefusal by remember { mutableStateOf<Int?>(null) }
+    var reminderRefusal by remember { mutableStateOf<Int?>(null) }
     var date by remember { mutableStateOf((bill?.firstDueDate ?: goal?.targetDate)?.toString().orEmpty()) }
     var currency by remember { mutableStateOf(bill?.currencyCode ?: "PHP") }
     var frequency by remember { mutableStateOf(BillFrequency.Monthly) }
@@ -257,7 +296,8 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
         title = { Text(if (record == null) stringResource(if (bills) R.string.plan_add_bill else R.string.plan_add_goal) else stringResource(R.string.plan_edit_title, record.name)) },
         text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(name, { if (it.length <= 100) name = it }, enabled = editable, label = { Text(stringResource(R.string.plan_field_name)) })
-            OutlinedTextField(amount, { amount = it }, enabled = editable, label = { Text(stringResource(if (bills) R.string.plan_field_amount else R.string.goal_field_target)) },
+            OutlinedTextField(amount, amountEdit({ amountRefusal = it }) { amount = it }, enabled = editable, label = { Text(stringResource(if (bills) R.string.plan_field_amount else R.string.goal_field_target)) },
+                supportingText = amountRefusal?.let { { InputRefusal(it) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
             if (!bills || record == null) OutlinedTextField(date, { date = it }, enabled = editable, label = { Text(stringResource(if (bills) R.string.bill_field_first_due else R.string.goal_field_target_date)) })
             if (bills) {
@@ -270,7 +310,8 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
                 }
                 if (bill == null) BillFrequency.entries.forEach { value -> SelectableOption(stringResource(value.label), frequency == value, editable) { frequency = value } }
                 else Text(stringResource(R.string.bill_schedule_fixed, stringResource(bill.frequency.label)))
-                OutlinedTextField(reminder, { reminder = it }, enabled = editable, label = { Text(stringResource(R.string.bill_field_reminder)) },
+                OutlinedTextField(reminder, wholeEdit(2, { reminderRefusal = it }) { reminder = it }, enabled = editable, label = { Text(stringResource(R.string.bill_field_reminder)) },
+                    supportingText = reminderRefusal?.let { { InputRefusal(it) } },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(active, { active = it }, enabled = editable); Text(stringResource(R.string.bill_field_active)) }
             }
@@ -313,6 +354,7 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
     val path = goalContributionPath(goal.id)
     var entries by remember { mutableStateOf<List<Contribution>?>(null) }
     var amount by remember { mutableStateOf("") }
+    var amountRefusal by remember { mutableStateOf<Int?>(null) }
     var date by remember { mutableStateOf(LocalDate.now().toString()) }
     var note by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -354,7 +396,8 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
                 TextButton(enabled = !busy && ledgerPage * 50L < total, onClick = { ledgerPage++ }) { Text(stringResource(R.string.plan_next)) }
             }
             Text(stringResource(if (selected == null) R.string.contribution_add else R.string.contribution_edit), style = LocalOwliTypography.current.bodyStrong)
-            OutlinedTextField(amount, { amount = it }, enabled = editable, label = { Text(stringResource(R.string.plan_field_amount)) },
+            OutlinedTextField(amount, amountEdit({ amountRefusal = it }) { amount = it }, enabled = editable, label = { Text(stringResource(R.string.plan_field_amount)) },
+                supportingText = amountRefusal?.let { { InputRefusal(it) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
             OutlinedTextField(date, { date = it }, enabled = editable, label = { Text(stringResource(R.string.contribution_field_date)) })
             OutlinedTextField(note, { if (it.length <= 200) note = it }, enabled = editable, label = { Text(stringResource(R.string.contribution_field_note)) })

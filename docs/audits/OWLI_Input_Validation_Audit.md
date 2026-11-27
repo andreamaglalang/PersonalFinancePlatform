@@ -121,10 +121,56 @@ Status: PASS = verified at runtime after the fix; UNIT = automated only.
 | AdminMvc.UiTests | all pass (new `InputValidationChecks`) |
 | SqlIntegrationTests (real SQL Server) | 16 / 16 |
 | HangfireTests (real SQL Server, disposable storage) | 14 / 14 |
-| Android debug unit tests | 679 passed, 0 failed |
-| Android release unit tests | 685 passed, 0 failed |
-| Android instrumented suite (emulator, API 36) | 204 run, 0 failed, 23 skipped (opt-in device steps) |
+| Android debug unit tests | 680 passed, 0 failed (after input restriction) |
+| Android release unit tests | 686 passed, 0 failed (after input restriction) |
+| Android instrumented suite (emulator, API 36) | 206 run, 0 failed, 25 skipped (opt-in device steps, run separately: PASS) |
 | Android device step `inputValidationThroughUi` | PASS |
+
+## Input restriction while typing (follow-up to PR #34)
+
+Validation alone let users type `abc` into an amount and find out on save. Every money field and every whole-number
+field now refuses an invalid edit as it happens. The rules (server, client and database) are unchanged; this only
+supplements them.
+
+**Rule.** A key, a paste or a drop is accepted only if the field's text would still be a valid shape. Otherwise the
+whole edit is refused: the field keeps its previous text, the caret stays where it was, and one concise reason appears
+under the field (announced politely). Characters are never stripped, so pasting `100abc` leaves the field unchanged
+and never becomes `100`. The only change ever made to a paste is removing surrounding spaces (` 250.75 ` becomes
+`250.75`), which does not alter the amount. Deleting is always allowed, and natural intermediate states (empty, `0`,
+`0.`, `.5`) are accepted.
+
+| Field kind | Allowed while typing | Refused, with reason |
+|---|---|---|
+| Money (MVC) | digits, one `.`, at most 2 decimals, at most 16 integer digits | letters, `e`, `+`, `-`, symbols and spaces: "Amounts use digits and one decimal point only."; `,`: "Use a decimal point (.) with no separators."; a second point; a third decimal; a 17th integer digit |
+| Money (Android) | the same, with `.` or `,` as the one decimal separator | the same reasons ("…one decimal separator…") |
+| Whole numbers (alert threshold, reminder days, Administrator page and page size) | ASCII digits, up to the field's length (3 / 2 / 9 / 3) | anything else: "Use whole numbers only (digits 0–9)."; extra digits: "That number is too long." |
+
+**Where:**
+- **MVC Member:** the Add/Edit transaction amount, budget limit (create and edit), alert threshold (create and edit), goal target, contribution amount (add and edit), bill amount, reminder days and converter amount.
+- **MVC Administrator:** budget limit, alert threshold, and category page and page size.
+- **Android:** the Add/Edit transaction amount, budget limit (create and edit), goal target, bill amount, contribution amount, reminder days and converter amount. Android's alert threshold is a choice of buttons, so it has no free-text input.
+
+**Implementation:**
+- **MVC:** the transaction, converter and whole-number inputs changed from `type="number"` to `type="text"` with `inputmode="decimal"` or `inputmode="numeric"`. Browsers let a number input accept `e`, `+` and `-` and hide the typed text from scripts. A `beforeinput` handler in `owli-ui.js` covers typing, paste and drop. An `input` fallback restores the last valid text after autofill or an IME composition that cannot be cancelled.
+- **Android:** `amountEdit` and `wholeEdit` wrap each field's `onValueChange`. Decimal and number keyboards stay in place.
+
+**Verification:**
+- **MVC (Chrome via Puppeteer):** 15 restricted MVC inputs, all PASS. Real key events: `page.type` and `keyboard.press`, which drive Chrome's physical-keyboard path. Real clipboard pastes: the system Paste command. Each MVC field was checked for:
+  - typing `100a.5x.55-e5,` gives `100.55`;
+  - `0` → `0.` → `0.5`;
+  - a digit inserted mid-text with the arrow keys is accepted;
+  - pastes of `100abc`, `1e5`, `-25`, `1,250.50`, `10.555` and `₱100` are refused whole with a reason, and ` 250.75 ` pastes as `250.75`;
+  - whole numbers: typing `1.5-e` gives `15`, extra digits are refused, and a paste of `50.5` is refused.
+  
+  With the key handling bypassed, the server still answers `100abc` with HTTP 400.
+- **Android (emulator `owli_api36_test`):** `amountInputRestrictionThroughUi` and `transactionAndConverterAmountRestrictionThroughUi` cover the goal target, Add Transaction amount, converter amount and bill reminder days:
+  - software-keyboard keys one at a time: `100a.5x.55-e` gives `100.55`;
+  - clipboard paste (the Paste action) of `100abc`, `1e5`, `-25`, `1,250.50` and `10.555` is refused whole; ` 250.75 ` gives `250.75`;
+  - hardware-keyboard key events (`input text`, one key at a time): `12a.5.55` gives `12.55`;
+  - reminder `1.5x` gives `15`, then a third digit is refused.
+- **Unit tests:** `AmountInputTest.typingAndPastingRefuseTheWholeEditInsteadOfStrippingCharacters` and `InputValidationChecks` §5. The latter fails if any money or whole-number input loses its restriction or returns to `type="number"`.
+
+**Limitation.** On Android, a burst of hardware key events injected within a single frame (much faster than human typing) drops the keys that follow a refused key in the same burst. For example, `input text 12a.5.55` sent at once leaves `12`. The reason and the shortened text stay visible, and nothing can be saved silently. At human pace every key is handled correctly.
 
 ## Decisions for the owner
 

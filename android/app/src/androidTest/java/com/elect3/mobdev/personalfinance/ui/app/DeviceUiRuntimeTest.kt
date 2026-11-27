@@ -482,10 +482,13 @@ class DeviceUiRuntimeTest {
         compose.onNode(addGoal).performClick()
         val goalName = "UI Comma $runId"
         compose.onNode(field(text(R.string.plan_field_name))).performTextReplacement(goalName)
-        for (raw in listOf("1e5", "+5", "1,250.50", "₱100")) {
+        // Refused as entered (input restriction); the field keeps its previous text, never a stripped amount.
+        for ((raw, message) in listOf("1e5" to R.string.input_amount_characters, "+5" to R.string.input_amount_characters,
+                "1,250.50" to R.string.input_amount_one_separator, "₱100" to R.string.input_amount_characters)) {
             compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement(raw)
-            hideKeyboard(); compose.onNode(save).performClick()
-            shown(text(R.string.amount_error_number)); log("goal target '$raw' refused: '${text(R.string.amount_error_number)}'")
+            shown(text(message))
+            assertEquals(raw, "", compose.onNode(field(text(R.string.goal_field_target))).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty())
+            log("goal target '$raw' refused: '${text(message)}'")
         }
         compose.onNode(field(text(R.string.goal_field_target))).performTextReplacement("10,50")
         hideKeyboard(); compose.onNode(save).performClick()
@@ -499,10 +502,9 @@ class DeviceUiRuntimeTest {
         compose.onNode(field(text(R.string.plan_field_name))).performTextReplacement(billName)
         compose.onNode(field(text(R.string.plan_field_amount))).performTextReplacement("300")
         compose.onNode(field(text(R.string.bill_field_currency))).performTextReplacement("ZZZ")
-        compose.onNode(field(text(R.string.bill_field_reminder))).performScrollTo().performTextReplacement("1.5")
         hideKeyboard(); compose.onNode(save).performClick()
-        for (message in listOf(R.string.plan_error_name, R.string.bill_error_currency, R.string.bill_error_reminder)) shown(text(message))
-        log("bill refused before sending: name, currency ZZZ and reminder 1.5 each named")
+        for (message in listOf(R.string.plan_error_name, R.string.bill_error_currency)) shown(text(message))
+        log("bill refused before sending: two-line name and currency ZZZ each named (reminder input: amountInputRestrictionThroughUi)")
         compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
 
         compose.onNode(planTab(R.string.plan_tab_budgets)).performClick()
@@ -519,6 +521,102 @@ class DeviceUiRuntimeTest {
         compose.onAllNodes(hasText(text(R.string.budget_create)) and clickable).onLast().performScrollTo().performClick()
         waitFor(hasText(php("10.50"), substring = true), 30_000)
         log("budget saved for $category typed='10,50' shown=${php("10.50")}")
+    }
+
+    /**
+     * Input restriction on the real goal and bill editors: a refused key, paste or hardware-keyboard character leaves the
+     * text unchanged (never stripped: pasting "100abc" does not become "100") and the reason is shown.
+     */
+    @Test fun amountInputRestrictionThroughUi() {
+        signIn()
+        nav(R.string.navigation_plan)
+        compose.onNode(planTab(R.string.plan_tab_goals)).performClick()
+        val addGoal = hasText(text(R.string.plan_add_goal)) and clickable
+        compose.waitUntil(20_000) { exists(addGoal and isEnabled()) }
+        compose.onNode(addGoal).performClick()
+        val target = field(text(R.string.goal_field_target))
+        fun value(m: SemanticsMatcher) = compose.onNode(m).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
+        // Software keyboard, one key at a time.
+        compose.onNode(target).performTextClearance()
+        "100a.5x.55-e".forEach { compose.onNode(target).performTextInput(it.toString()) }
+        assertEquals("100.55", value(target)); shown(text(R.string.input_amount_characters))
+        log("goal target typed '100a.5x.55-e' -> '${value(target)}'")
+        // Clipboard paste: an invalid value is refused whole; a padded valid one is pasted without its spaces.
+        fun paste(clip: String) {
+            compose.runOnUiThread {
+                val clipboard = compose.activity.getSystemService(android.content.ClipboardManager::class.java)
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("amount", clip))
+            }
+            compose.onNode(target).performTextClearance()
+            compose.onNode(target).performSemanticsAction(SemanticsActions.PasteText)
+            compose.waitForIdle()
+        }
+        for (clip in listOf("100abc", "1e5", "-25", "1,250.50", "10.555")) {
+            paste(clip); assertEquals("paste '$clip'", "", value(target)); log("paste '$clip' -> refused, field '${value(target)}'")
+        }
+        paste(" 250.75 "); assertEquals("250.75", value(target)); log("paste ' 250.75 ' -> '${value(target)}'")
+        // Hardware keyboard: key events from the input service, not the IME.
+        compose.onNode(target).performTextClearance(); compose.onNode(target).performClick()
+        // One key event at a time, at human pace (the input service otherwise injects all keys within a frame).
+        "12a.5.55".forEach { shell("input text $it"); compose.waitForIdle(); Thread.sleep(150) }
+        runCatching { compose.waitUntil(10_000) { value(target) == "12.55" } }
+        log("hardware keys focused=${compose.onNode(target).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Focused)} value='${value(target)}'")
+        assertEquals("12.55", value(target))
+        log("hardware keys '12a.5.55' -> '${value(target)}'")
+        compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
+
+        compose.onNode(planTab(R.string.plan_tab_bills)).performClick()
+        val addBill = hasText(text(R.string.plan_add_bill)) and clickable
+        compose.waitUntil(20_000) { exists(addBill and isEnabled()) }
+        compose.onNode(addBill).performClick()
+        val reminder = field(text(R.string.bill_field_reminder))
+        compose.onNode(reminder).performScrollTo().performTextClearance()
+        "1.5x".forEach { compose.onNode(reminder).performTextInput(it.toString()) }
+        assertEquals("15", value(reminder)); shown(text(R.string.input_whole_digits))
+        compose.onNode(reminder).performTextInput("0"); assertEquals("15", value(reminder)); shown(text(R.string.input_number_long))
+        log("bill reminder typed '1.5x' then '0' -> '${value(reminder)}'")
+        compose.onNode(hasText(text(R.string.plan_close)) and hasAnyAncestor(isDialog())).performClick()
+    }
+
+    /** The same input restriction on the Add Transaction and Currency converter amounts (keys, paste, hardware keys). */
+    @Test fun transactionAndConverterAmountRestrictionThroughUi() {
+        signIn()
+        fun value(m: SemanticsMatcher) = compose.onNode(m).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
+        fun exercise(label: String, amount: SemanticsMatcher) {
+            compose.onNode(amount).performTextClearance()
+            "100a.5x.55-e".forEach { compose.onNode(amount).performTextInput(it.toString()) }
+            assertEquals("$label typed", "100.55", value(amount)); shown(text(R.string.input_amount_characters))
+            compose.runOnUiThread {
+                compose.activity.getSystemService(android.content.ClipboardManager::class.java)
+                    .setPrimaryClip(android.content.ClipData.newPlainText("amount", "100abc"))
+            }
+            compose.onNode(amount).performTextClearance()
+            compose.onNode(amount).performSemanticsAction(SemanticsActions.PasteText); compose.waitForIdle()
+            assertEquals("$label paste", "", value(amount))
+            compose.onNode(amount).performClick()
+            "12a.5.55".forEach { shell("input text $it"); compose.waitForIdle(); Thread.sleep(150) }
+            compose.waitUntil(10_000) { value(amount) == "12.55" }
+            log("$label: typed '100a.5x.55-e' -> '100.55'; paste '100abc' refused; hardware keys '12a.5.55' -> '${value(amount)}'")
+        }
+        nav(R.string.navigation_dashboard)
+        compose.onNodeWithContentDescription(text(R.string.navigation_add)).performClick()
+        // First category in the picker (whatever this synthetic account has).
+        val choice = clickable and hasAnyAncestor(isDialog()) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Text) and
+            !hasText(text(R.string.form_cancel)) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+        waitFor(choice); compose.onAllNodes(choice).onFirst().performClick()
+        waitFor(field(text(R.string.form_amount)))
+        exercise("Add transaction amount", field(text(R.string.form_amount)))
+        hideKeyboard(); back(); compose.waitForIdle()
+        waitFor(hasText(text(R.string.tx_discard_title)), 10_000)
+        compose.onNode(hasText(text(R.string.form_discard)) and hasClickAction()).performClick(); compose.waitForIdle()
+        repeat(2) { if (!exists(tab(text(R.string.navigation_dashboard)))) { back(); compose.waitForIdle() } }
+
+        nav(R.string.navigation_dashboard)
+        compose.onNodeWithContentDescription(text(R.string.account_open)).performClick()
+        val entry = hasText(text(R.string.cur_entry_title)) and clickable
+        waitFor(entry); compose.onNode(entry).performScrollTo().performClick()
+        waitFor(field(text(R.string.cur_amount)))
+        exercise("Converter amount", field(text(R.string.cur_amount)))
     }
 
     /** Opt-in `owliFxDown=true`, with the API unable to reach the FX provider: a JPY save stores nothing. */

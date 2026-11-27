@@ -99,12 +99,13 @@ fun CurrencyConverterScreen(model: CurrencyConverterViewModel, state: CurrencyCo
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     CurrencyLine(stringResource(R.string.cur_from), state.from) { focus.clearFocus(); picking = "from" }
                     val invalid = state.result == ConverterResult.InvalidAmount
-                    OutlinedTextField(state.amount, model::amount, singleLine = true, label = { Text(stringResource(R.string.cur_amount)) },
+                    var amountRefusal by remember { mutableStateOf<Int?>(null) }
+                    OutlinedTextField(state.amount, com.elect3.mobdev.personalfinance.ui.plan.amountEdit({ amountRefusal = it }, model::amount), singleLine = true, label = { Text(stringResource(R.string.cur_amount)) },
                         prefix = { Text(SupportedCurrencies.symbol(state.from) + " ", style = typography.amountMedium) },
                         suffix = { Text(state.from, style = typography.label) },
                         textStyle = typography.amountMedium, shape = shapes.field, colors = owliFieldColors(), isError = invalid,
-                        supportingText = { if (invalid) Text(stringResource(R.string.cur_amount_error), color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) },
+                        supportingText = { amountRefusal?.let { com.elect3.mobdev.personalfinance.ui.plan.InputRefusal(it) } ?: if (invalid) Text(stringResource(R.string.cur_amount_error), color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) else Unit },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }), modifier = Modifier.fillMaxWidth())
                     if (!state.demo) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

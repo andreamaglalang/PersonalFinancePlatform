@@ -26,4 +26,27 @@ class AmountInputTest {
             assertEquals(raw, 0, BigDecimal(expected).compareTo(checkNotNull(typedAmount(raw))))
         }
     }
+
+    @Test fun typingAndPastingRefuseTheWholeEditInsteadOfStrippingCharacters() {
+        for (ok in listOf("", "0", "0.", ".", ".5", "0,5", "100", "100.5", "100.50", "9999999999999999.99", "000100")) assertNull(ok, amountEditProblem(ok))
+        mapOf("100abc" to R.string.input_amount_characters, "1e5" to R.string.input_amount_characters, "-5" to R.string.input_amount_characters,
+            "+5" to R.string.input_amount_characters, "₱100" to R.string.input_amount_characters, "1 000" to R.string.input_amount_characters,
+            "١٢" to R.string.input_amount_characters, "10..5" to R.string.input_amount_one_separator, "1,000.50" to R.string.input_amount_one_separator,
+            "10.555" to R.string.amount_error_decimals, "12345678901234567" to R.string.amount_error_large,
+        ).forEach { (raw, problem) -> assertEquals(raw, problem, amountEditProblem(raw)) }
+
+        var field = "100"; var refusal: Int? = null
+        val edit = amountEdit({ refusal = it }) { field = it }
+        edit("100abc"); assertEquals("100", field); assertEquals(R.string.input_amount_characters, refusal)
+        edit("100.555"); assertEquals("100", field); assertEquals(R.string.amount_error_decimals, refusal)
+        edit(" 250.75 "); assertEquals("250.75", field); assertNull(refusal) // a pasted value's padding only
+        edit("250.7"); assertEquals("250.7", field)                           // deleting stays natural
+
+        var days = "3"
+        val whole = wholeEdit(2, { refusal = it }) { days = it }
+        whole("3.5"); assertEquals("3", days); assertEquals(R.string.input_whole_digits, refusal)
+        whole("-1"); assertEquals("3", days)
+        whole("30"); assertEquals("30", days); assertNull(refusal)
+        whole("300"); assertEquals("30", days); assertEquals(R.string.input_number_long, refusal)
+    }
 }

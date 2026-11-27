@@ -1,7 +1,7 @@
 @model BudgetEditViewModel
 <label asp-for="LimitAmount"></label>
-<input asp-for="LimitAmount" inputmode="decimal" maxlength="19" data-dialog-focus />
+<input asp-for="LimitAmount" inputmode="decimal" maxlength="19" data-money-input autocomplete="off" data-dialog-focus />
 <span asp-validation-for="LimitAmount"></span>
 <label asp-for="AlertThresholdPct"></label>
-<input asp-for="AlertThresholdPct" type="number" min="1" max="100" />
+<input asp-for="AlertThresholdPct" type="text" inputmode="numeric" maxlength="3" data-whole-input autocomplete="off" />
 <span asp-validation-for="AlertThresholdPct"></span>

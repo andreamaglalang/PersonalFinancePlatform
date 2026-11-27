@@ -379,4 +379,58 @@ document.addEventListener("DOMContentLoaded", () => {
   const message = input.form.querySelector('[data-valmsg-for="' + input.name + '"]');
   if (message && message.textContent) { message.textContent = ""; input.removeAttribute("aria-invalid"); }
  }));
+
+ // Amount and whole-number fields refuse a keystroke, paste or drop that would make the text invalid instead of
+ // stripping characters: pasting "100abc" leaves the field as it was, never "100". Server validation stays authoritative.
+ const inputProblem = (field, text) => {
+  if (field.matches("[data-whole-input]")) {
+   if (/[^0-9]/.test(text)) return "Use whole numbers only (digits 0–9).";
+   return text.length > field.maxLength && field.maxLength > 0 ? "That number is too long." : "";
+  }
+  if (/[^0-9.]/.test(text)) return /^[0-9.,]+$/.test(text) ? "Use a decimal point (.) with no separators." : "Amounts use digits and one decimal point only.";
+  if ((text.match(/\./g) || []).length > 1) return "Use only one decimal point.";
+  const [whole, decimals = ""] = text.split(".");
+  if (decimals.length > 2) return "Amounts can have no more than two decimal places.";
+  return whole.length > 16 ? "That amount is too large." : "";
+ };
+ const restricted = field => field instanceof HTMLInputElement && field.matches("[data-money-input], [data-whole-input]");
+ const hintFor = field => {
+  let hint = field.parentElement.querySelector(":scope > [data-input-hint]");
+  if (!hint) {
+   hint = document.createElement("span");
+   hint.className = "input-hint"; hint.dataset.inputHint = ""; hint.setAttribute("role", "status"); hint.id = field.id + "-hint";
+   field.insertAdjacentElement("afterend", hint);
+   field.setAttribute("aria-describedby", [field.getAttribute("aria-describedby"), hint.id].filter(Boolean).join(" "));
+  }
+  return hint;
+ };
+ const lastValid = new WeakMap();
+ document.addEventListener("focusin", event => { if (restricted(event.target)) lastValid.set(event.target, event.target.value); });
+ document.addEventListener("beforeinput", event => {
+  const field = event.target;
+  if (!restricted(field) || !event.inputType.startsWith("insert")) return;
+  let data = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
+  const pasted = event.inputType === "insertFromPaste" || event.inputType === "insertFromDrop";
+  if (pasted) data = data.trim(); // surrounding spaces only; the amount itself is never altered
+  const start = field.selectionStart ?? field.value.length, end = field.selectionEnd ?? start;
+  const next = field.value.slice(0, start) + data + field.value.slice(end);
+  const problem = inputProblem(field, next);
+  if (problem) { event.preventDefault(); hintFor(field).textContent = problem; return; }
+  hintFor(field).textContent = "";
+  if (pasted && data !== (event.data ?? event.dataTransfer?.getData("text/plain"))) {
+   event.preventDefault();
+   field.setRangeText(data, start, end, "end");
+   field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+ });
+ // Autofill and other edits without beforeinput: restore the last valid text rather than keep or strip an invalid one.
+ document.addEventListener("input", event => {
+  const field = event.target;
+  if (!restricted(field)) return;
+  const problem = inputProblem(field, field.value);
+  if (!problem) { lastValid.set(field, field.value); return; }
+  if (event.inputType?.startsWith("delete")) return;
+  field.value = lastValid.get(field) ?? "";
+  hintFor(field).textContent = problem;
+ });
 });
