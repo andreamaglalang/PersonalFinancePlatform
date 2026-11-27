@@ -1,0 +1,87 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "OWLI: API",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "OWLI: Build",
+      "program": "${workspaceFolder}/PersonalFinance.Api/bin/Debug/net10.0/PersonalFinance.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/PersonalFinance.Api",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7027"
+      }
+    },
+    {
+      "name": "OWLI: MVC",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "OWLI: Build",
+      "program": "${workspaceFolder}/PersonalFinance.AdminMvc/bin/Debug/net10.0/PersonalFinance.AdminMvc.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/PersonalFinance.AdminMvc",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:62978"
+      }
+    },
+    {
+      "name": "OWLI: Worker disabled",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "OWLI: Build",
+      "program": "${workspaceFolder}/PersonalFinance.Worker/bin/Debug/net10.0/PersonalFinance.Worker.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/PersonalFinance.Worker",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Hangfire__Enabled": "false"
+      }
+    },
+    {
+      "name": "OWLI: Test worker (disposable only)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "OWLI: Build",
+      "program": "${workspaceFolder}/PersonalFinance.Worker/bin/Debug/net10.0/PersonalFinance.Worker.dll",
+      "args": [
+        "--Development:TestStorageOnly=true",
+        "--Hangfire:Enabled=true"
+      ],
+      "cwd": "${workspaceFolder}/PersonalFinance.Worker",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Hangfire__Enabled": "false"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "OWLI: API + MVC",
+      "configurations": [
+        "OWLI: API",
+        "OWLI: MVC"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "OWLI: API + MVC + approved test worker",
+      "configurations": [
+        "OWLI: API",
+        "OWLI: MVC",
+        "OWLI: Test worker (disposable only)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

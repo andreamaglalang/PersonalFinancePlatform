@@ -1,5 +1,7 @@
 # Independent worker architecture and local storage preparation
 
+**Current development startup:** [Persistent setup](../DEVELOPER_SETUP.md). The historical preparation below is superseded where noted by R2 and the current development profiles.
+
 This records the owner-approved target and Phase 0 preparation, 26 November 2026.
 **Update (Phase 3, R2):** `PersonalFinance.Worker` is implemented; see
 [Implementation and verification](#implementation-and-verification-r2) below.
@@ -156,3 +158,15 @@ Evidence, 26 November 2026, on a local SQL container with synthetic data:
 
 NOT TESTED: controlled cutover to operational `OWLI_Hangfire` with `PersonalFinanceDb` (not approved),
 and wall-clock schedule firing (jobs were triggered).
+
+## Persistent development profiles — 27 November 2026
+
+The worker now has its own UserSecretsId and Development launch settings. Plain
+`dotnet run --project PersonalFinance.Worker` exits disabled. The explicit
+`--launch-profile DevelopmentTest` enables only after read-only validation of
+actual disposable catalogs, same instance, encrypted/certificate-validated SQL,
+schema version 9 / eleven tables and no registered worker. No schema provisioning
+or operational activation is performed. API and MVC user secrets are separate.
+The legacy optional OWLI_WORKER_SETTINGS path remains available; it is unnecessary
+for ordinary development and must not point at operational storage in test runs.
+See [local runtime evidence](../runtime/LOCAL_SETUP_VERIFICATION.md).

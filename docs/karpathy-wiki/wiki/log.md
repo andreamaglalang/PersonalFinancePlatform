@@ -101,3 +101,10 @@
 - Disposition: Update
 - Updated: OWLI verification limits and architectural decisions
 - MVC contributions/payments/goal writes now use the identity and version from the opened form (F1-F4, reproduced then fixed); Room v2->v3 and real APK upgrade verified; migration guide switched to EF bundles after scripts failed under sqlcmd; release versioning/signing documented; academic traceability matrix added.
+
+## [2026-11-27] ingest | Persistent independent local startup
+- Disposition: Update
+- Raw: raw/owli/2026-11-27-persistent-local-startup.md
+- Updated: OWLI verification limits and architectural decisions
+- Actual fresh-shell API/MVC, synthetic authentication, Android normal TLS and guarded disposable worker lifecycle passed; owner confirmed VS Code terminals.
+- No operational activation, migrations or unrelated environment/worktree changes; platform/debugger limits preserved.

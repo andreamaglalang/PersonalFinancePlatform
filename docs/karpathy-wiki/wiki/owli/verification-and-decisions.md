@@ -1,8 +1,8 @@
 # OWLI verification limits and architectural decisions
 
 > Sources: Project owner, 2026-11-26; guarded Phase 0 SQL preparation, 2026-11-26
-> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md); [Hosted CI acceptance](../../raw/owli/2026-11-26-ci-hosted-acceptance.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md)
-> Updated: 2026-11-26
+> Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md); [Hosted CI acceptance](../../raw/owli/2026-11-26-ci-hosted-acceptance.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md); [Persistent local startup](../../raw/owli/2026-11-27-persistent-local-startup.md)
+> Updated: 2026-11-27
 
 ## Verified preparation
 
@@ -100,3 +100,23 @@ from source, schema readiness or historical passing tests.
 
 - [Architecture and worker decision](architecture.md)
 - [Financial invariants](financial-invariants.md)
+
+## Independent persistent local startup
+
+**Verified:** ordinary root and project-folder API/MVC commands load persistent
+Development user secrets without per-terminal exports. Existing credentials and
+trusted HTTPS certificate are reused; local SQL uses exact public-certificate
+validation rather than TrustServerCertificate bypass. Synthetic MVC registration,
+login/member access, API login and JWT reuse across API restart passed. The owner
+confirmed fresh VS Code terminal startup; debugger UI was not independently tested.
+
+Android's latest debug app reached the same API with normal TLS. The explicit
+DevelopmentTest worker profile validates actual disposable storage before activation;
+ordinary startup stays disabled. Test worker start/stop/restart passed with one
+server, three recurring definitions and zero queued jobs. No operational activation,
+migration, container restart or unrelated worktree/process modification occurred.
+The complete nine-project offline suite and full solution build passed. See
+[current setup](../../../DEVELOPER_SETUP.md) and
+[scoped acceptance record](../../../runtime/LOCAL_SETUP_VERIFICATION.md) for commands,
+source-backed evidence and the Windows/Linux/device/runtime limits. Historical
+manual environment-loading instructions are superseded for ordinary development.

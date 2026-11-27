@@ -1,6 +1,8 @@
 # OWLI project handoff — 25 November 2026
 
-This is the current setup entry point. It supersedes dated claims in `docs/developer-guide`, `docs/hermes-handoff`, and deployment evidence. Those documents remain useful design/history references, but their old implementation and verification status is not current.
+**Current startup procedure:** [Persistent local development setup](../DEVELOPER_SETUP.md). This dated handoff is historical; the API no longer hosts Hangfire.
+
+This was the original setup entry point. It supersedes dated claims in `docs/developer-guide`, `docs/hermes-handoff`, and deployment evidence. Those documents remain useful design/history references, but their old implementation and verification status is not current.
 
 ## Clone and prerequisites
 
@@ -31,29 +33,20 @@ Android Studio creates the ignored `android/local.properties`; alternatively set
 
 Read [DATABASE.md](DATABASE.md) before initializing a database. All commands below are for a new private development machine and a fresh local database. Do not point them at the existing deployment or another person's database.
 
-Copy `config/development.env.example.ps1` to an ignored local file outside the repository, replace its placeholders, then dot-source it in each terminal that needs the settings. Generate a different JWT key on each development machine:
+For current one-time private configuration and exact Windows/macOS/Linux commands,
+use [persistent local development setup](../DEVELOPER_SETUP.md). API, MVC and Worker
+have project user-secret stores; ordinary startup does not require dot-sourcing
+an environment file. The API's default profile is HTTPS. Root commands:
 
-```powershell
-$bytes = New-Object byte[] 64
-$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-$rng.GetBytes($bytes)
-$rng.Dispose()
-$env:Jwt__SigningKeyBase64 = [Convert]::ToBase64String($bytes)
+```sh
+dotnet run --project PersonalFinance.Api
+dotnet run --project PersonalFinance.AdminMvc
 ```
 
-Keep that value in your private environment or API user-secret store if you want sessions to survive restarts. Do not print it, commit it, or share it with clients. `dotnet user-secrets set --project PersonalFinance.Api Jwt:SigningKeyBase64 $env:Jwt__SigningKeyBase64` stores it locally. Environment variables override JSON and user secrets.
-
-```powershell
-dotnet dev-certs https --trust
-# API terminal, after database initialization and environment configuration:
-dotnet run --project PersonalFinance.Api --no-launch-profile --urls https://localhost:7027
-# Separate MVC terminal, with BackendApi__BaseUrl and Development environment:
-dotnet run --project PersonalFinance.AdminMvc --no-launch-profile --urls https://localhost:7150
-```
-
-Open `https://localhost:7150` for MVC. Members and administrators land in different areas. Register a synthetic member through MVC registration or `POST /api/auth/register`, then sign in; registration does not issue a login session. API OpenAPI is `https://localhost:7027/openapi/v1.json` in Development. API and MVC enforce HTTPS; MVC calls the API server-side and keeps bearer/refresh tokens out of browser scripts. Restarting MVC loses its in-process sessions. Do not run multiple MVC instances without replacing session storage.
-
-For a local administrator, run `dotnet run --project tools/PersonalFinance.AdminProvisioning` interactively from the repository root with both environment names set to Development. It prompts for a new username, email and password and deliberately permits only Windows-authenticated `(localdb)\MSSQLLocalDB / PersonalFinanceDb`. Do not disable its target guard or import the owner's accounts.
+MVC is `https://localhost:62978`; API is `https://localhost:7027`. Use approved local
+testing storage and preserve existing credentials/certificates. Administrator
+creation remains a separate guarded interactive operation; see
+[the current provisioning guide](../Development_Admin_Provisioning.md).
 
 ## Android
 
@@ -63,9 +56,14 @@ Mock Demo is available for synthetic UI exploration; it does not establish a ser
 
 ## Hangfire
 
-Leave `Hangfire__Enabled=false` for ordinary setup. The active integration uses `FinanceJobs` and `HangfireSetup`: daily bill reminders at 07:00, hourly budget alerts, and monthly summaries on day 1 at 00:30, all Asia/Manila. Explicit activation requires a separate `OWLI_Hangfire` catalog on the finance SQL instance, `ConnectionStrings__Hangfire`, and the schema from the installed Hangfire.SqlServer package reviewed and installed into that disposable catalog. Automatic schema preparation is disabled. No dashboard endpoint is exposed. Starting the API with the flag true starts the worker and registers recurring jobs.
-
-The newer alternative `*AutomationJobs` / `HangfireJobRegistration` classes are preserved as source with their guarded SQL tests but are not registered alongside `FinanceJobs`; see [ISSUES.md](ISSUES.md) before choosing one implementation. Never enable both job families.
+The API does not host processors or recurring registration. `PersonalFinance.Worker`
+is the independent console host. Ordinary launch exits disabled. The explicit
+`DevelopmentTest` profile validates disposable SQL catalogs, certificate validation,
+compatible prepared schema and absence of another registered worker before starting.
+It never provisions storage. See [current startup](../DEVELOPER_SETUP.md) and
+[worker implementation](../worker-config/README.md#implementation-and-verification-r2).
+Operational storage activation requires separate approval; never enable the removed
+alternative job family or infer production readiness from local test evidence.
 
 ## Continue development
 

@@ -4,21 +4,16 @@ Roadmap milestone R0. Works on macOS, Linux and Windows against any approved SQL
 (the local container, a CI service container or Windows LocalDB). Never use these commands
 against `PersonalFinanceDb` or operational `OWLI_Hangfire`.
 
-## Private settings
+## Persistent private settings
 
-Keep runtime settings in `.local/runtime/runtime.env` (git-ignored, owner-only `600`). Derive
-the SQL connection from your own local configuration; never commit or share it.
+Use [the current development setup](../DEVELOPER_SETUP.md). All three executable
+projects have independent user-secret stores loaded by Development launch profiles.
+Ordinary API/MVC startup needs no exported configuration. Old `runtime.env` fixtures
+and private launchers remain local historical tooling, not the supported onboarding
+path. Do not enable a worker by setting shared/global environment variables.
 
-| Variable | Purpose |
-| --- | --- |
-| `ConnectionStrings__DefaultConnection` | Disposable runtime catalog `OWLI_Runtime_<yyyymmdd>` |
-| `Jwt__SigningKeyBase64` | Random 64 bytes, base64; generate per environment |
-| `ASPNETCORE_ENVIRONMENT`, `DOTNET_ENVIRONMENT` | `Development` |
-| `Hangfire__Enabled` | `false` for the API |
-| `BackendApi__BaseUrl` | `https://localhost:7027` (MVC → API) |
-| `OWLI_SQL_TEST_SERVER` | Connection to `master` for the SQL harness |
-
-Load it with `set -a; . .local/runtime/runtime.env; set +a` (bash/zsh).
+The optional `OWLI_SQL_TEST_SERVER` variable below is for explicitly authorized
+SQL integration runs only. Keep it absent for ordinary/offline verification.
 
 ## SQL integration harness
 
@@ -38,19 +33,16 @@ policy validators pinned to a historical LocalDB fixture; they do not connect to
 
 ## Disposable runtime catalog
 
-```bash
-dotnet ef database update --project PersonalFinance.Infrastructure \
-  --startup-project PersonalFinance.Api --connection "$ConnectionStrings__DefaultConnection"
-```
-
-EF creates the catalog if it is missing and applies all migrations. Use a new dated name
-for a clean run instead of resetting an existing catalog.
+Existing validated runtime catalogs are reused; startup never creates, resets or
+migrates them. Creating/applying migrations to a fresh catalog requires separate
+explicit authorization after verifying the local server and exact disposable
+target. Preserve operational finance/Hangfire storage and all existing records.
 
 ## Run the platform
 
 ```bash
-dotnet run --project PersonalFinance.Api --launch-profile https       # https://localhost:7027
-dotnet run --project PersonalFinance.AdminMvc --launch-profile https  # https://localhost:62978
+dotnet run --project PersonalFinance.Api       # https://localhost:7027
+dotnet run --project PersonalFinance.AdminMvc  # https://localhost:62978
 ```
 
 Android debug builds call `https://localhost:7027/`; on an emulator run
@@ -60,5 +52,5 @@ Android debug builds call `https://localhost:7027/`; on an emulator run
 
 `tools/PersonalFinance.AdminProvisioning` accepts Windows LocalDB `PersonalFinanceDb` (unchanged)
 or a disposable `OWLI_Runtime_*` catalog on any server. Run it interactively from the solution
-root with `DOTNET_ENVIRONMENT=Development` and the runtime settings loaded; the confirmation
+root with `DOTNET_ENVIRONMENT=Development` and the API user-secret settings configured; the confirmation
 phrase names the target catalog. See [admin provisioning](../Development_Admin_Provisioning.md).
