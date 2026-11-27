@@ -1,118 +1,110 @@
-# OWLI Phase 3 — Implementation and acceptance record
+# OWLI Phase 3–4 — Implementation, integration and acceptance record
 
-> Status: 26–27 November 2026 (Asia/Manila). Single-agent implementation of the approved
-> [Phase 2 roadmap](../plans/OWLI_Phase2_Roadmap.md). Every change is on a reviewed-PR branch from `dev`;
-> **no PR is merged**, because the required independent review is pending. Evidence labels:
-> PASS / FAIL / BLOCKED / NOT TESTED. An essential row that is not PASS remains **incomplete**.
+> Status: 27 November 2026 (Asia/Manila). Evidence labels: PASS / FAIL / BLOCKED / NOT TESTED.
+> An essential row that is not PASS remains **incomplete**. Nothing is merged into `main`.
 
-## Environment used for runtime evidence
+## Commits
 
-- Local SQL Server container: disposable `OWLI_Runtime_20261126` (all 5 migrations from empty) and
-  `OWLI_HangfireTests_runtime20261126`. The harnesses also used per-run `PersonalFinanceSqlTests_*` /
-  `OWLI_HangfireTests_*` catalogs, which were dropped afterwards. `PersonalFinanceDb` was never connected to.
-  Operational `OWLI_Hangfire` was read once, read-only, and was empty.
-- API (`https://localhost:7027`, Development) and MVC (`https://localhost:62978`) ran from a local, unpushed
-  branch that merges every PR branch.
-- Android 16 emulator (Google APIs image) with the ASP.NET development certificate as a user CA, plus
-  `adb reverse tcp:7027`. Device steps use the app's real auth and finance repositories
-  (`CrossClientRuntimeTest`, opt-in per step).
-- Rendered MVC: headless Chrome plus axe-core 4.10 (WCAG 2 A/AA) at 360/768/1280 px, dark and light themes.
-- Synthetic accounts only. No credentials, hosts or financial data are recorded here.
+| Item | Commit |
+| --- | --- |
+| `dev` head (PRs #4–#11 merged) | `0cb05e7` |
+| Combined review candidate (draft PR #19, **do not merge**) | `integration/phase3-candidate` at `4c74878` |
+| Independent-review gate | **Pending** for #12–#24. The owner chose to hold further merges for review |
 
-## Pull requests (all target `dev`; CI green unless noted; review pending)
+The candidate is `dev` plus the open PRs, joined only by merge commits (no duplicated implementation commits).
+Every result below was produced on the candidate unless stated otherwise.
 
-| PR | Milestone | Findings |
+## Pull requests
+
+| PR | Content | State |
 | --- | --- | --- |
-| #4 | R0 portable SQL harness, runtime catalog, portable admin provisioning, CI on `dev` + `sql` job | H5 (partial), L4, carry: provisioning |
-| #5 | R3a MVC registration accepts 201 | H6 |
-| #6 | R2 independent `PersonalFinance.Worker` (stacked on #4) | H1, M7, L5, L6 |
-| #7 | R3b Android registration | H2 |
-| #8 | R6 durable contribution/payment identities | M4, carry: contribution retry |
-| #9 | R7 C3 mark-read, C4 summaries, D5 budget deletion | H3, M1, M6 (server) |
-| #10 | R8 MVC inbox read state, snapshots, savings in overview (stacked on #9) | H3, M1, M2 (MVC) |
-| #11 | R10 MVC Manila dates | L2 (M9 deferred) |
-| #12 | R4+R5 single integration PR: C1 version token, C2 mismatch, Android delete/versioned edit, MVC versioned edit | M3, L1, H4 |
-| #13 | R11 Android build-time release endpoint, deployment notes | carry: release endpoint |
-| #14 | R8 Android inbox, snapshots, server report | H3, M1, M2 (Android) |
-| #15 | R9 typed goals/bills UI and strings (stacked on #8) | L3 |
-| #16 | Auth rate limit per user + MVC session-check reuse (defect found in R12) | new |
-| #17 | MVC WCAG AA contrast, 360 px overflow, ARIA (defects found in R12) | new (pre-existing) |
+| #4–#11 | R0, R2, R3a, R3b, R6, R7, R8 (MVC), R10 | merged in `dev` |
+| #12 | R4+R5 transaction contract (server + both clients) + SQL Server concurrency tests | open |
+| #13 | R11 Android release endpoint | open |
+| #14 | R8 Android inbox, snapshots, server report | open |
+| #15 | R9 goals/bills UI (+ Phase 4 message fix) | open |
+| #16 | Auth rate limit per user + MVC session-check reuse | open |
+| #17 | MVC WCAG AA contrast, 360 px overflow, ARIA | open |
+| #18 | This record | open |
+| #19 | Combined candidate (draft, do not merge) | review vehicle |
+| #20 | Root-cause fixes for the 4 failing Android instrumented tests | open (Phase 4) |
+| #21 | API: contribution dates on the Philippine calendar | open (Phase 4) |
+| #22 | MVC: Record payment only for a due bill occurrence | open (Phase 4) |
+| #23 | Android: offline banner category, stale profile name, misleading error, lost separators | open (Phase 4) |
+| #24 | Opt-in Android device runtime tests (cross-client steps + device UI flows) | open (stacked on #19) |
 
-**Merge order and known conflicts:**
-- Merge order: #4 → #6; #8 → #15; #9 → #10.
-- Expected small conflicts, all resolved in the local integration branch:
-  - `tests/PersonalFinance.AdminMvc.UiTests/Program.cs`: adjacent check registrations from #5/#11/#16; keep all.
-  - `android/.../MainActivity.kt` and `FinanceRepositories.kt`: #12/#8 vs #14; keep all constructor arguments.
-  - `android/.../res/values/strings.xml`: #7 vs #15; keep both blocks.
+**Integration order** (each step simulated on current `dev` with the real PR branches; every step merges cleanly):
+#12 → #13 → #14 → #15 → #16 → #17 → #20 → #21 → #22 → #23 → #18, then #24 last. Do not merge #19.
 
-## Finding resolution (source + evidence)
+- **#14:** carries a merge of #12 (`649d178`) that resolves `MainActivity.kt`/`FinanceRepositories.kt`. Its diff also shows #12 until #12 merges.
+- **#16:** `dev` merged (`a67509a`); the UiTests registration conflict is resolved by keeping all registrations.
+- **#15, #12:** already contain `dev`. The others need no change.
+- **#24:** it was cut from an early candidate commit. After its dependencies merge, merge `dev` into it, keeping `dev` for every file except its two runtime test files. Simulated: its diff against `dev` is then only `CrossClientRuntimeTest.kt` (+79/−4) and `DeviceUiRuntimeTest.kt` (+360).
+- **Equivalence with the tested candidate (`4c74878`):** the simulated merge of #12–#24 differs only in the order of four UiTests registrations, the position of the registration string block (the same 823 strings and 3 plurals with identical values), and stale duplicate wiki-log lines that only the candidate had. No other file differs, so no functionality is lost or duplicated.
 
-| ID | Resolution | Evidence |
+## Defects found and fixed in Phase 4
+
+| Defect | Found by | Fix |
 | --- | --- | --- |
-| H1 | API has no Hangfire; worker hosts processing | HangfireTests 13/13 (7 offline + 6 live); runtime A/B |
-| H2 | Android registration | device: register → MVC sign-in; duplicate → AlreadyRegistered |
-| H3 | Mark-read API + both inboxes | MVC→API (Android view) and Android→MVC read state, runtime |
-| H4 | Android delete | device delete → MVC no longer lists |
-| H5 | Portable runtime evidence established | this record; see incomplete rows |
-| H6 | MVC accepts 201 | reproduced (400 "unavailable") and fixed (302) at runtime |
-| M1 | C4 summaries consumed | worker snapshot visible in MVC Reports |
-| M2 | Android uses server report | Android = API = MVC to the cent (income, expenses, net, savings, budgets) |
-| M3 | C1 version token | stale MVC form 409 after Android edit; no lost update |
-| M4 | Durable identities | real outage → new process → same ClientId → one contribution |
-| M5 | Offline scope kept (D11) | — (decision) |
-| M6 | Budgets deletable after alerts (D5) | FinanceTests |
-| M7 | Worker DI without `ICurrentUser` | ValidateOnBuild test |
-| M8 | In-process MVC sessions kept (D12) | — (decision) |
-| M9 | Deferred, optional (all-time default matches Android; 100k cap) | — |
-| M10 | Admin scope unchanged pending D6 | admin pages verified |
-| L1 | C2 mismatch → 409 | runtime 201/200/409 |
-| L2 | Manila dates | regression check |
-| L3 | Typed goals/bills UI | unit tests only |
-| L4 | CI on `dev` + real SQL job | hosted `sql` job green |
-| L5/L6 | Competing jobs and `DevJobsController` removed | tests + 404 at runtime |
+| Contributions dated "today" rejected 00:00–08:00 Manila (API used the UTC date; both clients default to the Manila date) | browser + device runs at 07:00 Manila | #21 (Philippine calendar, the same rule as bill payments) |
+| MVC offered Record payment for future bills and then showed a misleading "conflict" message | browser run | #22 |
+| Android offline banner showed "#8" instead of the category | device UI run | #23 |
+| Android Account kept the old name after "Profile saved." | device UI run | #23 |
+| Android plan write rejection said "The current password may be incorrect" | device UI run | #23, #15 |
+| Lost "·" separators in offline history ("Offline ? On-device history") | device UI run | #23 |
+| 4 failing Android instrumented tests: keyboard covering the category button, non-unique text matches, a pre-FX label | investigation (none was a product defect) | #20 |
 
-## Academic requirements and parity checklist (roadmap §5)
+The Phase 3 R12 defects (shared MVC auth rate limit; WCAG/overflow) are fixed in #16 and #17.
 
-| # | Requirement | Status | Evidence / gap |
+## Regression results on the candidate (`4c74878`)
+
+| Suite | Result |
+| --- | --- |
+| .NET solution build | PASS |
+| FinanceTests | 440/440 |
+| AuthenticationTests | 30/30 |
+| ApiSecurityTests | 34/34 |
+| CategoryUniquenessTests | 15/15 |
+| SchemaValidation | 65/65 |
+| AdminProvisioningTests | 40/40 |
+| AdminMvc.UiTests | exit 0 |
+| SqlIntegrationTests (real SQL Server; 5 offline + 11 live) | 16/16 |
+| HangfireTests (real SQL Server; 7 offline + 6 live) | 13/13 |
+| Android unit (debug / release) | 656 / 662, 0 failures |
+| Android instrumented, full suite, emulator | 195 run, 0 failures, 15 skipped (opt-in runtime steps) |
+| Android device UI runtime test (#24, opt-in) | 5/5 PASS, two consecutive runs |
+| Android cross-client runtime steps (opt-in) | PASS, see rows 1, 5, 7, 8 and 11 |
+| Hosted CI (#12, #18, #20, #21; dotnet + android + sql) | green |
+
+## Runtime acceptance evidence
+
+Environment: local SQL Server container, disposable `OWLI_Runtime_20261126` and `OWLI_HangfireTests_runtime20261126`;
+API and MVC from the candidate; Android 16 emulator using the debug build against the same API; synthetic accounts only.
+`PersonalFinanceDb` was never connected to. Operational `OWLI_Hangfire` was read only.
+
+| # | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | Register, login, refresh, logout, profile, password | **Incomplete** | Registration both directions and login PASS (runtime). Profile/password change NOT TESTED at runtime (offline suites pass) |
-| 2 | Transactions CRUD with FX snapshot | PASS | Cross-client create/edit/conflict/delete; USD expense stored the live Frankfurter snapshot (rate, date, base amount). SQL concurrent PUT race NOT TESTED (conflict proven) |
-| 3 | Member categories + admin defaults | PASS | API/MVC; system default 201 admin / 403 member |
-| 4 | Budgets + threshold alerts | PASS | Worker alert visible in MVC and via API |
-| 5 | Savings goals + contributions | **Incomplete** | Durable retry PASS on device; MVC shows goal. Android goals UI (R9) not rendered on a device |
-| 6 | Recurring bills + payments | **Incomplete** | SQL: concurrent payments for one occurrence → one receipt. Worker reminders PASS. MVC/Android bill flows NOT TESTED at runtime |
-| 7 | Monthly report identical across clients | PASS | Same cent on all values |
-| 8 | Notifications with shared read state | PASS | Both directions at runtime |
-| 9 | Stored monthly summaries readable | **Incomplete** | MVC PASS. Android snapshot section not rendered on a device |
-| 10 | Currency preferences + Frankfurter, 503 handling | **Incomplete** | Live quote/snapshot PASS. Unavailable-rate handling offline tests only |
-| 11 | Android offline create, pending/confirmed, no duplicates | **Incomplete** | Unit tests only; airplane-mode device run NOT TESTED |
-| 12 | Separate worker, API processor-free, Manila schedules, retry/restart safety | PASS | Wall-clock firing and operational cutover NOT TESTED (cutover not approved) |
-| 13 | Admin features preserved; portable provisioning | **Incomplete** | Admin pages and role checks PASS. Interactive provisioning run NOT TESTED. D6 pending |
-| 14 | Responsive, accessible, consistent branding | **Incomplete** | MVC: 12 pages × 3 widths × 2 themes, 0 overflow, 0 axe A/AA violations (after #17). Android: 186/190 instrumented UI tests pass; the 4 failures also fail (3) or flake (1) on unmodified `dev`. Screen reader/TalkBack NOT TESTED |
-| 15 | Ownership isolation | PASS | SQL harness (real SQL) + offline suites |
-| 16 | Android release endpoint configurable | PASS | Build-time property; invalid value fails the build |
+| 1 | Register, login, renewal, logout, profile, password | **PASS** | Registration both ways (MVC form ↔ Android). API refresh rotates and a replayed token gets 401; logout revokes the refresh token. MVC profile rename is visible through Android's contract. Android profile save shows the new name after #23. MVC password change revokes old tokens (security stamp) and sign-in with the new password works. MVC and Android logout return to sign-in |
+| 2 | Transactions CRUD + FX snapshot | **PASS** | Cross-client create/edit/conflict/delete. USD expense with a live Frankfurter snapshot. SQL Server: concurrent same-version edits always produce one 200 + one 409 with no lost update (5 rounds); edit-vs-delete race and a rejected locked write leave no partial change |
+| 3 | Member categories + admin defaults | **PASS** | API/MVC; system default 201 for admin / 403 for member |
+| 4 | Budgets + threshold alerts | **PASS** | Worker alert visible in MVC and Android |
+| 5 | Savings goals + contributions | **PASS** | Android UI: goal, contribution with the default date (07:22 Manila), progress updates. MVC browser: goal, contribution with the default date (07:20 Manila, after #21). Durable retry after a real outage gives one contribution |
+| 6 | Recurring bills + payments | **PASS** | Android UI: bill, payment, next due date advances. MVC browser: due bill paid (one receipt + one transaction); a future bill shows "Payment opens on …" (#22). SQL: concurrent payments → one receipt |
+| 7 | Report identical across clients | **PASS** | Android = API = MVC to the cent, including savings and budgets |
+| 8 | Notifications + read state | **PASS** | Both directions |
+| 9 | Stored summaries | **PASS (MVC) / partial (Android)** | Worker snapshot in MVC; the Android snapshot section is covered by unit tests only, and its device rendering was not exercised |
+| 10 | Currency + Frankfurter | **PASS / partial** | Live quote and snapshot PASS; unavailable-rate (503) handling is offline tests only |
+| 11 | Android offline create, pending, sync, no duplicates | **PASS** | Device UI: offline save → "1 waiting to sync" with the category name → reconnect → auto-sync → one confirmed row. A second sync attempt makes no copy. SQL: each of 7 offline expenses stored exactly once |
+| 12 | Worker lifecycle, schedules, retry, API isolation | **PASS** | HangfireTests live (retry after forced failure, dedupe, stop/restart, no processing without the worker). API has 0 Hangfire servers. At startup the worker ran the missed 07:00 Manila daily reminder and hourly alert on its own and created a correct "due in 2 days" reminder. Then, with no manual trigger, the hourly schedule created job 9 at **00:00:00.86 UTC (08:00 Manila)** and it succeeded (next run 01:00 UTC). The worker was stopped with SIGTERM and deregistered |
+| 13 | Admin provisioning + role-based access | **PASS** | Interactive provisioning (pseudo-terminal) on `OWLI_Runtime_*`: catalog-specific confirmation, User + Administrator roles, admin pages 200; a rerun for the same email is refused. Members are redirected to Access Denied. D6 (cross-user scope) is still an owner decision |
+| 14 | Responsive, accessible, keyboard, screen reader, TalkBack | **Incomplete** | MVC: 12 pages × 3 widths × 2 themes, 0 overflow, 0 axe A/AA violations (#17). Keyboard-only sign-in; every control reachable by Tab with visible focus. Android: every clickable node on 8 screens has an accessible name. **NOT TESTED:** a real screen reader (VoiceOver/NVDA) and TalkBack spoken navigation |
+| 15 | Ownership isolation | **PASS** | SQL harness + API/MVC role checks |
+| 16 | Android release endpoint | **PASS** | Build-time property; an invalid value fails the build |
 | 16a | Live deployment | **BLOCKED** | D10: host, certificates and secrets not supplied |
-| 17 | MVC Manila dates / dashboard paging | PASS / deferred | L2 PASS; M9 optional |
+| 17 | MVC Manila dates | PASS | M9 paging remains optional |
 
-## Automated suites (combined branch)
+## Remaining blockers
 
-.NET: Finance 440, Authentication 30, ApiSecurity 34, CategoryUniqueness 15, SchemaValidation 65,
-AdminProvisioning 40, MVC UiTests (exit 0), SqlIntegration 13 (5 offline + 8 live), Hangfire 13 (7 offline + 6 live) — all PASS.
-Android: 626 debug / 632 release unit tests PASS. Instrumented: 190 run, 186 PASS, 4 pre-existing failures,
-10 skipped (opt-in runtime steps).
-
-## Remaining work and blockers
-
-- **Review:** independent review of PRs #4–#17 is pending. No PR may merge until then.
-- **Owner decisions:** D6 (administrator cross-user scope) and D10 (live deployment host and credentials).
-- **NOT TESTED:**
-  - Android Compose UI for the new screens on a device (inbox, snapshots, goals/bills, delete).
-  - Android offline airplane-mode flow.
-  - Profile and password changes at runtime.
-  - Bill flows from both clients at runtime.
-  - Screen readers.
-  - SQL-level concurrent PUT race.
-  - Wall-clock job firing.
-  - Operational `OWLI_Hangfire` cutover.
-  - Signed release APK and live deployment.
-- **Pre-existing Android UI test failures (4):** recorded for follow-up; not caused by Phase 3.
+- Independent review of #12–#24, then merges in the order above and a re-run of these suites on the merged `dev` head.
+- D6 and D10 owner decisions; live deployment (16a) stays BLOCKED.
+- NOT TESTED: real screen reader and TalkBack navigation; Android snapshot section rendering on a device; FX-unavailable handling at runtime.

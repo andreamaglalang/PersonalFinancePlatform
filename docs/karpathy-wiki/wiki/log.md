@@ -66,3 +66,8 @@
 ## [2026-11-26] update | R2 independent worker
 - Updated: OWLI architecture and worker decision
 - API Hangfire hosting and DevJobsController removed; PersonalFinance.Worker implemented; HangfireTests 13/13 (7 offline + 6 live) on disposable catalogs. Operational cutover not approved.
+
+## [2026-11-27] update | Phase 4 integration and runtime acceptance
+- Disposition: Update
+- Updated: OWLI verification limits and architectural decisions
+- Candidate #19 (4c74878) verified; Phase 4 defects fixed in #20-#23; scheduled hourly job fired at 08:00 Manila; ordered PR merge simulation reproduces the candidate. Merges await independent review; D6/D10 pending.
