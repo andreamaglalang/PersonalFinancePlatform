@@ -100,11 +100,23 @@ API and MVC from the candidate; Android 16 emulator using the debug build agains
 | 14 | Responsive, accessible, keyboard, screen reader, TalkBack | **Incomplete** | MVC: 12 pages × 3 widths × 2 themes, 0 overflow, 0 axe A/AA violations (#17). Keyboard-only sign-in; every control reachable by Tab with visible focus. Android: every clickable node on 8 screens has an accessible name. **NOT TESTED:** a real screen reader (VoiceOver/NVDA) and TalkBack spoken navigation |
 | 15 | Ownership isolation | **PASS** | SQL harness + API/MVC role checks |
 | 16 | Android release endpoint | **PASS** | Build-time property; an invalid value fails the build |
-| 16a | Live deployment | **BLOCKED** | D10: host, certificates and secrets not supplied |
+| 16a | Production deployment | **Out of scope (deployment team)** | D10: the external deployment team deploys through its existing Cloudflare setup using [the handoff guide](../../deployment/README.md). Not verified by this team; production status is reported separately |
 | 17 | MVC Manila dates | PASS | M9 paging remains optional |
+
+## Phase 5: release readiness and deployment handoff
+
+Two separate statuses:
+
+| Status | Result |
+| --- | --- |
+| Local release readiness | Candidate verified (sections above). Publish of API, MVC and worker is verified; no forbidden files in the output; the published worker starts disabled (exit 0). The secrets scan of `dev` and the candidate found no passwords, tokens, keys or private configuration. **Final `dev` commit: recorded after the reviewed merges** |
+| Production deployment | **Not performed by this team.** Owned by the external deployment team (D10); it is not claimed as verified here |
+
+Handoff: [deployment/README.md](../../deployment/README.md) covers software, pulling `dev`, configuration, backup and migration rehearsal, publish, API/MVC startup, worker supervision, `OWLI_Hangfire` preparation and controlled activation, Cloudflare, Android signing, verification and rollback (PR #25).
 
 ## Remaining blockers
 
 - Independent review of #12–#24, then merges in the order above and a re-run of these suites on the merged `dev` head.
-- D6 and D10 owner decisions; live deployment (16a) stays BLOCKED.
+- D6 owner decision (administrator cross-user scope).
+- Production deployment belongs to the external deployment team (D10). Local release readiness does not imply production readiness, and production runtime verification is NOT TESTED by this team.
 - NOT TESTED: real screen reader and TalkBack navigation; Android snapshot section rendering on a device; FX-unavailable handling at runtime.
