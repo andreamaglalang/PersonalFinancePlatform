@@ -388,6 +388,10 @@ class DeviceUiRuntimeTest {
         waitFor(name)
         compose.onNode(name).performTextReplacement("Validation Member")
         compose.onNode(email).performTextReplacement("validation.$runId@example.test")
+        // Before the password field is used: a one-line hint, no checklist rows; both password fields offer Show/Hide.
+        compose.onNode(hasText(text(R.string.password_rules_hint))).assertExists()
+        assertTrue(!exists(hasContentDescription(text(R.string.password_rule_state_needed, text(R.string.password_rule_upper)))))
+        assertEquals(2, compose.onAllNodes(hasContentDescription(text(R.string.auth_show_password))).fetchSemanticsNodes().size)
         compose.onNode(password).performTextReplacement("abcdefghijk1")
         compose.onNode(hasContentDescription(text(R.string.password_rule_state_needed, text(R.string.password_rule_upper)))).assertExists()
         compose.onNode(hasContentDescription(text(R.string.password_rule_state_done, text(R.string.password_rule_lower)))).assertExists()
