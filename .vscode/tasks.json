@@ -1,0 +1,102 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "OWLI: Build",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "PersonalFinancePlatform.slnx"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "OWLI: API",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "PersonalFinance.Api"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "OWLI: MVC",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "PersonalFinance.AdminMvc"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "OWLI: Worker disabled check",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "PersonalFinance.Worker"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "OWLI: Test worker (validated disposable storage)",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "PersonalFinance.Worker",
+        "--launch-profile",
+        "DevelopmentTest"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "OWLI: Android API reverse",
+      "type": "process",
+      "command": "adb",
+      "args": [
+        "reverse",
+        "tcp:7027",
+        "tcp:7027"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

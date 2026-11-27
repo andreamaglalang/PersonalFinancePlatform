@@ -115,6 +115,29 @@ await Sync("Worker refuses operational finance with disposable Hangfire storage"
     Assert(threw, "accepted");
 });
 
+await Sync("Development test profile rejects operational storage and SQL certificate bypasses without connecting", () =>
+{
+    const string server = "Server=sql.example.test;User ID=fixture;Password=fixture;";
+    DevelopmentStorageValidation.ValidateConfiguration(Config(server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local"));
+    foreach (var (finance, jobs) in new[]
+    {
+        (server + "Database=PersonalFinanceDb", server + "Database=OWLI_Hangfire"),
+        (server + "Database=PersonalFinanceDb", server + "Database=OWLI_HangfireTests_local"),
+        (server + "Database=OWLI_Runtime_local;TrustServerCertificate=True", server + "Database=OWLI_HangfireTests_local"),
+        (server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local;TrustServerCertificate=True"),
+        (server + "Database=OWLI_Runtime_local;Encrypt=False", server + "Database=OWLI_HangfireTests_local"),
+        (server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local;Encrypt=False"),
+        (server + "Database=OWLI_Runtime_local;AttachDbFilename=fixture.mdf", server + "Database=OWLI_HangfireTests_local"),
+        (server + "Database=OWLI_Runtime_local", server + "Database=OWLI_HangfireTests_local;AttachDbFilename=fixture.mdf"),
+    })
+    {
+        var refused = false;
+        try { DevelopmentStorageValidation.ValidateConfiguration(Config(finance, jobs)); }
+        catch (InvalidOperationException) { refused = true; }
+        Assert(refused, "development profile accepted operational storage or an unvalidated SQL connection");
+    }
+});
+
 // ---------------- Live: independent worker lifecycle against disposable catalogs ----------------
 var server = Environment.GetEnvironmentVariable("OWLI_SQL_TEST_SERVER");
 if (string.IsNullOrWhiteSpace(server))

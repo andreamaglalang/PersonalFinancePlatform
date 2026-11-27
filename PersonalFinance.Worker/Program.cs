@@ -25,6 +25,22 @@ if (!HangfireSetup.IsEnabled(builder.Configuration))
     return 0;
 }
 
+if (builder.Configuration.GetValue<bool>("Development:TestStorageOnly"))
+{
+    if (!builder.Environment.IsDevelopment())
+    {
+        log.LogError("The test-storage launch profile requires Development.");
+        return 2;
+    }
+    try { await DevelopmentStorageValidation.ValidateAsync(builder.Configuration); }
+    catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or Microsoft.Data.SqlClient.SqlException)
+    {
+        // SQL/connection-parser messages can contain private configuration. Keep diagnostics bounded.
+        log.LogError("Development worker storage validation failed ({Type}). Verify the approved test catalogs, schema, TLS and absence of another worker.", exception.GetType().Name);
+        return 2;
+    }
+}
+
 try
 {
     builder.Services.AddFinanceWorker(builder.Configuration);

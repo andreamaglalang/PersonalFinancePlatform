@@ -92,9 +92,12 @@ test, coordinate contracts and maintain knowledge. This is flexible ownership,
 not exclusive capabilities. Agree on shared-file ownership before concurrent
 work; use separate worktrees and task branches from synchronized `dev`.
 
-The approved target is a separate `PersonalFinance.Worker` .NET console host,
-initially reusing `FinanceJobs`, stable recurring IDs and Manila schedules.
-See [worker preparation](docs/worker-config/README.md). It is not implemented.
+The implemented `PersonalFinance.Worker` is a separate .NET console host using
+`FinanceJobs`, stable recurring IDs and Manila schedules. The API has no processing
+server. See [worker documentation](docs/worker-config/README.md) and
+[current local setup](docs/DEVELOPER_SETUP.md). Default development worker startup
+is disabled; the explicit test profile validates disposable storage first.
 Do not change API hosting/DevJobsController, start processors, register jobs,
 run finance migrations or generate the implementation roadmap during Phase 0.
-The current setup PR requires final review/approval before merge into `dev`.
+Current runtime/onboarding corrections require a reviewed task PR into `dev`.
+Operational activation and migrations require explicit verified-target approval.

@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "Development": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Hangfire__Enabled": "false"
+      }
+    },
+    "DevelopmentTest": {
+      "commandName": "Project",
+      "commandLineArgs": "--Development:TestStorageOnly=true --Hangfire:Enabled=true",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
