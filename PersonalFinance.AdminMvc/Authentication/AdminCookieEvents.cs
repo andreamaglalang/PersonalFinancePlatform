@@ -8,6 +8,7 @@ namespace PersonalFinance.AdminMvc.Authentication;
 public sealed class AdminCookieEvents(AuthenticationCoordinator coordinator) : CookieAuthenticationEvents
 {
     public const string FailureItem = "owli:auth-failure";
+    public const string SessionCookie = "__Host-OWLI.Admin";
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
@@ -42,6 +43,11 @@ public sealed class AdminCookieEvents(AuthenticationCoordinator coordinator) : C
         else if (context.HttpContext.Items[FailureItem] is ApiFailure failure
             && failure is not ApiFailure.Unauthorized)
             context.Response.Redirect("/Account/Login?unavailable=true");
+        // A sign-in cookie that no longer maps to a live session (revoked, timed out, or the site restarted) means
+        // the session expired; a visitor without the cookie simply hasn't signed in yet.
+        else if (context.HttpContext.Items[FailureItem] is ApiFailure.Unauthorized
+            || context.Request.Cookies.ContainsKey(SessionCookie))
+            context.Response.Redirect(Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(context.RedirectUri, "expired", "true"));
         else context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     }

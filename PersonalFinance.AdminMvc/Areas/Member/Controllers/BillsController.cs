@@ -87,7 +87,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             TempData["BillNotice"] = "Bill created.";
             return RedirectToAction(nameof(Index));
         }
-        return WriteError(result.Status, model);
+        return WriteError(result.Status, model, reason: result.Message);
     }
 
     [HttpGet]
@@ -103,7 +103,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         var bill = result.Value!;
         ViewData["BillId"] = bill.BillId;
         var loaded = await LoadExpenseCategoriesAsync(token!, ct, bill.CategoryId);
@@ -143,7 +143,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded) return RedirectToIndex(current.Status);
+        if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
         var loaded = await LoadExpenseCategoriesAsync(token!, ct, current.Value!.CategoryId);
         if (loaded.Status == 401)
         {
@@ -163,7 +163,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             TempData["BillNotice"] = "Bill saved.";
             return RedirectToAction(nameof(Index));
         }
-        return WriteError(result.Status, model);
+        return WriteError(result.Status, model, reason: result.Message);
     }
 
     [HttpGet]
@@ -173,7 +173,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
         if (status == 401) return RedirectToAction("Login", "Account");
         var result = await bills.GetAsync(id, token!, ct);
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         return View(result.Value);
     }
 
@@ -190,7 +190,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             TempData["BillNotice"] = "Bill deleted.";
             return RedirectToAction(nameof(Index));
         }
-        return RedirectToIndex(result.Status, mutation: true);
+        return RedirectToIndex(result.Status, mutation: true, reason: result.Message);
     }
 
     [HttpGet]
@@ -200,7 +200,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
         if (status == 401) return RedirectToAction("Login", "Account");
         var result = await bills.GetAsync(id, token!, ct);
-        if (!result.Succeeded) return RedirectToIndex(result.Status);
+        if (!result.Succeeded) return RedirectToIndex(result.Status, reason: result.Message);
         // The API only accepts payment for an occurrence that is due (Philippine calendar); don't offer an early payment.
         if (result.Value!.NextDueDate > BudgetPlanSummary.PhilippineToday)
         {
@@ -224,7 +224,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        if (!current.Succeeded) return RedirectToIndex(current.Status);
+        if (!current.Succeeded) return RedirectToIndex(current.Status, reason: current.Message);
         // A fresh ClientId per submission: the server replays the retained receipt instead of paying twice.
         var result = await bills.PayAsync(id, new(Guid.NewGuid(), current.Value!.NextDueDate), token!, ct);
         if (result.Succeeded)
@@ -232,13 +232,13 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             TempData["BillNotice"] = "Payment recorded.";
             return RedirectToAction(nameof(Index));
         }
-        return RedirectToIndex(result.Status, mutation: true);
+        return RedirectToIndex(result.Status, mutation: true, reason: result.Message);
     }
 
-    private IActionResult WriteError<T>(int status, T model)
+    private IActionResult WriteError<T>(int status, T model, string? reason = null)
     {
         Response.StatusCode = status is 400 or 404 or 409 or 429 ? status : 503;
-        ModelState.AddModelError(string.Empty, MemberSessionGate.Message(status, mutation: true));
+        ModelState.AddModelError(string.Empty, MemberSessionGate.Message(status, true, reason));
         return View(nameof(Create), model);
     }
 
@@ -267,7 +267,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
         return (available, 200);
     }
 
-    private IActionResult RedirectToIndex(int status, bool mutation = false)
+    private IActionResult RedirectToIndex(int status, bool mutation = false, string? reason = null)
     {
         if (status == 401)
         {
@@ -275,7 +275,7 @@ public sealed class BillsController(RecurringBillApiClient bills, ICategoryApiCl
             return RedirectToAction("Login", "Account");
         }
         Response.StatusCode = status is 400 or 404 or 409 or 429 ? status : 503;
-        TempData["BillError"] = MemberSessionGate.Message(status, mutation);
+        TempData["BillError"] = MemberSessionGate.Message(status, mutation, reason);
         return RedirectToAction(nameof(Index));
     }
 }

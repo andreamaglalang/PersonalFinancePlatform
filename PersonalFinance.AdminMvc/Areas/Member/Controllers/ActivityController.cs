@@ -212,7 +212,7 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
                 return RedirectToAction("Login", "Account", new { area = "" });
             }
             Response.StatusCode = result.Status is 400 or 404 or 409 or 429 ? result.Status : 503;
-            ModelState.AddModelError(string.Empty, MemberSessionGate.Message(result.Status, mutation: true));
+            ModelState.AddModelError(string.Empty, MemberSessionGate.Message(result.Status, true, result.Message));
         }
         else Response.StatusCode = 400;
         return View(model);
@@ -379,7 +379,7 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
             Response.StatusCode = result.Status is 400 or 404 or 409 or 429 ? result.Status : 503;
             ModelState.AddModelError(string.Empty, result.Status == 409
                 ? "This transaction was changed elsewhere, for example in the OWLI app. Reload it to see the latest version before saving your edit."
-                : MemberSessionGate.Message(result.Status, mutation: true));
+                : MemberSessionGate.Message(result.Status, true, result.Message));
         }
         else Response.StatusCode = 400;
         return View("Create", model);
@@ -432,7 +432,7 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
             return RedirectToAction("Login", "Account", new { area = "" });
         }
         // Redirect rather than re-render so a retried POST cannot delete twice.
-        TempData["ActivityError"] = MemberSessionGate.Message(result.Status, mutation: true);
+        TempData["ActivityError"] = MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Index));
     }
 

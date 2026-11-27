@@ -46,7 +46,7 @@ internal static class AccountRenderChecks
         var profile=await Render("Profile",model);
         Check(profile.Contains("SaveProfile") && profile.Contains("id=\"profile-email\"") && profile.Contains("readonly") && profile.Contains("Back to Account"),"Profile editing uses a dedicated form with read-only email and return navigation.");
         var password=await Render("Password",model);
-        Check(password.Contains("ChangePassword") && Regex.Matches(password,"data-account-password-toggle=").Count==3 && password.Contains("four distinct characters") && password.Contains("signs out active sessions"),"Password editor has all visibility controls, real policy and session disclosure.");
+        Check(password.Contains("ChangePassword") && Regex.Matches(password,"data-account-password-toggle=").Count==3 && password.Contains("data-password-rules=\"password-policy\"") && password.Contains("At least 4 different characters") && password.Contains("signs out active sessions"),"Password editor has all visibility controls, real policy and session disclosure.");
         var appearance=await Render("Appearance",model);
         Check(Regex.Matches(appearance,"data-theme-choice=").Count==3&&appearance.Contains("does not sync across devices"),"Appearance reuses all three browser-local preferences.");
         var about=await Render("About",model);Check(about.Contains("Your Wise Money Companion")&&!about.Contains("Build identifier"),"About stays concise without technical build information.");

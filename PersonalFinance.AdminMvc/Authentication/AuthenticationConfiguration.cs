@@ -15,7 +15,7 @@ public static class AuthenticationConfiguration
         services.AddAuthentication(AdminSessionStore.Scheme)
             .AddCookie(AdminSessionStore.Scheme, options =>
             {
-                options.Cookie.Name = "__Host-OWLI.Admin";
+                options.Cookie.Name = AdminCookieEvents.SessionCookie;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;

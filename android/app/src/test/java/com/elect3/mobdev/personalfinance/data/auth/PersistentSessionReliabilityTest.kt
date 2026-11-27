@@ -150,6 +150,16 @@ class PersistentSessionReliabilityTest {
         assertEquals(FinanceFailure.Unavailable,(result as FinanceResult.Failure).reason);assertEquals(1,writes);assertEquals(1,f.refreshCalls)
         assertTrue(f.repository.hasActiveSession())
     }
+    /** Validation feedback: a definitive rejection carries the reviewed reason; unknown or uncertain ones carry none. */
+    @Test fun rejectedWritesCarryOnlyReviewedReasons() = runTest {
+        val f=Fixture();f.login()
+        suspend fun reply(status:Int,body:String)=FinanceWriter(f.repository,FinanceWriteEngine{FinanceHttpResponse(status,body)})
+            .send(WriteMethod.POST,java.net.URL("https://localhost:7027/api/budgets"),"{}",setOf(201)){it} as FinanceResult.Failure
+        val duplicate=reply(409,"""{"title":"A budget already exists for this category and month.","status":409}""")
+        assertEquals(FinanceFailure.Conflict,duplicate.reason);assertEquals("A budget already exists for this category and month.",duplicate.message)
+        assertNull(reply(400,"""{"title":"System.InvalidOperationException at Finance.Budget"}""").message)
+        assertNull(reply(503,"""{"title":"A budget already exists for this category and month."}""").message)
+    }
     @Test fun certificateFailureBeforeDispatchDoesNotBecomeSessionExpired() = runTest {
         val f=Fixture();f.login();f.clock.now=now.plusSeconds(901)
         f.response={ApiResult.Failure(AuthFailure.SecureConnection,RequestDelivery.NotSent)}

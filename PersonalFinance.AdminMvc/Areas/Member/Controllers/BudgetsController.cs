@@ -112,7 +112,7 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
                 return RedirectToAction("Login", "Account");
             }
             Response.StatusCode = result.Status is 400 or 404 or 409 or 429 ? result.Status : 503;
-            ModelState.AddModelError(string.Empty, MemberSessionGate.Message(result.Status, mutation: true));
+            ModelState.AddModelError(string.Empty, MemberSessionGate.Message(result.Status, true, result.Message));
         }
         else Response.StatusCode = 400;
         return await CreateViewAsync(model, token!, ct);
@@ -167,7 +167,7 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
                 return RedirectToAction("Login", "Account");
             }
             // Redirect rather than re-render so a retried POST cannot apply the change twice.
-            TempData["BudgetError"] = MemberSessionGate.Message(result.Status, mutation: true);
+            TempData["BudgetError"] = MemberSessionGate.Message(result.Status, true, result.Message);
             return RedirectToAction(nameof(Index));
         }
 
@@ -216,7 +216,7 @@ public sealed class BudgetsController(BudgetApiClient budgets, ICategoryApiClien
             await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
             return RedirectToAction("Login", "Account");
         }
-        TempData["BudgetError"] = MemberSessionGate.Message(result.Status, mutation: true);
+        TempData["BudgetError"] = MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Index));
     }
 

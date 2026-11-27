@@ -36,6 +36,18 @@ import java.util.UUID
 /** Reads a field of a persisted request body (never a server record; those are parsed into typed models). */
 internal fun JsonObject.text(key: String): String = get(key)?.takeUnless { it.isJsonNull }?.asString.orEmpty()
 internal fun positiveAmount(value: String): BigDecimal? = value.toBigDecimalOrNull()?.takeIf { it.signum() > 0 && it.scale() <= 2 && it.precision() <= 18 }
+/** Which amount rule a typed value breaks (the server's wording), or null when [positiveAmount] accepts it. */
+@androidx.annotation.StringRes internal fun amountProblem(value: String): Int? {
+    val text = value.trim()
+    if (text.isEmpty()) return R.string.amount_error_empty
+    val amount = text.toBigDecimalOrNull() ?: return R.string.amount_error_number
+    return when {
+        amount.signum() <= 0 -> R.string.amount_error_positive
+        amount.scale() > 2 -> R.string.amount_error_decimals
+        amount.precision() > 18 || amount > BigDecimal("9999999999999999.99") -> R.string.amount_error_large
+        else -> null
+    }
+}
 internal fun validPlanDate(value: String): Boolean = runCatching { LocalDate.parse(value).year in 1..9999 }.getOrDefault(false)
 private fun displayDate(date: LocalDate): String = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 private fun displayDate(iso: String): String = runCatching { displayDate(LocalDate.parse(iso)) }.getOrDefault(iso)
@@ -191,7 +203,7 @@ fun LivePlanSection(live: LiveAccountPlanRepository, bills: Boolean, categories:
                         } else res.getString(R.string.plan_saved)
                         reload()
                     }
-                    is FinanceResult.Failure -> { unknown = if (operation == PlanAction.Pay) result.reason !in definitiveRejections else result.reason in uncertainFailures; message = res.getString(planFailureMessage(result.reason, true)) }
+                    is FinanceResult.Failure -> { unknown = if (operation == PlanAction.Pay) result.reason !in definitiveRejections else result.reason in uncertainFailures; message = planFailureText(res, result, true) }
                 }
                 busy = false
             } }) { Text(stringResource(if (unknown) R.string.bill_check_same_payment else R.string.plan_confirm)) } })
@@ -217,6 +229,8 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
     var busy by remember { mutableStateOf(false) }
     var unknown by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Int?>(null) }
+    var detail by remember { mutableStateOf<String?>(null) } // Specific reasons; shown instead of [error].
+    val res = LocalContext.current.resources
     LaunchedEffect(categories, categoryPage) {
         if (bills && categories != null) {
             busy = true
@@ -246,12 +260,22 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
                 OutlinedTextField(reminder, { reminder = it }, enabled = editable, label = { Text(stringResource(R.string.bill_field_reminder)) })
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(active, { active = it }, enabled = editable); Text(stringResource(R.string.bill_field_active)) }
             }
-            error?.let { PlanMessage(stringResource(it), error = true) }
+            (detail ?: error?.let { stringResource(it) })?.let { PlanMessage(it, error = true) }
         } }, dismissButton = { TextButton(enabled = !busy, onClick = onClose) { Text(stringResource(R.string.plan_close)) } },
         confirmButton = { Button(enabled = editable, onClick = {
             val decimal = positiveAmount(amount)
-            if (name.trim().isEmpty() || name.any(Char::isISOControl) || decimal == null || ((!bills || record == null) && date.isNotEmpty() && !validPlanDate(date)) ||
-                (bills && (categoryId == null || !currency.matches(Regex("[A-Z]{3}")) || reminder.toIntOrNull() !in 0..30 || (record == null && date.isEmpty())))) error = R.string.plan_editor_invalid
+            // Every problem at once, each named specifically.
+            val problems = buildList {
+                if (name.trim().isEmpty() || name.any(Char::isISOControl)) add(R.string.plan_error_name)
+                amountProblem(amount)?.let(::add)
+                if ((!bills || record == null) && date.isNotEmpty() && !validPlanDate(date)) add(R.string.plan_error_date)
+                if (bills && categoryId == null) add(R.string.bill_error_category)
+                if (bills && !currency.matches(Regex("[A-Z]{3}"))) add(R.string.bill_error_currency)
+                if (bills && reminder.toIntOrNull() !in 0..30) add(R.string.bill_error_reminder)
+                if (bills && record == null && date.isEmpty()) add(R.string.plan_error_first_due)
+            }
+            error = null; detail = null
+            if (problems.isNotEmpty() || decimal == null) detail = problems.joinToString(" ") { res.getString(it) }.ifEmpty { res.getString(R.string.plan_editor_invalid) }
             else scope.launch {
                 busy = true
                 val body = if (bills) fields("name" to name.trim(), "amount" to decimal, "categoryId" to categoryId, "currencyCode" to currency, "reminderDaysBefore" to reminder.toInt(), "isActive" to active).apply {
@@ -260,7 +284,7 @@ private fun LivePlanEditor(live: LiveAccountPlanRepository, bills: Boolean, reco
                 val path = (if (bills) "recurring-bills" else "savings-goals") + (record?.let { "/${it.id}" } ?: "")
                 when(val result = live.save(path, body, update = record != null, version = goal?.version)) {
                     is FinanceResult.Success -> onSaved()
-                    is FinanceResult.Failure -> { error = planFailureMessage(result.reason, true); unknown = result.reason in uncertainFailures || result.reason == FinanceFailure.Conflict }
+                    is FinanceResult.Failure -> { detail = planFailureText(res, result, true); unknown = result.reason in uncertainFailures || result.reason == FinanceFailure.Conflict }
                 }
                 busy = false
             }
@@ -296,7 +320,7 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
             is FinanceResult.Success -> runCatching { parsePlanPage(result.value, ledgerPage, ::parseContribution) }
                 .onSuccess { entries = it.items; total = it.totalCount }
                 .onFailure { error = res.getString(R.string.plan_invalid_list) }
-            is FinanceResult.Failure -> error = res.getString(planFailureMessage(result.reason))
+            is FinanceResult.Failure -> error = planFailureText(res, result)
         }
     }
     LaunchedEffect(live, ledgerPage) { busy = true; load(); busy = false }
@@ -325,7 +349,7 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
                 val item = selected!!
                 when(val result = live.save("$path/${item.id}", null, delete = true, version = item.version)) {
                     is FinanceResult.Success -> { selected = null; amount = ""; load() }
-                    is FinanceResult.Failure -> error = res.getString(planFailureMessage(result.reason, true))
+                    is FinanceResult.Failure -> error = planFailureText(res, result, true)
                 }
                 busy = false
             } }) { Text(stringResource(if (confirmDelete) R.string.contribution_confirm_delete else R.string.contribution_delete)) }
@@ -346,7 +370,7 @@ private fun ContributionDialog(live: LiveAccountPlanRepository, goal: SavingsGoa
                         error = res.getString(if (!valid) R.string.contribution_unverified else if (receipt?.deleted == true) R.string.contribution_previously_deleted else R.string.contribution_saved)
                         request = null; selected = null; amount = ""; note = ""; load()
                     }
-                    is FinanceResult.Failure -> { error = res.getString(planFailureMessage(result.reason, true)); if (result.reason in definitiveRejections) request = null }
+                    is FinanceResult.Failure -> { error = planFailureText(res, result, true); if (result.reason in definitiveRejections) request = null }
                 }
                 busy = false
             }

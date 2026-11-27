@@ -57,7 +57,7 @@ public sealed class AccountController(AdminSessionStore sessions, IAuthenticatio
         {
             Response.StatusCode = 400;
             ModelState.AddModelError("Profile.FullName", "Enter a name up to 100 characters.");
-            return await AccountViewAsync("Profile", input.FullName, "Check your profile details and try again.", token!, ct);
+            return await AccountViewAsync("Profile", input.FullName, null, token!, ct);
         }
         var result = await api.UpdateProfileAsync(new() { FullName = input.FullName.Trim() }, token!, ct);
         if (result.Failure == ApiFailure.Unauthorized)
@@ -68,7 +68,10 @@ public sealed class AccountController(AdminSessionStore sessions, IAuthenticatio
         if (!result.Succeeded)
         {
             Response.StatusCode = result.Failure == ApiFailure.Conflict ? 409 : 400;
-            return await AccountViewAsync("Profile", input.FullName, "Your profile could not be saved. Check the name and try again.", token!, ct);
+            var reason = result.Fields.Values.SelectMany(m => m).FirstOrDefault();
+            return await AccountViewAsync("Profile", input.FullName, reason ?? (result.Failure == ApiFailure.BadRequest
+                ? "Your profile could not be saved. Check the name and try again."
+                : "Your profile change could not be confirmed. Reload your account to check it."), token!, ct);
         }
         var session = sessions.Find(User.FindFirstValue(AdminSessionStore.SessionClaim));
         if (session is not null)
@@ -100,7 +103,8 @@ public sealed class AccountController(AdminSessionStore sessions, IAuthenticatio
         if (!ModelState.IsValid)
         {
             Response.StatusCode = 400;
-            return await AccountViewAsync("Password", null, "Check the password fields. Use a new password that meets the security requirements.", token!, ct);
+            // Field messages appear beside each field; no extra summary.
+            return await AccountViewAsync("Password", null, null, token!, ct);
         }
         var result = await api.ChangePasswordAsync(new() { CurrentPassword = input.CurrentPassword, NewPassword = input.NewPassword }, token!, ct);
         input.CurrentPassword = input.NewPassword = input.ConfirmPassword = string.Empty;
@@ -111,15 +115,34 @@ public sealed class AccountController(AdminSessionStore sessions, IAuthenticatio
         }
         if (!result.Succeeded)
         {
-            Response.StatusCode = result.Failure == ApiFailure.Conflict ? 409 : 400;
-            return await AccountViewAsync("Password", null, "The password could not be changed. Check your current password and new password requirements.", token!, ct);
+            Response.StatusCode = result.Failure == ApiFailure.Conflict ? 409 : result.Failure == ApiFailure.BadRequest ? 400 : 503;
+            string? summary = null;
+            foreach (var (field, messages) in result.Fields)
+            {
+                var key = PasswordFields.FirstOrDefault(f => string.Equals(f, field, StringComparison.OrdinalIgnoreCase));
+                foreach (var message in messages)
+                    if (key is null) summary = summary is null ? message : summary + " " + message;
+                    else ModelState.AddModelError("Password." + key, message);
+            }
+            if (result.Fields.Count == 0)
+                summary = result.Failure switch
+                {
+                    ApiFailure.BadRequest => "The password could not be changed. Check each field and try again.",
+                    ApiFailure.RateLimited => "Too many attempts. Please wait a minute before trying again.",
+                    ApiFailure.Conflict => "Your account changed at the same time. Try again.",
+                    _ => "The password change could not be confirmed. Sign in again with your current password to check before retrying."
+                };
+            return await AccountViewAsync("Password", null, summary, token!, ct);
         }
         await MemberSessionGate.RejectAsync(User, sessions, HttpContext);
         TempData["PasswordChangedNotice"] = "Password changed. Sign in again with your new password.";
         return RedirectToAction("Login", "Account", new { area = "" });
     }
 
-    private async Task<IActionResult> AccountViewAsync(string view, string? name, string error, string token, CancellationToken ct)
+    private static readonly string[] PasswordFields =
+        [nameof(MemberPasswordInput.CurrentPassword), nameof(MemberPasswordInput.NewPassword), nameof(MemberPasswordInput.ConfirmPassword)];
+
+    private async Task<IActionResult> AccountViewAsync(string view, string? name, string? error, string token, CancellationToken ct)
     {
         var result = await api.GetCurrentUserAsync(token, ct);
         if (result.Failure == ApiFailure.Unauthorized)

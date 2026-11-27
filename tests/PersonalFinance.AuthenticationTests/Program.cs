@@ -241,6 +241,54 @@ await Check("Profile/password request DTOs reject role, email, currency and iden
     }
     return Task.CompletedTask;
 });
+// Validation feedback: every rejection names the actual unmet requirement, field by field.
+string? Field<T>(AuthResult<T> result, string field) => result.Errors is { } e && e.TryGetValue(field, out var m) ? string.Join(" ", m) : null;
+await Check("Reported defect: a 12-character matching password names the missing uppercase letter and special character", async () =>
+{
+    using var f = new Fixture();
+    var request = f.Registration(); request.Password = request.ConfirmPassword = "abcdefghijk1";
+    var result = await f.Auth.RegisterAsync(request, default);
+    Require(result.StatusCode == 400 && f.Users.Users.Count == 0);
+    Require(Field(result, "Password") == "Password must contain an uppercase letter and a special character, such as ! or #.", Field(result, "Password") ?? "none");
+});
+await Check("Every invalid registration field is reported at once with plain wording", async () =>
+{
+    using var f = new Fixture();
+    var request = f.Registration(); request.FullName = ""; request.Email = "invalid"; request.Password = "abc"; request.ConfirmPassword = "abd";
+    var result = await f.Auth.RegisterAsync(request, default);
+    Require(Field(result, "FullName") == "Enter your full name.");
+    Require(Field(result, "Email") == "Enter a valid email address.");
+    Require(Field(result, "ConfirmPassword") == "Passwords do not match.");
+    Require(Field(result, "Password") == "Password must contain at least 12 characters, an uppercase letter, a number, a special character, such as ! or # and at least 4 different characters.", Field(result, "Password") ?? "none");
+});
+await Check("Password policy describer mirrors the Identity options exactly", async () =>
+{
+    Require(PasswordPolicy.Describe("Synthetic!Pass123") is null);
+    Require(PasswordPolicy.Unmet("").Count == 6);
+    Require(PasswordPolicy.Describe("Aa1!" + new string('x', 125)) == "Password must contain no more than 128 characters.");
+    Require(PasswordPolicy.Describe("Éabcdefghij1") == "Password must contain an uppercase letter.", "accented capitals are special characters for Identity");
+    // Identity agrees with the describer for each sample.
+    using var f = new Fixture();
+    foreach (var sample in new[] { "Synthetic!Pass123", "abcdefghijk1", "ABCDEFGHIJK1!", "Aa1!Aa1!Aa1!", "Éabcdefghij1", "Short1!a" })
+    {
+        var request = f.Registration($"p{Math.Abs(sample.GetHashCode())}@example.test"); request.Password = request.ConfirmPassword = sample;
+        var accepted = (await f.Auth.RegisterAsync(request, default)).Succeeded;
+        Require(accepted == (PasswordPolicy.Describe(sample) is null), $"policy and Identity disagree for {sample}");
+    }
+});
+await Check("Change password names a wrong current password, a reused password and each unmet rule", async () =>
+{
+    using var f = new Fixture(); var login = await f.LoginAsync(); var id = login.User.Id;
+    var wrong = await f.Account.ChangePasswordAsync(id, new() { CurrentPassword = "WrongPassword!123", NewPassword = "DifferentValid!234", ConfirmPassword = "DifferentValid!234" }, default);
+    Require(Field(wrong, "CurrentPassword") == PasswordMessages.CurrentIncorrect);
+    var same = await f.Account.ChangePasswordAsync(id, new() { CurrentPassword = Fixture.Password, NewPassword = Fixture.Password, ConfirmPassword = Fixture.Password }, default);
+    Require(Field(same, "NewPassword") == PasswordMessages.SameAsCurrent);
+    var weak = await f.Account.ChangePasswordAsync(id, new() { CurrentPassword = Fixture.Password, NewPassword = "abcdefghijk1", ConfirmPassword = "abcdefghijk1x" }, default);
+    Require(Field(weak, "NewPassword") == "Password must contain an uppercase letter and a special character, such as ! or #.");
+    Require(Field(weak, "ConfirmPassword") == "Passwords do not match.");
+    var authWrong = await f.Auth.ChangePasswordAsync(id, new() { CurrentPassword = "WrongPassword!123", NewPassword = "DifferentValid!234" }, default);
+    Require(Field(authWrong, "CurrentPassword") == PasswordMessages.CurrentIncorrect);
+});
 Console.WriteLine("JWT cryptography and HTTP middleware are covered by the separate API security suite.");
 Console.WriteLine($"Authentication service checks: {passed} passed, {failed} failed.");
 return failed == 0 ? 0 : 1;

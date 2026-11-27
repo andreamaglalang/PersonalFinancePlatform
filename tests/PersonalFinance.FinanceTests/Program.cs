@@ -322,6 +322,12 @@ await BillPaymentTests.RunAsync(Check);
 await ReportsOnlyTests.RunAsync(Check);
 await RecurringBillReportJobTests.RunAsync(Check);
 await NotificationDevJobTests.RunAsync(Check);
+// Validation feedback: each amount rule has its own message over real HTTP (no "decimal(18,2)" jargon).
+await Check("Amount rules name the specific restriction",async f=>{
+ foreach(var (amount,message) in new[]{(0m,"Enter an amount greater than zero."),(-5m,"Enter an amount greater than zero."),
+   (10.555m,"Amounts can have no more than two decimal places."),(99999999999999999m,"That amount is too large.")}){
+  var r=await Create(f,Tx(amount:amount));Assert(r.Status==400,r.Body);Assert(Json(r).GetProperty("title").GetString()==message,r.Body);}
+});
 await ApiWorkerIsolationTests.RunAsync(Check);
 await MonthlySummaryReferenceTests.RunAsync(Check);
 await ExchangeRateQuoteTests.RunAsync(Check);

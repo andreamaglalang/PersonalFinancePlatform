@@ -61,7 +61,7 @@ public sealed class CategoriesController(ICategoryManagementService categories) 
             return RedirectToAction(nameof(Edit), new { id = result.Value!.CategoryId });
         }
         if (SecurityResult(result.Failure) is { } security) return security;
-        ModelState.AddModelError(string.Empty, Message(result.Failure, mutation: true));
+        ModelState.AddModelError(string.Empty, result.Message ?? Message(result.Failure, mutation: true));
         Response.StatusCode = Status(result.Failure);
         return View(model);
     }
@@ -93,7 +93,7 @@ public sealed class CategoriesController(ICategoryManagementService categories) 
             if (SecurityResult(result.Failure) is { } security) return security;
             if (result.Failure is CategoryFailure.Unavailable or CategoryFailure.InvalidResponse)
                 uncertainUpdateWarning = "The update may have succeeded. Reload and check the category before another attempt; no automatic retry was made.";
-            ModelState.AddModelError(string.Empty, uncertainUpdateWarning ?? Message(result.Failure, mutation: true));
+            ModelState.AddModelError(string.Empty, uncertainUpdateWarning ?? result.Message ?? Message(result.Failure, mutation: true));
             Response.StatusCode = Status(result.Failure);
         }
         else Response.StatusCode = 400;

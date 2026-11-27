@@ -7,5 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../PersonalFinance.AdminMvc/PersonalFinance.AdminMvc.csproj" />
+    <!-- Policy parity: the site's password rules must match the API's (ValidationFeedbackChecks). -->
+    <ProjectReference Include="../../PersonalFinance.Infrastructure/PersonalFinance.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

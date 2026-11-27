@@ -35,6 +35,8 @@ public sealed class CategoryResult<T>
 {
     public T? Value { get; init; }
     public CategoryFailure Failure { get; init; }
+    /// <summary>A specific, reviewed reason for a rejected request (ApiMessages), or null.</summary>
+    public string? Message { get; init; }
     public bool Succeeded => Failure == CategoryFailure.None;
     public static CategoryResult<T> Success(T value) => new() { Value = value };
     public static CategoryResult<T> Fail(CategoryFailure failure) => new() { Failure = failure };

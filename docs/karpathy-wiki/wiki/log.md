@@ -86,3 +86,8 @@
 - Disposition: Update
 - Updated: OWLI verification limits
 - Device-verified the Android stored monthly summary and a real FX-provider outage (API, MVC, Android); TalkBack focus order checked on the emulator, speech not captured. The handoff guide now requires a coordinated API+MVC+Android release and a rollback that keeps financial data recorded after cutover. D6 stays open.
+
+## [2026-11-27] update | System-wide validation feedback
+- Disposition: Update
+- Updated: OWLI verification limits
+- One password policy (API/MVC/Kotlin) with live checklists; clients show only allowlisted API reasons (ApiMessages) for 400/404/409; specific amount and field messages; MVC session-expiry notice. Record: docs/audits/OWLI_Validation_Feedback.md.

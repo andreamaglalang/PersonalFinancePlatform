@@ -15,19 +15,19 @@ public sealed class MemberTransactionDraftViewModel
     [Required, RegularExpression("^(Income|Expense)$")]
     public string Type { get; set; } = "Expense";
 
-    [Required, Range(1, int.MaxValue)]
+    [Required(ErrorMessage = "Choose a category."), Range(1, int.MaxValue, ErrorMessage = "Choose a category.")]
     public int? CategoryId { get; set; }
 
-    [Required, Range(0.01, 100_000_000)]
+    [Required(ErrorMessage = "Enter an amount."), MoneyAmount(100_000_000)]
     public decimal? Amount { get; set; }
 
-    [Required, RegularExpression("^[A-Z]{3}$")]
+    [Required(ErrorMessage = "Choose a currency."), RegularExpression("^[A-Z]{3}$", ErrorMessage = "Choose a currency.")]
     public string CurrencyCode { get; set; } = MemberCurrencyPreferences.AccountCurrency;
 
-    [Required]
+    [Required(ErrorMessage = "Choose a date.")]
     public DateOnly? TransactionDate { get; set; }
 
-    [StringLength(200)]
+    [StringLength(200, ErrorMessage = "Description must be 200 characters or fewer.")]
     public string? Description { get; set; }
 
     public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];

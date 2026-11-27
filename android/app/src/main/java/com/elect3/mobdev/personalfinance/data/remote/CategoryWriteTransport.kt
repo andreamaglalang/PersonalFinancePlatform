@@ -30,6 +30,8 @@ internal class FinanceWriteRequest(val method: WriteMethod, val url: URL, privat
     fun authorization() = bearer
     override fun toString() = "FinanceWriteRequest(${method.name}, [redacted])"
 }
+private const val MAX_PROBLEM_BYTES = 16 * 1024
+
 internal fun interface FinanceWriteEngine { suspend fun send(request: FinanceWriteRequest): FinanceHttpResponse }
 
 internal const val MAX_CATEGORY_REQUEST_BYTES = 4 * 1024
@@ -90,7 +92,19 @@ internal class PlatformFinanceWriteEngine(
                         output.write(buffer, 0, count)
                     }
                     output.toString("UTF-8")
-                } else "" // Error bodies (ProblemDetails) are never read or retained.
+                } else if (status == 400 || status == 404 || status == 409) {
+                    // Read only so ApiMessages can pick a reviewed reason; capped, never shown or kept as-is.
+                    runCatching { connection.errorStream?.use { input ->
+                        val output = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(4096)
+                        while (output.size() <= MAX_PROBLEM_BYTES) {
+                            val count = input.read(buffer)
+                            if (count == -1) break
+                            output.write(buffer, 0, count)
+                        }
+                        if (output.size() > MAX_PROBLEM_BYTES) "" else output.toString("UTF-8")
+                    } }.getOrNull().orEmpty()
+                } else "" // Other error bodies are never read.
                 if (continuation.isActive) continuation.resume(FinanceHttpResponse(status, body))
             } catch (failure: Exception) {
                 if (continuation.isActive) continuation.resumeWith(Result.failure(failure))
@@ -158,7 +172,8 @@ internal class FinanceWriter(private val auth: InMemoryAuthRepository, private v
                     } else if (response.status == 401) {
                         lease.rejectAuthorization(); auth.refreshIfDue()
                         auth.financeAccessResult()
-                    } else FinanceResult.Failure(statusFailure(response.status))
+                    } else FinanceResult.Failure(statusFailure(response.status),
+                        message = if (response.status in setOf(400, 404, 409)) ApiMessages.read(response.body) else null)
                     ensureActive()
                     if (lease.isCurrent()) result else FinanceResult.Failure(FinanceFailure.SessionExpired)
                 }

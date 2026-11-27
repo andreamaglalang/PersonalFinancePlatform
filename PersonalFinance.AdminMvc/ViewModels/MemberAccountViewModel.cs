@@ -16,16 +16,16 @@ public sealed class MemberAccountViewModel
 
 public sealed class MemberProfileInput
 {
-    [Required, StringLength(100, MinimumLength = 1)]
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, MinimumLength = 1, ErrorMessage = "Full name must be 100 characters or fewer.")]
     public string FullName { get; set; } = string.Empty;
 }
 
 public sealed class MemberPasswordInput
 {
-    [Required, StringLength(128)]
+    [Required(ErrorMessage = "Enter your current password."), StringLength(128, ErrorMessage = "Password must be 128 characters or fewer.")]
     public string CurrentPassword { get; set; } = string.Empty;
-    [Required, StringLength(128, MinimumLength = 12)]
+    [Required(ErrorMessage = "Enter a new password."), PasswordRequirements]
     public string NewPassword { get; set; } = string.Empty;
-    [Required, Compare(nameof(NewPassword))]
+    [Required(ErrorMessage = "Confirm your new password."), Compare(nameof(NewPassword), ErrorMessage = "Passwords do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }

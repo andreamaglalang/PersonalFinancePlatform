@@ -14,20 +14,21 @@ public sealed class LoginViewModel
 
 public sealed class RegisterViewModel
 {
-    [Required, StringLength(100)]
+    [Required(ErrorMessage = "Enter your full name."), StringLength(100, ErrorMessage = "Full name must be 100 characters or fewer.")]
     [Display(Name = "Full name")]
     public string FullName { get; set; } = string.Empty;
 
-    [Required, EmailAddress, StringLength(256)]
+    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = "Enter a valid email address."),
+     StringLength(256, ErrorMessage = "Email must be 256 characters or fewer.")]
     [Display(Name = "Email address")]
     public string Email { get; set; } = string.Empty;
 
-    [Required, StringLength(128, MinimumLength = 12, ErrorMessage = "Use at least 12 characters.")]
+    [Required(ErrorMessage = "Enter a password."), PasswordRequirements]
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
     public string Password { get; set; } = string.Empty;
 
-    [Required, Compare(nameof(Password), ErrorMessage = "The passwords do not match.")]
+    [Required(ErrorMessage = "Confirm your password."), Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
     [DataType(DataType.Password)]
     [Display(Name = "Confirm password")]
     public string ConfirmPassword { get; set; } = string.Empty;

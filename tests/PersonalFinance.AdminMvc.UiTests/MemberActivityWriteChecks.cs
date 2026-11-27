@@ -8,7 +8,7 @@ internal static class MemberActivityWriteChecks
 
         // The draft carries the upstream write contract plus the fields the form needs.
         foreach (var marker in new[] { "Type", "CategoryId", "Amount", "CurrencyCode", "TransactionDate",
-            "Description", "Range(0.01", "RegularExpression(\"^(Income|Expense)$\")" })
+            "Description", "MoneyAmount(", "RegularExpression(\"^(Income|Expense)$\")" })
             if (model.Contains(marker) is false)
                 throw new InvalidOperationException($"MemberTransactionDraftViewModel is missing {marker}.");
 

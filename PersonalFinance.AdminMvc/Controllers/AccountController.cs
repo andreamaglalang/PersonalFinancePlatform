@@ -36,23 +36,37 @@ public sealed class AccountController(AuthenticationCoordinator coordinator, IAu
         model.Password = string.Empty;
         model.ConfirmPassword = string.Empty;
         ModelState.Clear();
-        ModelState.AddModelError(string.Empty, result.Failure switch
-        {
-            ApiFailure.Conflict => "That email is already registered. Sign in instead.",
-            ApiFailure.RateLimited => "Too many attempts. Please wait a minute before trying again.",
-            ApiFailure.BadRequest => "Check your name, email and password. Passwords must be at least 12 characters and match.",
-            _ => "Registration is temporarily unavailable. Please try again later."
-        });
+        // Show the API's reviewed field messages beside their fields (ApiMessages); otherwise a safe summary.
+        var mapped = false;
+        if (result.Failure == ApiFailure.BadRequest)
+            foreach (var (field, messages) in result.Fields)
+            {
+                var key = RegisterFields.FirstOrDefault(f => string.Equals(f, field, StringComparison.OrdinalIgnoreCase)) ?? string.Empty;
+                foreach (var message in messages) ModelState.AddModelError(key, message);
+                mapped = true;
+            }
+        if (!mapped)
+            ModelState.AddModelError(string.Empty, result.Failure switch
+            {
+                ApiFailure.Conflict => "That email is already registered. Sign in instead.",
+                ApiFailure.RateLimited => "Too many attempts. Please wait a minute before trying again.",
+                ApiFailure.BadRequest => "Your account could not be created with these details. Check each field and try again.",
+                _ => "Registration is temporarily unavailable. Please try again later."
+            });
         Response.StatusCode = StatusCodes.Status400BadRequest;
         return View(model);
     }
 
+    private static readonly string[] RegisterFields =
+        [nameof(RegisterViewModel.FullName), nameof(RegisterViewModel.Email), nameof(RegisterViewModel.Password), nameof(RegisterViewModel.ConfirmPassword)];
+
     [AllowAnonymous, HttpGet]
-    public IActionResult Login(string? returnUrl, bool unavailable = false) =>
+    public IActionResult Login(string? returnUrl, bool unavailable = false, bool expired = false) =>
         AuthenticatedLoginResult() ?? View(new LoginViewModel
         {
             ReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null,
-            Message = unavailable ? "Authentication is temporarily unavailable. Please sign in again later." : null
+            Message = unavailable ? "Authentication is temporarily unavailable. Please sign in again later."
+                : expired ? MemberSessionGate.ExpiredNotice : null
         });
 
     [AllowAnonymous, HttpPost, ValidateAntiForgeryToken]
@@ -71,11 +85,18 @@ public sealed class AccountController(AuthenticationCoordinator coordinator, IAu
         model.ReturnUrl = Url.IsLocalUrl(model.ReturnUrl) ? model.ReturnUrl : null;
         // ModelState retains attempted passwords unless explicitly removed.
         var valid = ModelState.IsValid;
+        var problems = new List<string>();
+        if (string.IsNullOrWhiteSpace(model.Email)) problems.Add("Enter your email address.");
+        else if (ModelState.TryGetValue(nameof(LoginViewModel.Email), out var emailState) && emailState.Errors.Count > 0)
+            problems.Add("Enter a valid email address.");
+        if (string.IsNullOrEmpty(request.Password)) problems.Add("Enter your password.");
+        else if (ModelState.TryGetValue(nameof(LoginViewModel.Password), out var passwordState) && passwordState.Errors.Count > 0)
+            problems.Add("Passwords can be up to 128 characters.");
         ModelState.Clear();
         if (!valid)
         {
             request.Password = string.Empty;
-            model.Message = "Enter a valid email address and password.";
+            model.Message = problems.Count > 0 ? string.Join(" ", problems) : "Enter a valid email address and password.";
             return View(model);
         }
         ApiResult<AdminSession> result;

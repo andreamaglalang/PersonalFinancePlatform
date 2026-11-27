@@ -63,7 +63,7 @@ public sealed class AuthController(
     {
         if (currentUser.UserId is not int userId) return Unauthorized();
         var result = await authentication.UpdateProfileAsync(userId, request, ct);
-        return result.Succeeded ? Ok(result.Value) : Problem(statusCode: result.StatusCode, title: result.Error);
+        return result.Succeeded ? Ok(result.Value) : this.Failure(result);
     }
 
     [HttpPost("change-password"), Authorize]
@@ -72,12 +72,12 @@ public sealed class AuthController(
     {
         if (currentUser.UserId is not int userId) return Unauthorized();
         var result = await authentication.ChangePasswordAsync(userId, request, ct);
-        return result.Succeeded ? NoContent() : Problem(statusCode: result.StatusCode, title: result.Error);
+        return result.Succeeded ? NoContent() : this.Failure(result);
     }
 
     private IActionResult Respond<T>(AuthResult<T> result) =>
         result.Succeeded
             ? StatusCode(result.StatusCode, result.Value)
-            : Problem(statusCode: result.StatusCode, title: result.Error);
+            : this.Failure(result);
 }
 

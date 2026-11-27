@@ -37,15 +37,20 @@ public sealed class AuthenticationApiClient(HttpClient http) : IAuthenticationAp
             // ResponseContentRead keeps the HttpClient timeout applicable to bounded body buffering.
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             if (!response.IsSuccessStatusCode)
-                return ApiResult<T>.Fail(response.StatusCode switch
+                return new ApiResult<T>
                 {
-                    HttpStatusCode.BadRequest => ApiFailure.BadRequest,
-                    HttpStatusCode.Unauthorized => ApiFailure.Unauthorized,
-                    HttpStatusCode.Forbidden => ApiFailure.Forbidden,
-                    HttpStatusCode.Conflict => ApiFailure.Conflict,
-                    HttpStatusCode.TooManyRequests => ApiFailure.RateLimited,
-                    _ => ApiFailure.Unavailable
-                });
+                    Failure = response.StatusCode switch
+                    {
+                        HttpStatusCode.BadRequest => ApiFailure.BadRequest,
+                        HttpStatusCode.Unauthorized => ApiFailure.Unauthorized,
+                        HttpStatusCode.Forbidden => ApiFailure.Forbidden,
+                        HttpStatusCode.Conflict => ApiFailure.Conflict,
+                        HttpStatusCode.TooManyRequests => ApiFailure.RateLimited,
+                        _ => ApiFailure.Unavailable
+                    },
+                    Fields = response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict
+                        ? await ApiMessages.ReadFieldsAsync(response, ct) : new Dictionary<string, string[]>()
+                };
             if (typeof(T) == typeof(bool))
                 return response.StatusCode == HttpStatusCode.NoContent
                     ? ApiResult<T>.Success((T)(object)true) : ApiResult<T>.Fail(ApiFailure.InvalidResponse);

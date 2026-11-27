@@ -24,6 +24,6 @@ public sealed class AccountController(IAccountService account, ICurrentUser curr
         ? Respond(await account.ChangePasswordAsync(id, request, ct)) : Unauthorized();
 
     private IActionResult Respond<T>(AuthResult<T> result) => !result.Succeeded
-        ? Problem(statusCode: result.StatusCode, title: result.Error)
+        ? this.Failure(result)
         : result.StatusCode == 204 ? NoContent() : StatusCode(result.StatusCode, result.Value);
 }

@@ -162,6 +162,17 @@ await Check("Invalid registration data and weak passwords fail safely over HTTP"
     Require((await f.SendAsync("POST", "/api/auth/register", new { fullName = "", email = "not-an-email", password = "short", confirmPassword = "different" })).Status == 400);
     Require((await f.SendAsync("POST", "/api/auth/register", new { fullName = "Person", email = "person@example.test", password = "aaaaaaaaaaaaa", confirmPassword = "aaaaaaaaaaaaa" })).Status == 400);
 });
+await Check("Rejected registrations return field-specific ProblemDetails without internals", async () =>
+{
+    await using var f = new ApiFixture();
+    var weak = await f.SendAsync("POST", "/api/auth/register", new { fullName = "Person", email = "person@example.test", password = "abcdefghijk1", confirmPassword = "abcdefghijk1" });
+    Require(weak.Status == 400 && weak.Body.Contains("\"Password\":[\"Password must contain an uppercase letter and a special character, such as ! or #.\"]"), weak.Body);
+    var many = await f.SendAsync("POST", "/api/auth/register", new { fullName = "", email = "x", password = "abc", confirmPassword = "abd" });
+    foreach (var expected in new[] { "Enter your full name.", "Enter a valid email address.", "Passwords do not match.", "Password must contain at least 12 characters" })
+        Require(many.Body.Contains(expected), expected + " missing: " + many.Body);
+    foreach (var body in new[] { weak.Body, many.Body })
+        Require(!body.Contains("Exception") && !body.Contains("stack", StringComparison.OrdinalIgnoreCase) && !body.Contains("The field "), body);
+});
 await Check("Auth responses contain no Identity security fields or persisted hash metadata", async () =>
 {
     await using var f = new ApiFixture(); await f.RegisterAsync();

@@ -6,7 +6,16 @@ using PersonalFinance.AdminMvc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews(options =>
-    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+{
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    // Plain-language binding messages instead of "The value 'x' is not valid for Amount."
+    var messages = options.ModelBindingMessageProvider;
+    messages.SetAttemptedValueIsInvalidAccessor((_, field) => $"Enter a valid {field.ToLowerInvariant()}.");
+    messages.SetUnknownValueIsInvalidAccessor(field => $"Enter a valid {field.ToLowerInvariant()}.");
+    messages.SetValueIsInvalidAccessor(_ => "Enter a valid value.");
+    messages.SetValueMustBeANumberAccessor(field => $"Enter {field.ToLowerInvariant()} as a number.");
+    messages.SetValueMustNotBeNullAccessor(_ => "This field is required.");
+});
 builder.Services.AddAntiforgery(options =>
 {
     options.Cookie.Name = "__Host-OWLI.Antiforgery";
