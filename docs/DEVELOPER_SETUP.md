@@ -187,13 +187,65 @@ adb reverse tcp:7027 tcp:7027
 ```
 
 For multiple devices use `adb -s <serial> reverse ...`; repeat after device reboot
-or reconnection. Debug connects to `https://localhost:7027/` and trusts user CAs only
-for localhost. Install your own public localhost development certificate as a user
-CA on that test device if absent. Export only the public certificate, without a
-password/private key, using `dotnet dev-certs https --export-path <private-local-path>/localhost.cer --format PEM`.
-Verify hostname and trust; do not bypass TLS or weaken release network security.
-Release endpoint selection and production certificates are separate deployment
-configuration. Mock mode does not verify live API connectivity.
+or reconnection. Debug connects to `https://localhost:7027/`. A missing reverse
+mapping produces “Cannot reach OWLI”; an untrusted developer certificate produces
+“Secure connection failed.” Host-side curl success alone does not prove phone trust.
+
+For app-scoped local debug trust, place **one public PEM certificate** for the
+existing API localhost server in ignored `android/.local/localhost.pem`, then rebuild.
+For the SDK's existing development certificate, export only its public part:
+
+```sh
+mkdir -p android/.local
+dotnet dev-certs https --export-path android/.local/localhost.pem --format PEM
+```
+
+First check/reuse the existing valid certificate as above. Do not regenerate it or
+use private-key export flags. Verify the exported certificate matches the one the
+running API serves. The Gradle task rejects private-key/bundle/malformed input,
+expired certificates, CAs, and certificates without localhost SAN/server-auth usage.
+It generates a debug-only resource and adds it only to the exact localhost trust
+scope. The normal platform chain, expiry and hostname checks remain active; other
+hosts retain the original policy. When this optional file is absent, the original
+debug policy is used (system trust plus user CAs for localhost). Removing the file
+and rebuilding removes the generated trust resources. Never commit the certificate.
+Release artifacts contain no local certificate/policy; production trust is separate.
+
+A credential-free debug diagnostic can be launched with:
+
+```sh
+adb -s <serial> shell am start -S -W -n com.elect3.mobdev.personalfinance/.MainActivity --ez owli.debug.CHECK_HTTPS true
+adb -s <serial> logcat -d -s OwliHttpsProbe
+```
+
+The first command relaunches the app; stored data is preserved, while unsaved form
+input may be lost. The probe sends only `GET /openapi/v1.json`, with normal TLS and
+no credentials. Expect `http=200 normalTls=true`; compare its public server fingerprint
+with the intended API certificate. A trust-anchor failure identifies missing app/device
+trust. Mock mode does not verify live API connectivity.
+
+### Physical phone when USB installation is unavailable
+
+Some Xiaomi phones require a SIM before enabling Install via USB. Use their normal
+on-phone File Manager installer instead; retain the phone's security policies.
+Build a normal debug APK from `android/`:
+
+```sh
+./gradlew :app:assembleDebug -Pandroid.injected.testOnly=false
+adb -s <serial> push app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/OWLI-debug.apk
+```
+
+Open File Manager → Download → `OWLI-debug.apk` and approve Install/Update. If
+required, grant Install unknown apps to File Manager only; do not disable security
+scanning. Update with the same signing key to preserve Room/session data; do not
+uninstall or clear app data. The equivalent Android Studio action is **Build → Build
+Bundle(s) / APK(s) → Build APK(s)** with the debug variant selected. The **Run** action
+can generate `android:testOnly=true` APKs that the normal phone installer rejects as
+an invalid package. Check the packaged manifest before sharing an APK. Android
+Studio's automatic USB deployment remains subject to the phone's USB-install policy.
+
+Sources: [Android build/install variants](https://developer.android.com/build/build-for-release),
+[Xiaomi File Manager installation](https://www.mi.com/global/support/faq/details/KA-113603/).
 
 ## Database/admin safeguards and troubleshooting
 

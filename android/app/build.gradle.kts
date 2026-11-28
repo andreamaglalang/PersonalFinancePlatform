@@ -1,9 +1,70 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
+}
+
+abstract class PrepareLocalDebugTrust : DefaultTask() {
+    @get:InputFile @get:Optional abstract val certificateFile: RegularFileProperty
+    @get:InputFile abstract val defaultPolicy: RegularFileProperty
+    @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction fun prepare() {
+        val output = outputDirectory.get().asFile
+        val source = certificateFile.orNull?.asFile
+        if (source == null) {
+            output.deleteRecursively()
+            output.mkdirs()
+            return
+        }
+        val pem = source.readText()
+        require(Regex("\\s*-----BEGIN CERTIFICATE-----[A-Za-z0-9+/=\\s]+-----END CERTIFICATE-----\\s*").matches(pem)) {
+            "Local Android trust requires one public PEM certificate, never a private key or bundle."
+        }
+        val certificate = CertificateFactory.getInstance("X.509")
+            .generateCertificate(pem.byteInputStream()) as X509Certificate
+        certificate.checkValidity()
+        require(certificate.basicConstraints < 0
+            && certificate.subjectAlternativeNames?.any { it[0] == 2 && it[1] == "localhost" } == true
+            && certificate.extendedKeyUsage?.contains("1.3.6.1.5.5.7.3.1") == true) {
+            "Local Android trust requires a valid localhost server leaf certificate, not a CA."
+        }
+        val policy = defaultPolicy.get().asFile.readText()
+        val userAnchor = "<certificates src=\"user\" />"
+        check(policy.split(userAnchor).size == 2 && policy.split("<domain-config").size == 2
+            && policy.contains("<domain includeSubdomains=\"false\">localhost</domain>")) {
+            "Review the localhost-only debug trust policy before generating local trust."
+        }
+        output.deleteRecursively()
+        output.resolve("raw/owli_localhost_dev_certificate.pem").apply {
+            parentFile.mkdirs()
+            writeText(pem)
+        }
+        output.resolve("xml/owli_debug_local_network_security_config.xml").apply {
+            parentFile.mkdirs()
+            writeText(policy.replace(userAnchor,
+                "$userAnchor\n            <certificates src=\"@raw/owli_localhost_dev_certificate\" />"))
+        }
+    }
+}
+
+// Optional, per-checkout public certificate. No device-wide CA installation or TLS override.
+val localDevCertificate = layout.projectDirectory.file("../.local/localhost.pem")
+val localDebugTrust = tasks.register<PrepareLocalDebugTrust>("prepareLocalDebugTrust") {
+    if (localDevCertificate.asFile.isFile) certificateFile.set(localDevCertificate)
+    defaultPolicy.set(layout.projectDirectory.file("src/debug/res/xml/owli_debug_network_security_config.xml"))
+    outputDirectory.set(layout.buildDirectory.dir("generated/owliLocalDebugTrust"))
 }
 
 ksp {
@@ -32,6 +93,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["owliDebugNetworkSecurityConfig"] = if (localDevCertificate.asFile.isFile)
+                "@xml/owli_debug_local_network_security_config" else "@xml/owli_debug_network_security_config"
+        }
         release {
             // Deployment endpoint (R11/D10): -PowliApiBaseUrl=https://host/ or ORG_GRADLE_PROJECT_owliApiBaseUrl.
             // No default host: without it the release app stays explicitly unconfigured.
@@ -62,6 +127,9 @@ kotlin {
 
 // Run the no-logging contract against the actual release implementation on the JVM.
 androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.sources.res?.addGeneratedSourceDirectory(localDebugTrust, PrepareLocalDebugTrust::outputDirectory)
+    }
     beforeVariants(selector().withBuildType("release")) { variant ->
         (variant as com.android.build.api.variant.HasUnitTestBuilder).enableUnitTest = true
     }
