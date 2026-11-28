@@ -217,7 +217,8 @@ internal static class BudgetTests
                 var b = await db.Budgets.SingleAsync(); b.LastAlertStatus = BudgetAlertStatus.Warning; b.LastAlertAtUtc = deliveredAt;
                 await db.SaveChangesAsync();
             });
-            var r = await f.SendAsync("DELETE", $"/api/transactions/{tx}", bearer: f.Issue(1));
+            var current = Json(await f.SendAsync("GET", $"/api/transactions/{tx}", bearer: f.Issue(1)));
+            var r = await f.SendAsync("DELETE", $"/api/transactions/{tx}?version={current.GetProperty("version").GetString()}", bearer: f.Issue(1));
             Assert(r.Status == 200 && Json(r).GetProperty("deleted").GetBoolean());
             Assert(Json(r).GetProperty("affectedBudgets")[0].GetProperty("status").GetString() == "OK");
             await ExpectUsage(f, id, 0, "OK");

@@ -88,6 +88,15 @@ internal static class ActivityParityChecks
         Check(await controller.Create(foreign,default) is RedirectToActionResult && handler.Writes==writes+1,"R3-2: confirming the reviewed rate saves the foreign-currency transaction once.");
         handler.FailReads=true;
         model=await Index(new(){Month="2026-11"});Check(!model.DataLoaded && model.Error is not null,"A failed API read stays unavailable rather than becoming confirmed empty activity.");handler.FailReads=false;
+        var deleteWrites=handler.Writes;
+        await controller.DeleteConfirmed(1,null,default);
+        Check(handler.Writes==deleteWrites,"Missing delete version never sends a financial request.");
+        var displayedVersion=new string('A',64);
+        await controller.DeleteConfirmed(1,displayedVersion,default);
+        Check(handler.DeleteVersion==displayedVersion && handler.Writes==deleteWrites+1,
+            "Delete posts exactly the displayed version without replacing it with a current GET.");
+        Check(controller.TempData["ActivityError"]?.ToString()?.Contains("Nothing was deleted") == true,
+            "A stale delete produces a clear conflict rather than success.");
         handler.Expire=true;
         Check(await controller.Index(new(){Month="2026-11"},default) is RedirectToActionResult {ActionName:"Login"} && auth.SignedOut,"Expired sessions are invalidated and routed to sign-in.");
         Console.WriteLine("PASS: Activity controller complete aggregates, whole-day groups, leap boundaries, paging clamps, all categories, search, FX review, isolated creation/failure and protected records.");
@@ -95,7 +104,7 @@ internal static class ActivityParityChecks
     private static void Check(bool value,string message){if(!value)throw new InvalidOperationException(message);}
     private sealed class ApiFixture(TransactionResponse[] rows):HttpMessageHandler
     {
-        public int Writes; public bool FailWrites,FailReads,Expire,ArchiveOriginal; public HashSet<int> CategoryPages=[];
+        public int Writes; public string? DeleteVersion; public bool FailWrites,FailReads,Expire,ArchiveOriginal; public HashSet<int> CategoryPages=[];
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage r,CancellationToken ct)
         {
             Check(r.Headers.Authorization?.ToString()=="Bearer fixture-only","Every fixture API request carries the owner-scoped bearer.");
@@ -125,6 +134,10 @@ internal static class ActivityParityChecks
             {
                 Writes++;var body=await r.Content!.ReadFromJsonAsync<UpdateTransactionRequest>(ct);var id=int.Parse(path.Split('/').Last());
                 return Ok(Tx(id,body!.TransactionDate,body.Type,body.Amount) with {Description=body.Description});
+            }
+            if(r.Method==HttpMethod.Delete && path.StartsWith("/api/transactions/"))
+            {
+                Writes++;DeleteVersion=query["version"].ToString();return new(HttpStatusCode.Conflict);
             }
             throw new InvalidOperationException("Unexpected fixture route "+path);
         }

@@ -393,7 +393,7 @@ fun CategoryEditorScreen(editor: CategoryEditorViewModel, state: CategoryEditorS
             EditorPreview(state)
             SectionLabel(stringResource(R.string.ce_color))
             val swatches = listOfNotNull(state.customHex?.let { it to null }) + CategoryVisuals.palette.map { it.hex to it.name }
-            BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 val perRow = if (LocalConfiguration.current.fontScale > 1.5f) 4 else 5
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     swatches.chunked(perRow).forEach { row ->

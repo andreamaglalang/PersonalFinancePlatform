@@ -74,8 +74,10 @@ public sealed class TransactionApiClient(HttpClient http)
         SendAsync<TransactionResponse>(HttpMethod.Put, Route(id), request, 200, bearer,
             response => Valid(response) && response.TransactionId == id, ct);
 
-    public Task<TransactionResult<TransactionDeletionResponse>> DeleteAsync(int id, string bearer, CancellationToken ct) =>
-        SendAsync<TransactionDeletionResponse>(HttpMethod.Delete, Route(id), null, 200, bearer,
+    public Task<TransactionResult<TransactionDeletionResponse>> DeleteAsync(int id, string? version, string bearer, CancellationToken ct) =>
+        version is null || !System.Text.RegularExpressions.Regex.IsMatch(version, "^[0-9A-F]{64}$")
+        ? Task.FromResult(new TransactionResult<TransactionDeletionResponse>(400))
+        : SendAsync<TransactionDeletionResponse>(HttpMethod.Delete, Route(id) + "?version=" + Uri.EscapeDataString(version), null, 200, bearer,
             response => response.TransactionId == id, ct);
 
     private static string Route(int id) =>

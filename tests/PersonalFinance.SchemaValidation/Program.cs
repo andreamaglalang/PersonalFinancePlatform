@@ -180,12 +180,12 @@ Check("Output directory contains base-setting markers and factory preserves an e
     finally { Directory.SetCurrentDirectory(previousDirectory); }
 });
 
-Check("All 19 current-model application and Identity tables exist; no separate Users table", () =>
+Check("All 20 current-model application and Identity tables exist; no separate Users table", () =>
 {
     var expected = new[] { "AspNetUsers", "AspNetRoles", "AspNetUserClaims", "AspNetRoleClaims",
         "AspNetUserRoles", "AspNetUserLogins", "AspNetUserTokens", "Categories", "Transactions",
         "Budgets", "RecurringBills", "SavingsGoals", "GoalContributions", "ExchangeRates",
-        "Notifications", "MonthlySummaries", "RefreshTokens", "GoalContributionRequests", "BillPaymentReceipts" };
+        "Notifications", "MonthlySummaries", "RefreshTokens", "GoalContributionRequests", "BillPaymentReceipts", "DeletedTransactions" };
     Require(expected.Order().SequenceEqual(model.GetEntityTypes().Select(x => x.GetTableName()!).Order()));
 });
 Check("Identity user and role keys and all ownership FKs are integer", () =>
@@ -196,11 +196,11 @@ Check("Identity user and role keys and all ownership FKs are integer", () =>
         .Where(f => f.PrincipalEntityType.ClrType == typeof(ApplicationUser))
         .All(f => f.Properties.Single().ClrType is var t && (t == typeof(int) || t == typeof(int?))));
 });
-Check("All 19 current-model application foreign keys prohibit cascading financial deletion", () =>
+Check("All 20 current-model application foreign keys prohibit cascading financial deletion", () =>
 {
     var foreignKeys = model.GetEntityTypes().Where(e => !e.GetTableName()!.StartsWith("AspNet", StringComparison.Ordinal))
         .SelectMany(e => e.GetForeignKeys()).ToArray();
-    Require(foreignKeys.Length == 19);
+    Require(foreignKeys.Length == 20);
     Require(foreignKeys.All(f => f.DeleteBehavior == DeleteBehavior.NoAction));
 });
 Check("Shared categories have optional ownership; contributions inherit goal ownership", () =>
@@ -366,10 +366,20 @@ Migration CompiledMigration(string id)
 }
 string NormalizeSql(string sql) => sql.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
 
-Check("Exactly five approved compiled migrations exist; applied database state is not inspected", () =>
+Check("Deleted transaction identity has a permanent owner/client primary key and no financial-row dependency", () =>
+{
+    var entity = Entity<DeletedTransaction>();
+    Require(entity.FindPrimaryKey()!.Properties.Select(p => p.Name).SequenceEqual(new[] { "UserId", "ClientId" }));
+    Require(entity.GetForeignKeys().Single().PrincipalEntityType.ClrType == typeof(ApplicationUser));
+    var migration = CompiledMigration("20261128102603_RetainDeletedTransactionIdentities");
+    Require(migration.UpOperations.OfType<CreateTableOperation>().Single().Name == "DeletedTransactions");
+    Throws<InvalidOperationException>(() => _ = migration.DownOperations);
+});
+
+Check("Exactly six approved compiled migrations exist; applied database state is not inspected", () =>
 {
     Require(db.Database.GetMigrations().SequenceEqual(new[] {
-        initialMigrationId, categoryMigrationId, savingsMigrationId, billMigrationId, localPaymentDatesMigrationId }), "Compiled migration IDs/order.");
+        initialMigrationId, categoryMigrationId, savingsMigrationId, billMigrationId, localPaymentDatesMigrationId, "20261128102603_RetainDeletedTransactionIdentities" }), "Compiled migration IDs/order.");
 });
 Check("Current model and snapshot align with zero relational differences", () =>
 {

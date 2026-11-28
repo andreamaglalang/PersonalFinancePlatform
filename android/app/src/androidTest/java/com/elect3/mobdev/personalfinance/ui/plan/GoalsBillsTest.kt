@@ -28,13 +28,13 @@ class GoalsBillsTest {
     }
     @Test fun liveGoalsNeverShowSamplesOrActionsEvenIfProvided() {
         val store = DemoPlanStore()
-        compose.setContent { PersonalFinanceTheme { GoalsSection(false, store.goals.value, { error("No live write") }) } }
+        compose.setContent { PersonalFinanceTheme { GoalsSection(false, store.goals.collectAsState().value, { error("No live write") }) } }
         compose.onNodeWithText("Your savings goals").assertIsDisplayed()
         compose.onNodeWithText("Emergency Fund").assertDoesNotExist()
     }
     @Test fun liveBillsNeverShowSamplesOrActionsEvenIfProvided() {
         val store = DemoPlanStore()
-        compose.setContent { PersonalFinanceTheme { BillsSection(false, store.bills.value, { error("No live write") }) } }
+        compose.setContent { PersonalFinanceTheme { BillsSection(false, store.bills.collectAsState().value, { error("No live write") }) } }
         compose.onNodeWithText("Your recurring bills").assertIsDisplayed()
         compose.onNodeWithText("Electricity").assertDoesNotExist()
     }

@@ -2,7 +2,6 @@ package com.elect3.mobdev.personalfinance
 
 import android.os.Bundle
 import android.content.Intent
-import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
@@ -17,8 +16,6 @@ import com.elect3.mobdev.personalfinance.data.auth.AuthDiagnosticIds
 import com.elect3.mobdev.personalfinance.data.auth.ActivityLifecyclePhase
 import com.elect3.mobdev.personalfinance.data.auth.ActivityLifecycleSnapshot
 import com.elect3.mobdev.personalfinance.data.auth.ActivityLifecycleDiagnosticRecord
-import com.elect3.mobdev.personalfinance.data.auth.BackDiagnosticSource
-import com.elect3.mobdev.personalfinance.data.auth.observeBackDispatch
 import com.elect3.mobdev.personalfinance.data.remote.ApiEnvironment
 import com.elect3.mobdev.personalfinance.data.remote.FinanceRepositories
 import com.elect3.mobdev.personalfinance.data.mock.MockScenario
@@ -235,19 +232,6 @@ class MainActivity : ComponentActivity() {
         recordLifecycle(ActivityLifecyclePhase.NEW_INTENT, intent.flags)
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
-        if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
-            observeBackDispatch(AuthDiagnostics, diagnosticId, BackDiagnosticSource.KEY_UP) {
-                super.dispatchKeyEvent(event)
-            }
-        } else super.dispatchKeyEvent(event)
-
-    // Observe the legacy callback used on the ASUS/API 28; do not install a consuming callback.
-    @Suppress("DEPRECATION")
-    @Deprecated("Delegates unchanged to ComponentActivity; retained only for bounded diagnostics")
-    override fun onBackPressed() {
-        observeBackDispatch(AuthDiagnostics, diagnosticId, BackDiagnosticSource.ACTIVITY_CALLBACK) {
-            super.onBackPressed()
-        }
-    }
+    // ComponentActivity's supported dispatcher delivers button/gesture Back to the existing Compose
+    // BackHandlers. Legacy onBackPressed/key interception misses predictive gestures on API 36.
 }

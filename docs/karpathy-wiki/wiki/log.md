@@ -135,3 +135,10 @@
 - Raw: raw/owli/2026-11-28-final-closeout.md
 - Authority: docs/FINAL_HANDOFF.md; implementation ec73858; exact dev CI run46097900708 PASS
 - Recorded merged PRs33–38 and owner app/website acceptance; separated superseded blockers, current limits and receiving-team production responsibilities. No new functional audit, migration or deployment.
+
+
+## [2026-11-28] verify | Phase 9 local targeted corrections
+- Disposition: Update; local candidate from dev10668d0, not published/deployed
+- Raw: raw/owli/2026-11-28-phase9-corrections.md
+- Updated: financial invariants and integration/deployment contracts
+- Verified: 690 numbered .NET/SQL/worker checks plus MVC/ReportsContract; Android687/693; lint0errors. No production/device certification.

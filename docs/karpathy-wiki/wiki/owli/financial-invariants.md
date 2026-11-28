@@ -66,5 +66,14 @@ docs/NOTIFICATIONS.md; fresh source: raw/owli/2026-11-28-notification-continuati
 
 ## See Also
 
+The local Phase 9 candidate supersedes the historical transaction protection claims:
+DELETE requires the last-seen version and retains owner/ClientId identities after
+deletion. A deleted identity returns409 on create; retention/removal are atomic.
+Do not purge identities or run an unaware old API with writes enabled. Prior absent
+identities cannot be reconstructed. SQL22 (populated upgrade and post-SQL rollback),
+Finance463 and Schema66 pass; no existing database was migrated. Evidence:
+[Phase 9 snapshot](../../raw/owli/2026-11-28-phase9-corrections.md),
+[candidate contracts](../../../PHASE9_CORRECTIONS.md).
+
 - [Architecture and worker decision](architecture.md)
 - [Verification and decisions](verification-and-decisions.md)

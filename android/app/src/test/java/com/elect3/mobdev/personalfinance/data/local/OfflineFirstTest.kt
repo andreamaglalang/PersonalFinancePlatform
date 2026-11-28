@@ -107,6 +107,26 @@ class OfflineFirstTest {
         assertTrue(ledger.unsynced(42).first().isEmpty())
     }
 
+    @Test fun deletedServerIdentityBecomesRejectedOnceWithoutAutomaticResubmissionOrAccountLeak() = runTest {
+        val ledger = InMemoryLedger()
+        val request = CreateTransactionRequest(UUID.randomUUID(), draft)
+        ledger.enqueue(42, request, "Food")
+        var calls = 0
+        val deleted = object : TransactionCreationRepository {
+            override suspend fun create(request: CreateTransactionRequest): CreationResult {
+                calls++
+                return CreationResult.Failure(FinanceFailure.Conflict)
+            }
+        }
+        val sync = PendingTransactionSync(deleted, ledger)
+        assertEquals(SyncOutcome.Done(0, 1, 0), sync.sync(42) { true })
+        assertTrue(ledger.unsynced(42).first().single().rejected)
+        assertTrue(ledger.history(7).isEmpty())
+        assertEquals(SyncOutcome.Done(0, 0, 0), sync.sync(42) { true })
+        assertEquals(1, calls)
+        assertFalse(ledger.isSynced(42, request.clientId))
+    }
+
     @Test fun syncStopsOnSessionEndAndKeepsTheQueue() = runTest {
         val server = Server().apply { reachable = true; sessionGone = true }; val ledger = InMemoryLedger()
         ledger.enqueue(42, CreateTransactionRequest(UUID.randomUUID(), draft), null)

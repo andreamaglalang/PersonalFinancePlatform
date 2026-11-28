@@ -9,7 +9,7 @@ public interface ITransactionService
     Task<FinanceResult<PagedResponse<TransactionResponse>>> ListAsync(TransactionQuery query, CancellationToken ct);
     Task<FinanceResult<TransactionResponse>> GetAsync(int id, CancellationToken ct);
     Task<FinanceResult<TransactionResponse>> UpdateAsync(int id, UpdateTransactionRequest request, CancellationToken ct);
-    Task<FinanceResult<TransactionDeletionResponse>> DeleteAsync(int id, CancellationToken ct);
+    Task<FinanceResult<TransactionDeletionResponse>> DeleteAsync(int id, string? version, CancellationToken ct);
 }
 
 public interface ICategoryService

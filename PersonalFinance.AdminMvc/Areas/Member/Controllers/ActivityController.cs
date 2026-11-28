@@ -425,13 +425,13 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
     }
 
     [HttpPost, ActionName(nameof(Delete)), ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed([FromRoute] int id, CancellationToken ct)
+    public async Task<IActionResult> DeleteConfirmed([FromRoute] int id, [FromForm] string? version, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         var (status, token) = await MemberSessionGate.AcquireAsync(User, sessions, HttpContext, ct);
         if (status == 401) return RedirectToAction("Login", "Account", new { area = "" });
 
-        var result = await transactions.DeleteAsync(id, token!, ct);
+        var result = await transactions.DeleteAsync(id, version, token!, ct);
         if (result.Succeeded)
         {
             TempData["ActivityNotice"] = "Transaction deleted.";
@@ -443,7 +443,9 @@ public sealed class ActivityController(TransactionApiClient transactions, ICateg
             return RedirectToAction("Login", "Account", new { area = "" });
         }
         // Redirect rather than re-render so a retried POST cannot delete twice.
-        TempData["ActivityError"] = MemberSessionGate.Message(result.Status, true, result.Message);
+        TempData["ActivityError"] = result.Status == 409
+            ? "This transaction was changed elsewhere. Reload it before deleting. Nothing was deleted."
+            : MemberSessionGate.Message(result.Status, true, result.Message);
         return RedirectToAction(nameof(Index));
     }
 

@@ -61,7 +61,9 @@ internal class RemoteTransactionUpdateRepository(
 
     override suspend fun delete(transaction: Transaction): FinanceResult<Unit> {
         val id = transaction.transactionId
-        if (id <= 0) return FinanceResult.Failure(FinanceFailure.InvalidInput)
-        return writer.send(WriteMethod.DELETE, configuration.transactionUpdateUrl(id), null, setOf(200)) { FinanceJson.deletedTransaction(it, id) }
+        val version = transaction.version
+        if (id <= 0 || version == null || !version.matches(TRANSACTION_VERSION)) return FinanceResult.Failure(FinanceFailure.InvalidInput)
+        val url = configuration.transactionUpdateUrl(id)?.let { java.net.URL(it.toString() + "?version=" + version) }
+        return writer.send(WriteMethod.DELETE, url, null, setOf(200)) { FinanceJson.deletedTransaction(it, id) }
     }
 }

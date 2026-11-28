@@ -155,6 +155,7 @@ class TransactionUpdateTransportTest {
         assertTrue(f.repos.transactionUpdates.delete(target) is FinanceResult.Success)
         val request = f.sent.single()
         assertEquals(WriteMethod.DELETE, request.method); assertEquals("/api/transactions/7", request.url.path); assertNull(request.body)
+        assertEquals("version=$V2", request.url.query)
         f.respond = { FinanceHttpResponse(200, """{"transactionId":8,"deleted":true,"affectedBudgets":[]}""") }
         assertEquals(FinanceFailure.InvalidResponse, (f.repos.transactionUpdates.delete(target) as FinanceResult.Failure).reason)
         for ((status, failure) in listOf(404 to FinanceFailure.NotFound, 409 to FinanceFailure.Conflict, 503 to FinanceFailure.Unavailable)) {
@@ -165,5 +166,14 @@ class TransactionUpdateTransportTest {
         assertEquals(FinanceFailure.Unavailable, (f.repos.transactionUpdates.delete(target) as FinanceResult.Failure).reason)
         f.respond = { throw SocketTimeoutException() }
         assertEquals(FinanceFailure.Timeout, (f.repos.transactionUpdates.delete(target) as FinanceResult.Failure).reason)
+    }
+
+    @Test fun deleteRefusesMissingOrMalformedDisplayedVersionWithoutSending() = runTest {
+        val f = Fixture(); f.login()
+        val target = FinanceJson.transaction(row(), 7)
+        for (bad in listOf(null, "", "a".repeat(64), "G".repeat(64), "A".repeat(63))) {
+            assertEquals(FinanceFailure.InvalidInput, (f.repos.transactionUpdates.delete(target.copy(version = bad)) as FinanceResult.Failure).reason)
+        }
+        assertTrue(f.sent.isEmpty())
     }
 }

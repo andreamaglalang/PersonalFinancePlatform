@@ -1,5 +1,10 @@
 # OWLI final development handoff — 28 November 2026
 
+> **Phase 9 candidate:** the receiving audit reproduced renewal, deleted-create replay,
+> stale transaction deletion and Android lint gaps. [Targeted corrections](PHASE9_CORRECTIONS.md)
+> describe the local branch from `dev` `10668d0`, its sixth migration and client contract.
+> Historical completion/evidence below does not certify this candidate or production.
+
 **Development is complete for the approved scope.** This is the current release identity,
 status map and single receiving-team checklist. It supersedes old "remaining implementation"
 lists without deleting their dated evidence. Production deployment is a separate responsibility.
