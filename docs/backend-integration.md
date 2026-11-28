@@ -43,7 +43,7 @@ or authorization from posted financial identifiers.
 | Savings | `/api/savings-goals` and contribution resources. Resource version is base64 SQL rowversion; applicable mutations require one strong quoted `If-Match`, missing 428/malformed 400/stale 412. Creation receipts distinguish replay and retained deletion. This is different from account profile's body version |
 | Bills/payments | `/api/recurring-bills` and `/{id}/payments`; payment success may be 201 or 200 replay. Preserve occurrence/client request identity and receipts; do not resend uncertain payments under a fresh identity |
 | FX | `/api/exchange-rates/quote`; conversion uses Frankfurter and server policy. Stored transaction snapshot drives history/report amounts; do not recompute old records with today's rate |
-| Notifications | `GET /api/notifications`, paged/optional unread filter, scoped to the authenticated user. C3: `POST /api/notifications/{id}/read` and `POST /api/notifications/read-all` return 204, are idempotent, and give 404 for another user's or a missing notification. No push or email contract |
+| Notifications | Types: BillReminder, BillOverdue, BudgetAlert, MonthlySummary (worker) and GoalMilestone, GoalCompleted, BillPaymentRecorded, PasswordChanged (API, same transaction as the change); see [notifications](NOTIFICATIONS.md). `GET /api/notifications`, paged/optional unread filter, scoped to the authenticated user. C3: `POST /api/notifications/{id}/read` and `POST /api/notifications/read-all` return 204, are idempotent, and give 404 for another user's or a missing notification. No push or email contract |
 | Monthly summaries | C4: `GET /api/reports/summaries?page&pageSize` (default 12) returns the caller's stored, immutable (D1) worker snapshots, newest first: summaryMonth, totalIncome, totalExpense, netCashFlow, savingsAllocated, generatedAtUtc, baseCurrency. Read-only |
 | Budgets after alerts | D5: a budget referenced by alert notifications can be deleted (204). The notification history is kept unchanged; Notification has no foreign key to Budget |
 
@@ -100,3 +100,16 @@ consumption of persisted summary snapshots by MVC/Android remains unverified.
 No contract changed during Phase 0. Prove both clients' eventual shared-account,
 financial/report/currency/notification consistency with runtime evidence on
 approved synthetic/disposable targets before claiming integration complete.
+
+
+### Notification enhancement continuation (28 November 2026)
+
+The notification endpoints and DTOs are unchanged. `GET /api/notifications?unreadOnly=true`
+returns the server-wide unread total in `totalCount`, independent of page size. Android's
+account-owned inbox rereads after confirmed event/read actions, Dashboard entry, foreground
+return and inbox open/refresh; MVC rereads the header count on each page/PRG. A confirmed
+read mutation restarts Android pagination so unread-filter offset changes do not skip items.
+Cross-client reads are pull-based; no polling/push was added. See the dated
+[acceptance continuation](audits/OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026)
+and [manual guide](NOTIFICATION_TESTING.md) for current runtime evidence and limits rather
+than the historical Phase 0 verification status above.

@@ -40,9 +40,13 @@ internal static class MemberNotificationChecks
             throw new InvalidOperationException("The unread-only filter must be a real form control.");
         if (view.Contains("aria-label=\"Notification pages\"") is false)
             throw new InvalidOperationException("Server-side pagination must be an accessible navigation region.");
-        if (view.Contains("\"BudgetAlert\" => \"Budget alert\"") is false
-            || view.Contains("\"MonthlySummary\" => \"Monthly summary\"") is false
-            || view.Contains("ConvertTimeFromUtc") is false || view.Contains("member-notification-refresh") is false)
+        // Every scheduled and event-driven type has a readable label and an icon from the shared icon set.
+        foreach (var (type, label) in new[] { ("BillReminder", "Bill reminder"), ("BillOverdue", "Overdue bill"), ("BillPaymentRecorded", "Bill payment recorded"),
+                     ("BudgetAlert", "Budget alert"), ("GoalMilestone", "Savings milestone"), ("GoalCompleted", "Goal achieved"),
+                     ("MonthlySummary", "Monthly summary"), ("PasswordChanged", "Password updated") })
+            if (!view.Contains($"\"{type}\" => (\"{label}\", \""))
+                throw new InvalidOperationException($"Notification type {type} must be labelled \"{label}\" with an icon.");
+        if (view.Contains("ConvertTimeFromUtc") is false || view.Contains("member-notification-refresh") is false)
             throw new InvalidOperationException("Notification types must be human-readable, timestamps localized and refresh available.");
         if (view.Contains("@notification.Type</span>") || view.Contains("Ref @referenceId"))
             throw new InvalidOperationException("Raw notification enum values and internal references must not be prominent user-facing labels.");

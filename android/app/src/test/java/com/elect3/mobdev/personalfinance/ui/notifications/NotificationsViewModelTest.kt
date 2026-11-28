@@ -40,8 +40,16 @@ class NotificationsViewModelTest {
             val rows = all.filter { !unreadOnly || !it.isRead }
             return FinanceResult.Success(NotificationPage(rows.drop((page - 1) * pageSize).take(pageSize), page, pageSize, rows.size.toLong()))
         }
-        override suspend fun markRead(notificationId: Int): FinanceResult<Unit> { marked += notificationId; return markResult }
-        override suspend fun markAllRead(): FinanceResult<Unit> { marked += null; return markResult }
+        override suspend fun markRead(notificationId: Int): FinanceResult<Unit> {
+            marked += notificationId
+            if (markResult is FinanceResult.Success) all = all.map { if (it.notificationId == notificationId) it.copy(isRead = true) else it }
+            return markResult
+        }
+        override suspend fun markAllRead(): FinanceResult<Unit> {
+            marked += null
+            if (markResult is FinanceResult.Success) all = all.map { it.copy(isRead = true) }
+            return markResult
+        }
     }
 
     private fun model(repo: FakeRepo, expired: () -> Unit = {}): NotificationsViewModel {
@@ -56,12 +64,43 @@ class NotificationsViewModelTest {
         val repo = FakeRepo(); val vm = model(repo)
         assertTrue(vm.state.value.loading)
         runCurrent()
-        assertEquals(Triple(false, 1, 20), repo.listCalls.single())
+        assertEquals(Triple(false, 1, 20), repo.listCalls.single { it.third == 20 })
         assertEquals(20, vm.state.value.items.size)
         assertTrue(vm.state.value.canLoadMore)
         vm.loadMore(); runCurrent()
         assertEquals(25, vm.state.value.items.size)
         assertFalse(vm.state.value.canLoadMore)
+    }
+
+    @Test fun unreadCountUsesServerTotalAndRefreshesAfterConfirmedReadAndNewEvents() = verify {
+        val repo = FakeRepo(); val vm = model(repo); runCurrent()
+        assertEquals(13L, vm.state.value.unreadCount) // not the unread rows on the loaded 20-item page
+        repo.markResult = FinanceResult.Failure(FinanceFailure.Unavailable)
+        vm.markRead(1); runCurrent(); assertEquals(13L, vm.state.value.unreadCount)
+        repo.markResult = FinanceResult.Success(Unit)
+        vm.markRead(1); runCurrent(); assertEquals(12L, vm.state.value.unreadCount)
+        repo.all = listOf(n(30, read = false)) + repo.all
+        vm.refresh(); runCurrent()
+        assertEquals(13L, vm.state.value.unreadCount)
+        assertEquals(30, vm.state.value.items.first().notificationId)
+        vm.markAllRead(); runCurrent(); assertEquals(0L, vm.state.value.unreadCount)
+        vm.invalidateSession(); assertNull(vm.state.value.unreadCount); assertTrue(vm.state.value.items.isEmpty())
+    }
+
+    @Test fun markAllRemainsAvailableWhenUnreadItemsAreBeyondTheLoadedPage() = verify {
+        val repo = FakeRepo().apply { all = (1..25).map { n(it, read = it <= 20) } }
+        val vm = model(repo); runCurrent()
+        assertTrue(vm.state.value.items.all { it.isRead })
+        assertTrue(vm.state.value.hasUnread)
+        vm.markAllRead(); runCurrent()
+        assertEquals(0L, vm.state.value.unreadCount)
+    }
+
+    @Test fun unreadPagingDoesNotSkipRowsAfterAReadMutation() = verify {
+        val repo = FakeRepo().apply { all = (1..25).map { n(it, read = false) } }
+        val vm = model(repo); runCurrent(); vm.setUnreadOnly(true); runCurrent()
+        vm.markRead(1); runCurrent(); vm.loadMore(); runCurrent()
+        assertEquals((2..25).toList(), vm.state.value.items.map { it.notificationId })
     }
 
     @Test fun emptyInbox() = verify {
@@ -134,6 +173,14 @@ class NotificationsViewModelTest {
         assertEquals(R.string.notifications_type_budget, notificationTypeLabel(NotificationKind.BudgetAlert))
         assertEquals(R.string.notifications_type_summary, notificationTypeLabel(NotificationKind.MonthlySummary))
         assertEquals(R.string.notifications_type_other, notificationTypeLabel(NotificationKind.Other))
+        assertEquals(R.string.notifications_type_goal_milestone, notificationTypeLabel(NotificationKind.GoalMilestone))
+        assertEquals(R.string.notifications_type_goal_completed, notificationTypeLabel(NotificationKind.GoalCompleted))
+        assertEquals(R.string.notifications_type_bill_overdue, notificationTypeLabel(NotificationKind.BillOverdue))
+        assertEquals(R.string.notifications_type_bill_paid, notificationTypeLabel(NotificationKind.BillPaymentRecorded))
+        assertEquals(R.string.notifications_type_password, notificationTypeLabel(NotificationKind.PasswordChanged))
+        // Every kind has its own label and an icon.
+        assertEquals(NotificationKind.entries.size, NotificationKind.entries.map(::notificationTypeLabel).toSet().size)
+        NotificationKind.entries.forEach { notificationTypeIcon(it) }
     }
 
     private companion object {

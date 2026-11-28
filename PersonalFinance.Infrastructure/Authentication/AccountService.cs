@@ -63,6 +63,7 @@ public sealed class AccountService(UserManager<ApplicationUser> users, IAuthSess
             // ChangePasswordAsync changes Identity's security stamp. JWT validation checks its digest.
             // Refresh revocation commits atomically with the password update under the same lock.
             await store.RevokeAllAsync(userId, clock.GetUtcNow().UtcDateTime, token);
+            await store.AddNotificationAsync(Finance.FinanceNotifications.PasswordChanged(userId, clock.GetUtcNow().UtcDateTime), token);
             return AuthResult<bool>.Success(true, 204);
         }, ct);
     }

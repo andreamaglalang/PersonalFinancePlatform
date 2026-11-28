@@ -220,6 +220,20 @@ internal static class BillPaymentTests
             Assert(await Snapshot(f) == before && f.RowVersions.SaveAttempts == saves);
         });
 
+        await Case("a committed payment records one confirmation; replays and rejected payments add none", async f =>
+        {
+            var id = await SeedBill(f, b => b.Name = "Internet"); var request = Request();
+            Expect(await Pay(f, id, request));
+            Expect(await Pay(f, id, request), 200); // replay
+            Reject(await Pay(f, id, Request(due: new(2027, 1, 3))), 409); // not the oldest outstanding occurrence
+            await f.DbAsync(async db =>
+            {
+                var n = await db.Notifications.SingleAsync();
+                Assert(n.Type == FinanceNotifications.BillPaymentRecordedType && n.ReferenceType == "RecurringBill" && n.ReferenceId == id
+                    && n.DeduplicationKey == $"bill:{id}:paid:2026-11-03"
+                    && n.Message == "Your Internet bill payment of PHP 10.00 for Nov 3, 2026 has been recorded.", n.Message);
+            });
+        });
         await Case("replay survives deactivation and changed unpaid settings with the original receipt", async f =>
         {
             var id = await SeedBill(f); var request = Request(); var accepted = Expect(await Pay(f, id, request));

@@ -28,6 +28,7 @@
             <span class="member-tagline">Your Wise Money Companion</span>
             <a class="member-topbar-link member-inbox-link" asp-area="Member" asp-controller="Notifications" asp-action="Index">
                 <partial name="_NavIcon" model='"mail"' /><span>Inbox</span>
+                @await Component.InvokeAsync("NotificationUnreadCount")
             </a>
             <button class="secondary theme-toggle" type="button" data-theme-toggle
                     aria-label="Dark theme" aria-pressed="false" hidden>

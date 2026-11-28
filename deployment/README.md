@@ -316,3 +316,24 @@ Financial data that users record after the cutover must survive any rollback.
   1. Stop the worker.
   2. Set `Hangfire__Enabled=false`.
   - Job history stays in `OWLI_Hangfire`; do not delete it.
+
+
+## Notification enhancement release delta
+
+The `feature/financial-notifications` PR into `dev` extends the existing inbox with
+immediate savings/payment/password events and worker-produced overdue notices. Deploy
+compatible API, MVC, Android and independent Worker artifacts together after reviewed
+integration; an old worker cannot produce the new overdue type. There are **no new
+migrations, dependencies, secrets, cron schedules or runtime configuration keys**.
+Preserve existing notification/read history, certificates, Room data and private settings.
+The API still must not host a processing server. Existing rollback/storage rules above apply.
+
+Receiving-team smoke test: follow [notification testing](../docs/NOTIFICATION_TESTING.md).
+First stop only the approved test worker and verify zero registered test servers; exercise
+all event types through API/Android/MVC. Then start the guarded disposable worker profile
+and exercise the unchanged three recurring IDs, including overdue and both budget transitions.
+Check shared unread totals/read state, isolation, duplicates and Android offline feedback.
+Do not infer worker-off status from old PID files alone. Current candidate evidence is in
+[E2E acceptance](../docs/audits/OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026).
+This delta is preparation for release; it does not certify production runtime or authorize
+`main` integration/deployment.

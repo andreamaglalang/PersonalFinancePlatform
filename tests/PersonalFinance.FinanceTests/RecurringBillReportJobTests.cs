@@ -186,6 +186,53 @@ internal static class RecurringBillReportJobTests
                 Assert(n.UserId == 1 && n.Type == FinanceJobs.BillReminderType && n.DeduplicationKey == "bill:1:due:2026-11-05", n.DeduplicationKey);
             });
         });
+        foreach (var deactivate in new[] { false, true })
+        await check("Overdue bills recheck after concurrent " + (deactivate ? "deactivation" : "payment"), async f =>
+        {
+            var id = await Created(f, Bill(first: "2026-11-02"));
+            var writes = (MemoryWriteScope)f.Services.GetRequiredService<PersonalFinance.Infrastructure.Finance.IFinancialWriteScope>();
+            var interleaved = false;
+            writes.BeforeWrite = async () =>
+            {
+                interleaved = true;
+                await f.DbAsync(async db =>
+                {
+                    var bill = await db.RecurringBills.SingleAsync(b => b.BillId == id);
+                    if (deactivate) bill.IsActive = false;
+                    else bill.NextDueDate = new DateOnly(2026, 12, 2); // persisted payment has advanced this occurrence
+                    await db.SaveChangesAsync();
+                });
+            };
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 0, "stale overdue snapshot must not be published");
+            Assert(interleaved, "job must coordinate with the existing financial write scope");
+            await f.DbAsync(async db => Assert(!await db.Notifications.AnyAsync()));
+        });
+        await check("Overdue bills: one notice per unpaid oldest occurrence, later ones counted; paid and inactive bills none", async f =>
+        {
+            // Manila today is 2026-11-03. Monthly bill first due Aug 3: Aug 3 is the oldest unpaid, Sep 3 and Oct 3 also past.
+            var overdue = await Created(f, Bill(first: "2026-08-03", name: "Electricity", amount: 1500m));
+            var today = await Created(f, Bill(first: "2026-11-03", reminder: 0, name: "Due today"));
+            var inactive = await Created(f, Bill(first: "2026-10-01", name: "Gym"));
+            Assert((await f.SendAsync("PUT", $"/api/recurring-bills/{inactive}", new { name = "Gym", categoryId = 2, amount = 999, currencyCode = "PHP", reminderDaysBefore = 3, isActive = false }, f.Issue(1))).Status == 200);
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 2);
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 0, "a repeated worker run must not duplicate");
+            await f.DbAsync(async db =>
+            {
+                var rows = await db.Notifications.OrderBy(n => n.NotificationId).ToListAsync();
+                Assert(rows.Count == 2, string.Join(" | ", rows.Select(r => r.Message)));
+                var due = rows.Single(r => r.ReferenceId == today);
+                Assert(due.Type == FinanceJobs.BillReminderType && due.Message.Contains("is due today"), due.Message);
+                var late = rows.Single(r => r.ReferenceId == overdue);
+                Assert(late.Type == "BillOverdue" && late.DeduplicationKey == $"bill:{overdue}:overdue:2026-08-03"
+                    && late.Message == "Your Electricity bill of PHP 1,500.00 was due on Aug 3, 2026. 2 later occurrences are also past due.", late.Message);
+                // Paying the oldest occurrence moves NextDueDate to Sep 3; the next run notifies that occurrence once.
+                (await db.RecurringBills.SingleAsync(b => b.BillId == overdue)).NextDueDate = new DateOnly(2026, 9, 3);
+                await db.SaveChangesAsync();
+            });
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 1);
+            Assert(await Job(f, j => j.SendBillRemindersAsync(default)) == 0);
+            await f.DbAsync(async db => Assert(await db.Notifications.CountAsync(n => n.DeduplicationKey == $"bill:{overdue}:overdue:2026-09-03") == 1));
+        });
         await check("Inactive bills get no reminders", async f =>
         {
             var id = await Created(f, Bill(first: "2026-11-04", reminder: 3));

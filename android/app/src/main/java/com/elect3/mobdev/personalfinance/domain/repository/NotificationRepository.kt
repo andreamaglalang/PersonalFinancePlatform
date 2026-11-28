@@ -2,9 +2,13 @@ package com.elect3.mobdev.personalfinance.domain.repository
 
 import java.time.Instant
 
-/** Known server notification types (FinanceJobs); anything else is shown as a generic account update. */
+/**
+ * Known server notification types: scheduled (FinanceJobs: BillReminder, BillOverdue, BudgetAlert, MonthlySummary) and
+ * event-driven (FinanceNotifications: GoalMilestone, GoalCompleted, BillPaymentRecorded, PasswordChanged). Anything
+ * else is shown as a generic account update.
+ */
 enum class NotificationKind {
-    BillReminder, BudgetAlert, MonthlySummary, Other;
+    BillReminder, BillOverdue, BillPaymentRecorded, BudgetAlert, GoalMilestone, GoalCompleted, MonthlySummary, PasswordChanged, Other;
     companion object { fun fromWire(value: String) = entries.firstOrNull { it != Other && it.name == value } ?: Other }
 }
 

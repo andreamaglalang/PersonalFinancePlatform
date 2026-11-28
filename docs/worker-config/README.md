@@ -35,9 +35,12 @@ subject to later SQL/runtime correctness tests:
 
 | Stable recurring ID | Manila schedule |
 | --- | --- |
-| `owli-bill-reminders` | Daily 07:00 |
+| `owli-bill-reminders` | Daily 07:00 (upcoming and due-today reminders, plus one overdue notice per unpaid oldest occurrence) |
 | `owli-budget-alerts` | Hourly |
 | `owli-monthly-summaries` | Day 1, 00:30, previous-month summary |
+
+Event notifications (goal milestones and completion, bill payment confirmations, password changes) are written by the
+API in the same transaction as the change and do not involve the worker. See [notifications](../NOTIFICATIONS.md).
 
 Preserve `Asia/Manila`, job type/assembly identities, signatures, serializer
 conventions and compatible persisted definitions. Never register the alternative

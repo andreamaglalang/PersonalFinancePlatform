@@ -90,6 +90,9 @@ internal sealed class FakeSessionStore : IAuthSessionStore
 {
     private readonly SemaphoreSlim gate = new(1, 1);
     public ConcurrentDictionary<string, RefreshToken> Tokens { get; } = new();
+    public ConcurrentQueue<PersonalFinance.Domain.Entities.Notification> Notifications { get; } = new();
+    public Task AddNotificationAsync(PersonalFinance.Domain.Entities.Notification notification, CancellationToken ct)
+    { Notifications.Enqueue(notification); return Task.CompletedTask; }
     public async Task<T> ExecuteAsync<T>(string resource, Func<CancellationToken, Task<T>> operation, CancellationToken ct)
     {
         await Task.Yield();

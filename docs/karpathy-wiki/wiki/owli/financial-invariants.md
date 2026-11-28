@@ -2,6 +2,7 @@
 
 > Sources: Project owner, 2026-11-26; OWLI application source, 2026-11-26
 > Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md); [Input validation audit](../../raw/owli/2026-11-28-input-validation-audit.md)
+> Raw (notifications): [Financial notifications](../../raw/owli/2026-11-28-financial-notifications.md)
 > Updated: 2026-11-28
 
 ## Required invariants
@@ -50,6 +51,18 @@ control characters). Malformed JSON gets plain field messages without type names
 Bill currencies must be offered by the rate provider. See
 `docs/audits/OWLI_Input_Validation_Audit.md` for the policy, matrix and open decisions
 (the MVC 100,000,000 transaction cap and the MVC decimal comma).
+
+## Notifications (2026-11-28)
+
+Event notifications (goal milestones and completion, payment confirmations, password changes) commit in the same
+transaction as their financial or authentication change; scheduled ones stay in the independent worker. Deduplication
+relies on the unique (UserId, DeduplicationKey) index. Goal notifications require an upward crossing
+against authoritative before/after totals and target, then highest-ever-notified suppression;
+legacy metadata/noncrossing edits are silent. Overdue insertion rechecks the unpaid active occurrence
+under the same user/bill locks as payments and deactivation. Notification-save failures roll back
+financial/authentication changes (19 real SQL checks in the continuation). Android restarts unread
+pagination after read mutations and clears its account-owned count on session changes. Policies:
+docs/NOTIFICATIONS.md; fresh source: raw/owli/2026-11-28-notification-continuation.md.
 
 ## See Also
 

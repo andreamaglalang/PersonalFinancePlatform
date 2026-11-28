@@ -69,10 +69,12 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
             ValidateGoal(request);
             var total = await TotalAsync(userId, id, token);
             var currency = await CurrencyAsync(userId, true, token);
+            var previousMilestone = FinanceNotifications.Milestone(total, goal.TargetAmount);
             goal.Name = request.Name.Trim();
             goal.TargetAmount = request.TargetAmount!.Value;
             goal.TargetDate = request.TargetDate;
             RecalculateAndTouch(goal, total);
+            await FinanceNotifications.AddGoalProgressAsync(Db, goal, total, previousMilestone, currency, clock.GetUtcNow().UtcDateTime, token);
             await Db.SaveChangesAsync(token);
             return FinanceResult<SavingsGoalResponse>.Success(GoalResponse(goal, total, currency));
         }, ct);
@@ -133,12 +135,15 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
                     return await ReplayAsync(goal, accepted, request, userId, token);
                 RequireMutable(goal);
                 ValidateContributionDate(request.ContributedOn!.Value, today);
-                var total = AddToTotal(await TotalAsync(userId, goalId, token), request.Amount!.Value);
+                var previousTotal = await TotalAsync(userId, goalId, token);
+                var previousMilestone = FinanceNotifications.Milestone(previousTotal, goal.TargetAmount);
+                var total = AddToTotal(previousTotal, request.Amount!.Value);
                 var currency = await CurrencyAsync(userId, true, token);
                 var contribution = new GoalContribution { GoalId = goalId, Amount = request.Amount.Value,
                     ContributedOn = request.ContributedOn.Value, Note = GoalContributionIdempotency.CanonicalizeNote(request.Note) };
                 Db.GoalContributions.Add(contribution);
                 RecalculateAndTouch(goal, total);
+                await FinanceNotifications.AddGoalProgressAsync(Db, goal, total, previousMilestone, currency, now, token);
                 await Db.SaveChangesAsync(token);
                 var receipt = new GoalContributionRequest { UserId = userId, ClientId = clientId, GoalId = goalId,
                     ContributionId = contribution.ContributionId, OriginalAmount = contribution.Amount,
@@ -209,6 +214,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
             ValidateContributionDate(request.ContributedOn!.Value, today);
             await RequireLedgerAsync(goalId, contributionId, userId, token);
             var total = await TotalAsync(userId, goalId, token);
+            var previousMilestone = FinanceNotifications.Milestone(total, goal.TargetAmount);
             total = AddToTotal(total - contribution.Amount, request.Amount!.Value);
             var currency = await CurrencyAsync(userId, true, token);
             contribution.Amount = request.Amount.Value;
@@ -217,6 +223,7 @@ public sealed class SavingsGoalService(ApplicationDbContext db, ICurrentUser cur
             // Even an identical correction receives a new version; accepted original receipt stays immutable.
             Db.Entry(contribution).Property(c => c.Amount).IsModified = true;
             RecalculateAndTouch(goal, total);
+            await FinanceNotifications.AddGoalProgressAsync(Db, goal, total, previousMilestone, currency, clock.GetUtcNow().UtcDateTime, token);
             await Db.SaveChangesAsync(token);
             return FinanceResult<GoalContributionMutationResponse>.Success(new(
                 ContributionResponse(contribution, currency), GoalResponse(goal, total, currency)));

@@ -1,0 +1,9 @@
+@model long?
+@if (Model is > 0)
+{
+    <span class="member-chip member-chip-unread" aria-label="@Model unread notifications">@(Model > 99 ? "99+" : Model.ToString())</span>
+}
+else if (Model is null)
+{
+    <span class="sr-only">Unread count unavailable</span>
+}

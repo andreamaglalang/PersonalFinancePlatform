@@ -202,6 +202,7 @@ try
         recurring.Trigger(HangfireSetup.BudgetAlertsJobId);
         await AllSettled();
         Assert(await Notifications("BillReminder") == 1, "bill reminders");
+        Assert(await Notifications("BillOverdue") == 1, "overdue bill notice");
         Assert(await Notifications("BudgetAlert") == 1, "budget alerts");
         Assert(await Notifications("MonthlySummary") == 1, "summary notifications");
         Assert(await Scalar(financeCs, $"SELECT COUNT(*) FROM Notifications WHERE UserId<>{seed.UserId}") == 0, "results for another user");
@@ -217,7 +218,7 @@ try
             recurring.Trigger(HangfireSetup.MonthlySummariesJobId);
         }
         await AllSettled();
-        Assert(await Notifications("BillReminder") == 1 && await Notifications("BudgetAlert") == 1 && await Notifications("MonthlySummary") == 1, "duplicates created");
+        Assert(await Notifications("BillReminder") == 1 && await Notifications("BillOverdue") == 1 && await Notifications("BudgetAlert") == 1 && await Notifications("MonthlySummary") == 1, "duplicates created");
         Assert(await Scalar(financeCs, "SELECT COUNT(*) FROM MonthlySummaries") == 1, "duplicate summary");
         Assert(await Scalar(jobsCs, "SELECT COUNT(*) FROM HangFire.Job WHERE StateName='Failed'") == 0, "failed jobs");
     });
@@ -351,6 +352,8 @@ static async Task<(int UserId, int Dummy)> SeedAsync(string financeCs)
     Ok(await In(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(new CreateTransactionRequest { ClientId = Guid.NewGuid(), Type = "Expense", CategoryId = category, Amount = 90m, CurrencyCode = "PHP", TransactionDate = today }, default)));
     Ok(await In(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(new CreateTransactionRequest { ClientId = Guid.NewGuid(), Type = "Expense", CategoryId = category, Amount = 40m, CurrencyCode = "PHP", TransactionDate = month.AddMonths(-1).AddDays(9) }, default)));
     Ok(await In(sp => sp.GetRequiredService<IRecurringBillService>().CreateAsync(new CreateRecurringBillRequest { Name = "Internet", CategoryId = category, Amount = 1500m, CurrencyCode = "PHP", Frequency = "Monthly", FirstDueDate = today.AddDays(2), ReminderDaysBefore = 3 }, default)));
+    // Unpaid since two months ago: one overdue notice for the oldest occurrence (the next one is counted in its text).
+    Ok(await In(sp => sp.GetRequiredService<IRecurringBillService>().CreateAsync(new CreateRecurringBillRequest { Name = "Electricity", CategoryId = category, Amount = 1500m, CurrencyCode = "PHP", Frequency = "Monthly", FirstDueDate = today.AddMonths(-2), ReminderDaysBefore = 3 }, default)));
     return (user.Id, 0);
 }
 

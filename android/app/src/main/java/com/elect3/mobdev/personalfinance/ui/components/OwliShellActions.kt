@@ -24,6 +24,8 @@ data class OwliShellActions(
     val openInsights: (() -> Unit)? = null,
     /** Opens the notifications inbox (signed in only). */
     val openNotifications: (() -> Unit)? = null,
+    val notificationUnreadCount: Long? = null,
+    val refreshNotifications: (() -> Unit)? = null,
 )
 
 val LocalOwliShellActions = staticCompositionLocalOf { OwliShellActions() }

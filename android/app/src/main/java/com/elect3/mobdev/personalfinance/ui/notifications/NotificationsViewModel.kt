@@ -21,6 +21,7 @@ data class NotificationsUiState(
     val unreadOnly: Boolean = false,
     val items: List<AppNotification> = emptyList(),
     val totalCount: Long = 0,
+    val unreadCount: Long? = null,
     val loadedPages: Int = 0,
     /** A first page (or a refresh/filter change) is being read. */
     val loading: Boolean = true,
@@ -34,14 +35,14 @@ data class NotificationsUiState(
     val sessionExpired: Boolean = false,
 ) {
     val canLoadMore: Boolean get() = !loading && !loadingMore && loadedPages > 0 && items.size < totalCount
-    val hasUnread: Boolean get() = items.any { !it.isRead }
+    val hasUnread: Boolean get() = unreadCount?.let { it > 0 } ?: items.any { !it.isRead }
     val isEmpty: Boolean get() = !loading && loadError == null && loadedPages > 0 && items.isEmpty()
 }
 
 /**
  * Signed-in notifications inbox. Read state changes only after the server confirms (204); a failure keeps the
- * item as it was and shows an error. Items marked read stay in place (also under Unread) until the next refresh,
- * so paging offsets are not disturbed.
+ * item as it was and shows an error. Confirmed read mutations restart paging from page one so removing
+ * a row from the unread filter cannot shift offsets and skip an unseen notification.
  */
 class NotificationsViewModel @MainThread constructor(
     private val repository: NotificationRepository,
@@ -52,10 +53,21 @@ class NotificationsViewModel @MainThread constructor(
     private val mutable = MutableStateFlow(NotificationsUiState())
     val state = mutable.asStateFlow()
     private var listJob: Job? = null
+    private var countJob: Job? = null
 
-    init { reload() }
+    init { reload(); refreshUnreadCount() }
 
-    @MainThread fun refresh() = reload()
+    @MainThread fun refresh() { reload(); refreshUnreadCount() }
+
+    private fun refreshUnreadCount() {
+        if (mutable.value.sessionExpired) return
+        countJob?.cancel()
+        countJob = viewModelScope.launch {
+            val result = guarded { repository.list(true, 1, 1) }
+            if (!accept(result)) return@launch
+            mutable.update { it.copy(unreadCount = (result as? FinanceResult.Success)?.value?.totalCount) }
+        }
+    }
 
     @MainThread
     fun setUnreadOnly(unreadOnly: Boolean) {
@@ -85,6 +97,7 @@ class NotificationsViewModel @MainThread constructor(
                     items = if (result is FinanceResult.Success) s.items.map { if (it.notificationId == notificationId) it.copy(isRead = true) else it } else s.items,
                     actionError = (result as? FinanceResult.Failure)?.let(::error))
             }
+            if (result is FinanceResult.Success) refresh()
         }
     }
 
@@ -101,6 +114,7 @@ class NotificationsViewModel @MainThread constructor(
                     items = if (result is FinanceResult.Success) s.items.map { it.copy(isRead = true) } else s.items,
                     actionError = (result as? FinanceResult.Failure)?.let(::error))
             }
+            if (result is FinanceResult.Success) refresh()
         }
     }
 
@@ -110,6 +124,7 @@ class NotificationsViewModel @MainThread constructor(
     @MainThread
     fun invalidateSession() {
         listJob?.cancel()
+        countJob?.cancel()
         mutable.value = NotificationsUiState(loading = false, sessionExpired = true)
     }
 

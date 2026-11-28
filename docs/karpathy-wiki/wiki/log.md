@@ -115,3 +115,16 @@
 - Updated: OWLI financial invariants (input boundary)
 - Twelve defects reproduced and fixed. The worst were silent amount reinterpretation ("10,50" read as 1050 in the MVC transaction form and the Android budget limit) and MVC error pages on unparseable amounts.
 - Owner decisions open: the MVC transaction cap and the MVC decimal comma.
+
+## [2026-11-28] ingest | Financial notifications
+- Disposition: Update
+- Raw: raw/owli/2026-11-28-financial-notifications.md
+- Updated: OWLI financial invariants (notifications)
+- Event notifications are written in the same transaction as their change, with no migration. Overdue notices are added to the existing reminder job. Android offline sync gets local feedback.
+
+
+## [2026-11-28] ingest | Notification continuation and verified checkpoint
+- Disposition: Update
+- Raw: raw/owli/2026-11-28-notification-continuation.md
+- Updated: OWLI financial invariants; notification guide; E2E acceptance; academic traceability; deployment handoff
+- Preserved Claude's commit and corrected crossing/race/count/paging/mobile-icon gaps. Fresh HTTPS/API/SQL, worker, actual Android/MVC and offline evidence replaces unsupported historical claims for the changed paths.
