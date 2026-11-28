@@ -48,7 +48,7 @@ it does not invent institutional approval or resolve the D6 cross-user-administr
 |---|---|
 | Final dev hosted CI | **PASS** at the exact implementation SHA above. Existing workflow builds/tests .NET and Android and uses disposable SQL/worker harnesses |
 | Recorded local regression | **PASS** in the dated records: Finance460, Authentication34, API security36, Category15, Schema65, Provisioning40, MVC harness; SQL19 including rollback injection; worker14; Android debug683/release689. These counts belong to their recorded runs, not a newly repeated closeout audit |
-| Recorded financial runtime | **PASS**, scoped scenarios: actual Android↔MVC/API/SQL creation/read/counts, worker-off events, restarted-worker scheduled notices, duplicate prevention and offline feedback | 
+| Recorded financial runtime | **PASS**, scoped scenarios: actual Android↔MVC/API/SQL creation/read/counts, worker-off events, restarted-worker scheduled notices, duplicate prevention and offline feedback |
 | Physical phone | **PASS** for same-signer manual install/update, normal validated HTTPS from OWLI, and owner-confirmed sign-in/Dashboard. This is narrower than a full financial/accessibility phone matrix |
 | Owner manual acceptance | **Owner-confirmed:** "I have personally tested the application and website." The owner also confirmed PRs #33–#38 merged and declared implementation complete. No additional scenario-level results are inferred |
 | New functional audit during this closeout | **NOT PERFORMED**, as requested. Checks are Git/CI metadata, document reconciliation, links and release-source exclusions |
