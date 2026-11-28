@@ -1,5 +1,10 @@
 # OWLI backend integration reference
 
+Phase 9 candidate contract delta: [corrections](PHASE9_CORRECTIONS.md). DELETE
+`/api/transactions/{id}?version=<displayed 64-uppercase-hex version>` requires the
+client's last-seen version (400 missing/malformed, 409 stale). Deleted ClientIds are
+permanently rejected on create with 409 through the new deletion-identity table.
+
 Source-inspection baseline: `6687eb95ab3741a747da36d334aa3420c4ed7c23`; application
 source is unchanged by Phase 0. Expected scope is in [PRODUCT.md](../PRODUCT.md).
 This is a navigation/compatibility reference, not a replacement for request DTOs,

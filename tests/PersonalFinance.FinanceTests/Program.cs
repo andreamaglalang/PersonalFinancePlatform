@@ -37,7 +37,7 @@ await Check("Required fields and description limits",async f=>{Assert((await f.S
 await Check("Ownership overposting rejected",async f=>Assert((await f.SendAsync("POST","/api/transactions",new{userId=2,clientId=Guid.NewGuid(),type="Expense",categoryId=2,amount=1,currencyCode="PHP",transactionDate="2026-10-10"},f.Issue(1))).Status==400));
 await Check("Retrieval and safe DTO",async f=>{int id=await Created(f);var r=await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1));Assert(r.Status==200 && !r.Body.Contains("userId",StringComparison.OrdinalIgnoreCase));});
 await Check("Cross-user read update delete and administrator privacy",async f=>{int id=await Created(f);foreach(var user in new[]{2,3}) {Assert((await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(user))).Status==404);Assert((await Update(f,id,Edit(),user)).Status==404);Assert((await f.SendAsync("DELETE",$"/api/transactions/{id}",bearer:f.Issue(user))).Status==404);}});
-await Check("Transaction update and ordinary deletion",async f=>{int id=await Created(f);Assert((await Update(f,id,Edit())).Status==200);var deletion=await f.SendAsync("DELETE",$"/api/transactions/{id}",bearer:f.Issue(1));Assert(deletion.Status==200 && Json(deletion).GetProperty("deleted").GetBoolean() && Json(deletion).GetProperty("transactionId").GetInt32()==id && Json(deletion).GetProperty("affectedBudgets").GetArrayLength()==0);Assert((await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1))).Status==404);});
+await Check("Transaction update and ordinary deletion",async f=>{int id=await Created(f);Assert((await Update(f,id,Edit())).Status==200);var version=await VersionOf(f,id);var deletion=await f.SendAsync("DELETE",$"/api/transactions/{id}?version={version}",bearer:f.Issue(1));Assert(deletion.Status==200 && Json(deletion).GetProperty("deleted").GetBoolean() && Json(deletion).GetProperty("transactionId").GetInt32()==id && Json(deletion).GetProperty("affectedBudgets").GetArrayLength()==0);Assert((await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1))).Status==404);});
 await Check("ClientId reuse with a different payload is rejected and the original is preserved (C2, L1)",async f=>{var t=Tx();var a=await Create(f,t);t.Amount=50;var b=await Create(f,t);Assert(b.Status==409,b.Body);var id=Json(a).GetProperty("transactionId").GetInt32();Assert(Json(await f.SendAsync("GET",$"/api/transactions/{id}",bearer:f.Issue(1))).GetProperty("amount").GetDecimal()==10);});
 await Check("ClientId namespace is per user",async f=>{var t=Tx();await Create(f,t);t.CategoryId=3;Assert((await Create(f,t,2)).Status==201);});
 await Check("Filtering type category dates sorting pagination and owned history",async f=>{
@@ -273,7 +273,7 @@ foreach (var verb in new[] { "PUT", "DELETE" })
             var scope = (MemoryWriteScope)f.Services.GetRequiredService<IFinancialWriteScope>();
             var edit = Edit(); edit.Version = await VersionOf(f, id);
             scope.BeforeWrite = async () => { await LinkPayment(f, id, mode); linked = await ProtectionState(f); };
-            PaymentConflict(await f.SendAsync(verb, $"/api/transactions/{id}", verb == "PUT" ? edit : null, f.Issue(1)));
+            PaymentConflict(await f.SendAsync(verb, $"/api/transactions/{id}" + (verb == "DELETE" ? $"?version={edit.Version}" : ""), verb == "PUT" ? edit : null, f.Issue(1)));
             Assert(linked.Length > 0 && await ProtectionState(f) == linked);
         });
 foreach (var verb in new[] { "PUT", "DELETE" })
@@ -283,7 +283,7 @@ foreach (var verb in new[] { "PUT", "DELETE" })
         var edit = Edit(); edit.Version = await VersionOf(f, id);
         var scope = (MemoryWriteScope)f.Services.GetRequiredService<IFinancialWriteScope>();
         scope.BeforeWrite = () => f.DbAsync(async db => { db.Transactions.Remove(await db.Transactions.SingleAsync()); await db.SaveChangesAsync(); });
-        Assert((await f.SendAsync(verb, $"/api/transactions/{id}", verb == "PUT" ? edit : null, f.Issue(1))).Status == 404);
+        Assert((await f.SendAsync(verb, $"/api/transactions/{id}" + (verb == "DELETE" ? $"?version={edit.Version}" : ""), verb == "PUT" ? edit : null, f.Issue(1))).Status == 404);
         await f.DbAsync(async db => Assert(!await db.Transactions.AnyAsync()));
     });
 // ---------- R4: C1 transaction version token and C2 ClientId payload mismatch ----------
@@ -316,6 +316,7 @@ await Check("C2 identical ClientId replay returns the original; a different payl
  {var other=Tx();other.ClientId=tx.ClientId;change(other);var r=await Create(f,other);Assert(r.Status==409,"accepted changed payload: "+r.Body);}
  await f.DbAsync(async db=>Assert(await db.Transactions.CountAsync()==1,"extra row"));});
 // Existing ordinary update/delete and ClientId replay checks above remain unchanged.
+await TransactionLifecycleTests.RunAsync(Check);
 await BudgetTests.RunAsync(Check);
 await SavingsGoalTests.RunAsync(Check);
 await BillPaymentTests.RunAsync(Check);

@@ -54,7 +54,8 @@ public sealed class AuthenticationCoordinator(AdminSessionStore store, IAuthenti
                 if (!refresh.Succeeded) return Fail(session, refresh.Failure);
                 var replacement = refresh.Value!;
                 if (!store.IsCurrent(session) || replacement.User.Id != session.User.Id
-                    || replacement.RefreshToken == oldRefresh || !ContractValidation.Administrator(replacement.User))
+                    || replacement.RefreshToken == oldRefresh || !ContractValidation.Tokens(replacement)
+                    || !ContractValidation.Authenticated(replacement.User))
                 {
                     await RevokeAsync(replacement.RefreshToken);
                     return Fail(session, ApiFailure.Unauthorized);

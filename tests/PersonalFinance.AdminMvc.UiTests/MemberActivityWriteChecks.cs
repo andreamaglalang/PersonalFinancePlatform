@@ -53,6 +53,8 @@ internal static class MemberActivityWriteChecks
             throw new InvalidOperationException("Delete.cshtml must use the form tag helper so antiforgery is emitted.");
         if (deleteView.Contains("method=\"post\"") is false || deleteView.Contains("cannot be undone") is false)
             throw new InvalidOperationException("Delete.cshtml must be a confirmation page with an explicit warning.");
+        if (!deleteView.Contains("name=\"version\" value=\"@Model.Version\""))
+            throw new InvalidOperationException("Delete must post the version displayed in the confirmation page.");
         if (indexView.Contains("Url.Action(\"Delete\"") is false)
             throw new InvalidOperationException("Activity rows must link to the delete confirmation.");
 

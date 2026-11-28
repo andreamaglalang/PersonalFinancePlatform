@@ -46,6 +46,7 @@ public static class ApiMessages
         // Idempotency: the same request identity was reused for different details.
         ["ClientId has already been accepted with a different contribution payload."] = "This contribution was already recorded with different details. Reload and check before trying again.",
         ["This ClientId was already used for different transaction data."] = "This transaction was already recorded with different details. Reload and check before trying again.",
+        ["This transaction was deleted and cannot be recreated. Start a new transaction instead."] = "This transaction was deleted elsewhere. It was not saved again. Start a new transaction if needed.",
         // Account and registration (field messages from the API contracts)
         ["Your current password is incorrect."] = "Your current password is incorrect.",
         ["Choose a new password that is different from your current password."] = "Choose a new password that is different from your current password.",

@@ -1,5 +1,9 @@
 # OWLI — Personal Finance Platform
 
+**Local Phase 9 candidate:** [targeted corrections and migration requirements](docs/PHASE9_CORRECTIONS.md).
+Based on `dev` `10668d0`; not yet approved or merged. Subsequent deployment must use
+an explicitly approved `dev` commit, not `main` or a historical handoff.
+
 Android (Kotlin/Compose), ASP.NET Core MVC, Web API, EF Core SQL Server, and an independent optional Hangfire console worker.
 
 **Start here:** [Persistent local setup and exact startup commands](docs/DEVELOPER_SETUP.md). After one-time private setup, run `dotnet run --project PersonalFinance.Api` and `dotnet run --project PersonalFinance.AdminMvc` in separate terminals. No per-terminal configuration exports are needed.

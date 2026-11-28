@@ -29,7 +29,8 @@ public sealed class TransactionsController(ITransactionService transactions) : C
         Respond(await transactions.UpdateAsync(id, request, ct));
 
     [HttpDelete("{id:int}"), ProducesResponseType<TransactionDeletionResponse>(200)]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct) => Respond(await transactions.DeleteAsync(id, ct));
+    public async Task<IActionResult> Delete(int id, [FromQuery] string? version, CancellationToken ct) =>
+        Respond(await transactions.DeleteAsync(id, version, ct));
 
     private IActionResult Respond<T>(FinanceResult<T> result) =>
         !result.Succeeded ? Problem(statusCode: result.StatusCode, title: result.Error)

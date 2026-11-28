@@ -1,5 +1,13 @@
 # OWLI deployment handoff guide
 
+> **Phase 9 candidate override:** [targeted corrections](../docs/PHASE9_CORRECTIONS.md)
+> adds `20261128102603_RetainDeletedTransactionIdentities` (six migrations total) and
+> version-aware transaction DELETE. Five-migration/source statements below describe
+> the earlier handoff. For an approved Phase 9 release, pin its exact `dev` commit,
+> rehearse the sixth migration and verify it as the final history entry. No operation
+> is authorized by this note. An old API ignores deletion identities: do not enable
+> writes on it after rollback; preserve the table/data and use compatible recovery.
+
 **Audience:** the external deployment team that hosts OWLI through its existing Cloudflare configuration
 (public site: https://www.owli-auf.online/).
 
@@ -95,7 +103,9 @@ Rules:
 
 ## 5. Database backup and migration
 
-The schema has 5 EF Core migrations. The applications never migrate on startup.
+The Phase 9 candidate schema has 6 EF Core migrations. The sixth adds retained deletion
+identities; review [the candidate contract](../docs/PHASE9_CORRECTIONS.md) before approval.
+The applications never migrate on startup.
 
 Choose the target branch **before** running anything:
 
@@ -104,7 +114,7 @@ Choose the target branch **before** running anything:
 - **Fresh production initialization:** the receiving DBA creates an approved empty SQL Server
   database and least-privilege runtime/separate migration logins on the verified instance.
   Confirm it is empty and is the intended target, then apply the same reviewed migration bundle
-  below, verify all five history entries and required roles/reference data, and start with no
+  below, verify all six history entries and required roles/reference data, and start with no
   imported development/synthetic records. No LocalDB, sample database, demo seed or owner's
   private backup is a production prerequisite. Arrange approved administrator access separately (§4).
 
@@ -138,7 +148,7 @@ The commands below are receiving-team instructions, not operations performed by 
 5. Apply to production with the same bundle, only after the rehearsal succeeds, inside the maintenance window and
    with the worker stopped and public/API/MVC writes gated (§7).
 6. Verify with `SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;`. The last entry must be
-   `20261123100000_UsePhilippineLocalBillPaymentDates`.
+   `20261128102603_RetainDeletedTransactionIdentities` for an approved Phase 9 release.
 
 Verified locally (27 November 2026, disposable databases):
 - `BACKUP … WITH COPY_ONLY, CHECKSUM`, `RESTORE VERIFYONLY` and `RESTORE … WITH MOVE` work;
@@ -369,9 +379,9 @@ Financial data that users record after the cutover must survive any rollback.
   3. Re-enable traffic.
   - The database stays as it is, so every transaction, contribution, payment and notification recorded on the
     new release is kept.
-  - This release adds no migration beyond the five in §5. If production was already at
-    `20261123100000_UsePhilippineLocalBillPaymentDates` before the cutover, the previous applications run on the
-    same schema.
+  - Phase 9 adds a sixth migration. Keep its retained identities: Down refuses their loss.
+    An older API ignores them, so do not run that API with writes enabled as a rollback.
+    Use a compatible recovery build or remain gated pending an approved recovery plan.
   - Rehearse compatibility with the specific previous API/MVC and installed APK versions. Do not
     assume every new APK works against every old API; keep traffic gated if the tested rollback
     combination cannot preserve required operations.

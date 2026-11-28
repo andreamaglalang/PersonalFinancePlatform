@@ -12,3 +12,6 @@ only the relevant article and affected current source for a task.
 | [Verification and decisions](owli/verification-and-decisions.md) | Final implementation SHA/CI, owner acceptance, bounded local runtime evidence and production duties | 2026-11-28 |
 
 Current release authority: [final handoff](../../FINAL_HANDOFF.md). Historical analysis is retained at its original scope; it does not initiate new development.
+
+Local Phase 9 candidate: [targeted contracts and verification](../../PHASE9_CORRECTIONS.md);
+[sanitized evidence](../raw/owli/2026-11-28-phase9-corrections.md). Not yet approved for release.

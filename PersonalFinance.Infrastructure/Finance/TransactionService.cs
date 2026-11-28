@@ -20,6 +20,7 @@ public sealed class TransactionService(
         if (request.ClientId is null || request.ClientId == Guid.Empty)
             throw new FinanceException(400, "A nonempty client-generated ClientId is required.");
         var clientId = request.ClientId.Value;
+        await RejectDeletedAsync(userId, clientId, ct);
         var existing = await ByClientAsync(userId, clientId, ct);
         if (existing is not null)
             return Replay(existing, request) ?? FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, existing, ct));
@@ -35,6 +36,7 @@ public sealed class TransactionService(
                 FinanceValidation.UserLock(userId),
                 FinanceValidation.CategoryLock(request.CategoryId.Value)], async token =>
                 {
+                    await RejectDeletedAsync(userId, clientId, token);
                     existing = await ByClientAsync(userId, clientId, token);
                     if (existing is not null)
                         return Replay(existing, request) ?? FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, existing, ct));
@@ -75,7 +77,9 @@ public sealed class TransactionService(
 
             var winner = await ByClientAsync(userId, clientId, ct);
             if (winner is not null)
-                return FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, winner, ct));
+                return Replay(winner, request) ?? FinanceResult<TransactionResponse>.Success(await WithUsageAsync(userId, winner, ct));
+
+            await RejectDeletedAsync(userId, clientId, ct);
 
             throw;
         }
@@ -248,7 +252,7 @@ public sealed class TransactionService(
             }, ct);
     });
 
-    public Task<FinanceResult<TransactionDeletionResponse>> DeleteAsync(int id, CancellationToken ct) => Guard(async () =>
+    public Task<FinanceResult<TransactionDeletionResponse>> DeleteAsync(int id, string? version, CancellationToken ct) => Guard(async () =>
     {
         var userId = UserId;
         var original = await Db.Transactions.AsNoTracking()
@@ -258,6 +262,10 @@ public sealed class TransactionService(
             return FinanceResult<TransactionDeletionResponse>.Failure(404, "Transaction not found.");
 
         ProtectBillPayment(original);
+        if (version is null || !System.Text.RegularExpressions.Regex.IsMatch(version, "^[0-9A-F]{64}$"))
+            throw new FinanceException(400, "The current transaction version is required. Reload and retry.");
+        if (!string.Equals(version, FinanceData.Version(original), StringComparison.Ordinal))
+            throw new FinanceException(409, "This transaction was changed elsewhere. Reload it and try again.");
 
         return await Writes.ExecuteAsync([
             FinanceValidation.UserLock(userId),
@@ -274,6 +282,12 @@ public sealed class TransactionService(
                 if (!FinanceData.SameState(row, original))
                     throw new FinanceException(409, "Transaction changed. Reload and retry.");
 
+                // Retain identity atomically with removal; an uncertain offline create must never resurrect it.
+                Db.DeletedTransactions.Add(new PersonalFinance.Domain.Entities.DeletedTransaction
+                {
+                    UserId = userId, ClientId = row.ClientId, TransactionId = id,
+                    DeletedAtUtc = clock.GetUtcNow().UtcDateTime
+                });
                 Db.Transactions.Remove(row);
                 await Db.SaveChangesAsync(token);
 
@@ -283,6 +297,12 @@ public sealed class TransactionService(
                     new(id, true, affected));
             }, ct);
     });
+
+    private async Task RejectDeletedAsync(int userId, Guid clientId, CancellationToken ct)
+    {
+        if (await Db.DeletedTransactions.AsNoTracking().AnyAsync(t => t.UserId == userId && t.ClientId == clientId, ct))
+            throw new FinanceException(409, "This transaction was deleted and cannot be recreated. Start a new transaction instead.");
+    }
 
     /// <summary>C2: a replayed ClientId must carry the same payload; otherwise the identity was reused for other data.</summary>
     private static FinanceResult<TransactionResponse>? Replay(TransactionResponse existing, CreateTransactionRequest request) =>

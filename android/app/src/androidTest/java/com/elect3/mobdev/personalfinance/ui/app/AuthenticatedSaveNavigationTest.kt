@@ -120,7 +120,7 @@ class AuthenticatedSaveNavigationTest {
                     demoTransactions = { demoListing },
                     isSessionCurrent = { login.state.value.authenticatedContentKey == it },
                     onSessionExpired = { if (login.state.value.authenticatedContentKey == it) login.sessionExpired() },
-                    sessionKeys = login.state.map { it.authenticatedContentKey },
+                    sessionKeys = androidx.compose.runtime.remember(login) { login.state.map { it.authenticatedContentKey } },
                     authenticatedCategories = login.authenticatedCategories,
                     authenticatedCurrency = login.authenticatedCurrency,
                     authenticatedCreation = login.authenticatedCreation,

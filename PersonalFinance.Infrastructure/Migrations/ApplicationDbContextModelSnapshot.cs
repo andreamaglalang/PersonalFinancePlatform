@@ -385,6 +385,30 @@ namespace PersonalFinance.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PersonalFinance.Domain.Entities.DeletedTransaction", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "ClientId");
+
+                    b.ToTable("DeletedTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DeletedTransactions_ClientId", "[ClientId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_DeletedTransactions_TransactionId", "[TransactionId] > 0");
+                        });
+                });
+
             modelBuilder.Entity("PersonalFinance.Domain.Entities.ExchangeRate", b =>
                 {
                     b.Property<int>("RateId")
@@ -1108,6 +1132,15 @@ namespace PersonalFinance.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction);
+                });
+
+            modelBuilder.Entity("PersonalFinance.Domain.Entities.DeletedTransaction", b =>
+                {
+                    b.HasOne("PersonalFinance.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PersonalFinance.Domain.Entities.GoalContribution", b =>

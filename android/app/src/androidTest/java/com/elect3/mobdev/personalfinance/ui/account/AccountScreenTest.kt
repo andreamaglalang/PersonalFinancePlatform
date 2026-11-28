@@ -135,7 +135,7 @@ class AccountScreenTest {
                     demoTransactions = { ViewModelProvider(owner, TransactionListViewModel.Factory(MockTransactionRepository())).get("demo", TransactionListViewModel::class.java) },
                     isSessionCurrent = { login.state.value.authenticatedContentKey == it },
                     onSessionExpired = { login.sessionExpired() },
-                    sessionKeys = login.state.map { it.authenticatedContentKey },
+                    sessionKeys = androidx.compose.runtime.remember(login) { login.state.map { it.authenticatedContentKey } },
                     authenticatedCategories = login.authenticatedCategories,
                     dashboardContent = { com.elect3.mobdev.personalfinance.ui.dashboard.DashboardScreen(
                         com.elect3.mobdev.personalfinance.ui.dashboard.DashboardUiState.Empty, {}, {},

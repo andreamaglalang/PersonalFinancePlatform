@@ -32,6 +32,7 @@
             every platform.</p>
 
         <form class="member-form-actions" method="post" asp-action="Delete" asp-route-id="@Model.TransactionId">
+            <input type="hidden" name="version" value="@Model.Version" />
             <button class="member-btn member-btn-danger" type="submit">Delete transaction</button>
             <a class="member-btn member-btn-secondary" href="@Url.Action("Index")">Cancel</a>
         </form>

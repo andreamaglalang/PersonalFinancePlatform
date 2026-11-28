@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -37,6 +39,29 @@ if (string.IsNullOrWhiteSpace(server))
     return failed == 0 ? 0 : 1;
 }
 
+await Check("Phase9: populated migration-five upgrade preserves records and repeat migration is a no-op", async () =>
+{
+    await using var upgrade = await DisposableSqlTarget.CreateAsync(server);
+    await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(upgrade.ConnectionString).Options);
+    var migrator = db.GetService<IMigrator>();
+    await migrator.MigrateAsync("20261123100000_UsePhilippineLocalBillPaymentDates");
+    var user = new ApplicationUser { UserName = "upgrade@example.test", NormalizedUserName = "UPGRADE@EXAMPLE.TEST",
+        Email = "upgrade@example.test", NormalizedEmail = "UPGRADE@EXAMPLE.TEST", FullName = "Synthetic upgrade", BaseCurrency = "PHP" };
+    db.Users.Add(user); await db.SaveChangesAsync();
+    var category = new PersonalFinance.Domain.Entities.Category { UserId = user.Id, Name = "Upgrade", Type = PersonalFinance.Domain.Enums.TransactionType.Expense, IsActive = true };
+    db.Categories.Add(category); await db.SaveChangesAsync();
+    var row = new PersonalFinance.Domain.Entities.Transaction { UserId = user.Id, CategoryId = category.CategoryId,
+        ClientId = Guid.NewGuid(), Type = PersonalFinance.Domain.Enums.TransactionType.Expense, Amount = 12.34m,
+        CurrencyCode = "PHP", FxRate = 1, AmountBase = 12.34m, FxRateDate = new(2026, 11, 3), TransactionDate = new(2026, 11, 3) };
+    db.Transactions.Add(row); await db.SaveChangesAsync();
+    var id = row.TransactionId; var client = row.ClientId;
+    await migrator.MigrateAsync(); await migrator.MigrateAsync(); db.ChangeTracker.Clear();
+    var retained = await db.Transactions.SingleAsync();
+    Assert(retained.TransactionId == id && retained.ClientId == client && retained.AmountBase == 12.34m
+        && await db.Users.CountAsync() == 1 && await db.DeletedTransactions.CountAsync() == 0, "upgrade changed existing records");
+    Assert((await db.Database.GetAppliedMigrationsAsync()).Count() == 6, "sixth migration missing");
+});
+
 await using (var target = await DisposableSqlTarget.CreateAsync(server))
 {
     Console.WriteLine("Disposable catalog created (" + DisposableSqlTarget.Prefix + "<run>).");
@@ -65,7 +90,7 @@ await using (var target = await DisposableSqlTarget.CreateAsync(server))
         await InScope(async sp => { await sp.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync(); return 0; });
         var pending = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Database.GetPendingMigrationsAsync());
         var applied = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Database.GetAppliedMigrationsAsync());
-        Assert(!pending.Any() && applied.Count() >= 5, "migrations incomplete");
+        Assert(!pending.Any() && applied.Count() == 6, "migrations incomplete");
     });
 
     int userA = 0, userB = 0;
@@ -99,6 +124,56 @@ await using (var target = await DisposableSqlTarget.CreateAsync(server))
         Assert(results.Select(r => r.Value!.TransactionId).Distinct().Count() == 1, "different IDs returned");
         var rows = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Transactions.CountAsync(t => t.ClientId == request.ClientId));
         Assert(rows == 1, $"{rows} rows stored");
+    });
+
+    await Check("Phase9: stale delete and delayed replay retain exactly one SQL deletion identity", async () =>
+    {
+        currentUser.Id = userA;
+        var request = Expense(expenseCategory, Guid.NewGuid(), 50m);
+        var created = await InScope(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(request, default));
+        var id = created.Value!.TransactionId;
+        var edited = await InScope(sp => sp.GetRequiredService<ITransactionService>().UpdateAsync(id,
+            new UpdateTransactionRequest { Type = "Expense", CategoryId = expenseCategory, Amount = 60m,
+                CurrencyCode = "PHP", TransactionDate = request.TransactionDate, Version = created.Value.Version }, default));
+        Assert(edited.Succeeded, "edit");
+        var stale = await InScope(sp => sp.GetRequiredService<ITransactionService>().DeleteAsync(id, created.Value.Version, default));
+        Assert(stale.StatusCode == 409, "stale client removed updated row");
+        var removed = await InScope(sp => sp.GetRequiredService<ITransactionService>().DeleteAsync(id, edited.Value!.Version, default));
+        Assert(removed.Succeeded, "delete");
+        var retries = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => InScope(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(request, default))));
+        Assert(retries.All(r => r.StatusCode == 409), "delayed create was accepted");
+        await InScope(async sp =>
+        {
+            var db = sp.GetRequiredService<ApplicationDbContext>();
+            Assert(!await db.Transactions.AnyAsync(t => t.UserId == userA && t.ClientId == request.ClientId), "resurrected row");
+            Assert(await db.DeletedTransactions.CountAsync(t => t.UserId == userA && t.ClientId == request.ClientId) == 1, "identity not retained");
+            db.DeletedTransactions.Add(new PersonalFinance.Domain.Entities.DeletedTransaction
+                { UserId = userA, ClientId = request.ClientId!.Value, TransactionId = id, DeletedAtUtc = DateTime.UtcNow });
+            try { await db.SaveChangesAsync(); throw new Exception("duplicate identity accepted"); }
+            catch (DbUpdateException) { }
+            return 0;
+        });
+    });
+
+    await Check("Phase9: failed delete rolls back the financial row and retained identity together", async () =>
+    {
+        currentUser.Id = userA;
+        var request = Expense(expenseCategory, Guid.NewGuid(), 77m);
+        var created = await InScope(sp => sp.GetRequiredService<ITransactionService>().CreateAsync(request, default));
+        notificationFailure.DeleteArmed = true;
+        try
+        {
+            await InScope(sp => sp.GetRequiredService<ITransactionService>().DeleteAsync(created.Value!.TransactionId, created.Value.Version, default));
+            throw new Exception("delete failure not injected");
+        }
+        catch (IOException) { }
+        await InScope(async sp =>
+        {
+            var db = sp.GetRequiredService<ApplicationDbContext>();
+            Assert(await db.Transactions.AnyAsync(t => t.UserId == userA && t.ClientId == request.ClientId)
+                && !await db.DeletedTransactions.AnyAsync(t => t.UserId == userA && t.ClientId == request.ClientId), "partial deletion");
+            return 0;
+        });
     });
 
     await Check("Monetary precision and historical FX snapshot persist", async () =>
@@ -170,7 +245,7 @@ await using (var target = await DisposableSqlTarget.CreateAsync(server))
         var id = created.Value!.TransactionId;
         var edit = new UpdateTransactionRequest { Type = "Expense", CategoryId = expenseCategory, Amount = 60m, CurrencyCode = "PHP", TransactionDate = new DateOnly(2026, 11, 3), Version = created.Value.Version };
         var update = InScope(sp => sp.GetRequiredService<ITransactionService>().UpdateAsync(id, edit, default));
-        var delete = InScope(sp => sp.GetRequiredService<ITransactionService>().DeleteAsync(id, default));
+        var delete = InScope(sp => sp.GetRequiredService<ITransactionService>().DeleteAsync(id, created.Value.Version, default));
         await Task.WhenAll(update, delete);
         var rows = await InScope(sp => sp.GetRequiredService<ApplicationDbContext>().Transactions.AsNoTracking().Where(t => t.TransactionId == id).Select(t => t.Amount).ToListAsync());
         Assert(delete.Result.Succeeded || update.Result.Succeeded, "neither operation succeeded");
@@ -295,12 +370,21 @@ internal sealed class FixedFx : IFrankfurterClient
 
 internal sealed class FailNotificationSave : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
 {
-    public bool Armed;
+    public bool Armed, DeleteArmed;
     public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
         Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
         if (Armed && eventData.Context!.ChangeTracker.Entries<PersonalFinance.Domain.Entities.Notification>().Any(e => e.State == EntityState.Added))
         { Armed = false; throw new IOException("Injected notification persistence failure"); }
+        return ValueTask.FromResult(result);
+    }
+
+    public override ValueTask<int> SavedChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesCompletedEventData eventData,
+        int result, CancellationToken cancellationToken = default)
+    {
+        // Fail after SQL has inserted the identity and removed the row, before the write scope commits.
+        if (DeleteArmed && eventData.Context!.ChangeTracker.Entries<PersonalFinance.Domain.Entities.DeletedTransaction>().Any())
+        { DeleteArmed = false; throw new IOException("Injected post-SQL deletion failure"); }
         return ValueTask.FromResult(result);
     }
 }

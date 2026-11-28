@@ -57,7 +57,7 @@ class AuthenticatedTransactionsNavigationTest {
                     },
                     isSessionCurrent = { login.state.value.authenticatedContentKey == it },
                     onSessionExpired = { if (login.state.value.authenticatedContentKey == it) login.sessionExpired() },
-                    sessionKeys = login.state.map { it.authenticatedContentKey },
+                    sessionKeys = androidx.compose.runtime.remember(login) { login.state.map { it.authenticatedContentKey } },
                     dashboardContent = { Text(stringResource(R.string.dashboard_demo_data)) })
             }
             PersonalFinanceTheme {

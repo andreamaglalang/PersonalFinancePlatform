@@ -39,6 +39,7 @@ internal object ApiMessages {
         "Profile changed. Reload before saving." to "Your profile was updated elsewhere. Reload before saving.",
         "ClientId has already been accepted with a different contribution payload." to "This contribution was already recorded with different details. Reload and check before trying again.",
         "This ClientId was already used for different transaction data." to "This transaction was already recorded with different details. Reload and check before trying again.",
+        "This transaction was deleted and cannot be recreated. Start a new transaction instead." to "This transaction was deleted elsewhere. It was not saved again. Start a new transaction if needed.",
         "Your current password is incorrect." to "Your current password is incorrect.",
         "Choose a new password that is different from your current password." to "Choose a new password that is different from your current password.",
         "Passwords do not match." to "Passwords do not match.",

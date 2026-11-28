@@ -13,6 +13,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<FinanceTransaction> Transactions => Set<FinanceTransaction>();
+    public DbSet<DeletedTransaction> DeletedTransactions => Set<DeletedTransaction>();
     public DbSet<Budget> Budgets => Set<Budget>();
     public DbSet<RecurringBill> RecurringBills => Set<RecurringBill>();
     public DbSet<BillPaymentReceipt> BillPaymentReceipts => Set<BillPaymentReceipt>();

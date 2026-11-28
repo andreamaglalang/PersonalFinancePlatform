@@ -380,7 +380,8 @@ fun OwliFinanceContent(
     }
     if (converterOpen) {
         // Rates the server already confirmed on this account's loaded transactions (never in Mock Demo).
-        val loaded = (account?.model()?.state?.value as? com.elect3.mobdev.personalfinance.ui.transactions.TransactionListUiState.Content)?.items.orEmpty()
+        val loadedState = account?.model()?.state?.collectAsStateWithLifecycle()?.value
+        val loaded = (loadedState as? com.elect3.mobdev.personalfinance.ui.transactions.TransactionListUiState.Content)?.items.orEmpty()
         val base = if (authenticatedContentKey == null) "PHP" else authenticatedCurrency()
         com.elect3.mobdev.personalfinance.ui.currency.CurrencyConverterDialog(
             baseCurrency = base,
