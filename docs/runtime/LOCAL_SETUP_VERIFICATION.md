@@ -78,3 +78,29 @@ Final storage guard regression: both finance and jobs connection strings with
 AttachDbFilename are rejected before opening SQL connections, so validation cannot
 implicitly attach/provision a database. Both refusal fixtures and the valid
 configuration case pass in the focused offline worker checks.
+
+
+## Physical phone installation and localhost TLS — 28 November 2026
+
+Focused continuation on `fix/android-localhost-debug-trust`, from synchronized `dev`.
+Reuses the preserved debug-trust implementation; the original stash remains intact. No API/SQL configuration, credentials, certificates, Room data or existing worktrees
+were reset. The only certificate input is a private, ignored copy of the existing API's
+public localhost leaf, verified against the server with certificate and hostname validation.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Phone compatibility and signature | **PASS** | Physical Xiaomi HyperOS2 / Android15, ARM64; minSDK26, valid unchanged debug signing key |
+| Normal manual installation | **PASS** | Initial Android Studio Run APK had `testOnly=true` and was rejected by File Manager. A normal debug build without that flag installed; installed base APK hash matched the transferred build |
+| USB-install restriction | **BLOCKED (USB deployment)** | Phone could not enable Install via USB without a SIM. Normal on-device File Manager installation/update worked; no USB policy bypass or security-scanning change |
+| API tunnel | **PASS** | Missing phone-specific reverse mapping restored. Reconnect/reboot requires repeating it |
+| Before certificate correction | **FAIL (before correction)** | Actual OWLI HTTPS probe: SSLHandshakeException / CertPathValidatorException, trust anchor not found |
+| After correction on physical phone | **PASS** | Exact updated APK installed in place; actual OWLI `GET /openapi/v1.json` returned HTTP200, `normalTls=true`, matching the verified API certificate fingerprint |
+| Debug/release builds | **PASS** | Normal installable debug and release artifacts built |
+| Debug trust task guards | **PASS** | Malformed PEM, certificate bundle and CA inputs rejected. Absent certificate produces no generated trust resources; valid leaf resources restored |
+| Artifact boundaries | **PASS** | Debug contains exactly the intended public PEM and generated localhost policy. Release contains neither; no trust-all manager, hostname override or cleartext relaxation |
+| Android unit regressions | **PASS** | Debug683 and release689; zero failures/skips |
+| Physical phone sign-in | **PASS** | Tester signed in on the updated physical phone and confirmed Dashboard opens; app diagnostics recorded LOGIN_SUCCEEDED and GATE_AUTHENTICATED |
+
+The developer guide now includes the optional per-checkout public-certificate path,
+normal APK build/manual update, credential-free probe and explicit no-private-key rules.
+Production trust/hosting and production deployment remain outside this local correction.

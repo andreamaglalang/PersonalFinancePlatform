@@ -131,3 +131,6 @@ appsettings.*.Local.json
 /.local/karpathy-wiki/
 /.local/worker/
 /.local/runtime/
+
+# Per-developer Android debug public certificate; never included in source or release builds.
+/android/.local/
