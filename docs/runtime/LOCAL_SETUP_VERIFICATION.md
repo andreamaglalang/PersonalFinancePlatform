@@ -99,7 +99,7 @@ public localhost leaf, verified against the server with certificate and hostname
 | Debug trust task guards | **PASS** | Malformed PEM, certificate bundle and CA inputs rejected. Absent certificate produces no generated trust resources; valid leaf resources restored |
 | Artifact boundaries | **PASS** | Debug contains exactly the intended public PEM and generated localhost policy. Release contains neither; no trust-all manager, hostname override or cleartext relaxation |
 | Android unit regressions | **PASS** | Debug683 and release689; zero failures/skips |
-| Physical phone sign-in | **NOT TESTED** | HTTPS corrected; awaiting the tester's sign-in result |
+| Physical phone sign-in | **PASS** | Tester signed in on the updated physical phone and confirmed Dashboard opens; app diagnostics recorded LOGIN_SUCCEEDED and GATE_AUTHENTICATED |
 
 The developer guide now includes the optional per-checkout public-certificate path,
 normal APK build/manual update, credential-free probe and explicit no-private-key rules.
