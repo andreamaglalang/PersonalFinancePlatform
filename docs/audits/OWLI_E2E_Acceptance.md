@@ -1,6 +1,8 @@
 # OWLI — End-to-end functional and user acceptance testing (27 November 2026)
 
-- **Code under test:** branch `test/e2e-acceptance`, stacked on `fix/system-wide-validation-feedback` (PR #28), which
+> **Current source:** `ec73858ef54a7323523f32989942220ca53461b1`; PRs #33–#38 merged; exact dev CI PASS. [Final handoff](../FINAL_HANDOFF.md) is authoritative for release identity. Dated scenarios below remain evidence for their original sessions, not newly invented owner test results.
+
+- **Original session source:** branch `test/e2e-acceptance`, stacked on `fix/system-wide-validation-feedback` (PR #28), which
   is `dev` `be10ff1` plus the validation work.
 - **Environment:**
   - API, MVC and worker run from this build on a local SQL Server container.
@@ -112,7 +114,7 @@ From Phase 3 R12: MVC rate limiting per user and per IP (429 message).
   - slow-API latency (only total outages were simulated);
   - force-closing the app during an in-flight write on this build (covered earlier by the durable-retry evidence);
   - installing over a previous APK on a device. Room migration v2→v3 is covered by instrumented migration tests, not by a manual reinstall;
-  - physical devices and tablet-size emulators;
+  - broad physical-device financial/accessibility coverage and tablet-size emulators; PR #38 later verifies limited physical-phone install/HTTPS/sign-in;
   - a release-build APK against a public endpoint (deployment team).
 - **Design notes, not defects:**
   - Bill reminder days have no default; the field is required and explained.
@@ -301,14 +303,14 @@ and failed.
 | Android instrumented after the follow-up | 203 run, 0 failures, 22 skipped (opt-in) |
 | Hosted CI on `a0d882a` | dotnet, android, sql green |
 
-## Final verified commit
+## Historical verified milestone — PRs #28–#29
 
 | Item | Value |
 | --- | --- |
-| Final verified `dev` code commit | **`bc652ce`**: merge of PR #29, after PR #28 (`4e0b97f`), merged in dependency order on 27 November 2026 |
+| Earlier verified `dev` milestone | **`bc652ce`**: merge of PR #29, after PR #28 (`4e0b97f`), merged in dependency order on 27 November 2026 |
 | Equivalence | `git diff e85c0ef bc652ce` is empty: merged `dev` is byte-identical to the tested PR head |
 | Hosted CI | dotnet, android and sql green on #28, #29 and the `dev` push of `bc652ce` |
-| Later commits | Documentation only (this record). Confirm with the command in the handoff guide §3 |
+| Scope of that earlier statement | Documentation-only at that milestone; later implementation PRs #31–#38 supersede it. Final source is `ec73858ef54a7323523f32989942220ca53461b1` |
 | Not merged | `main` (owner approval required) |
 | Production | Not performed by this team (D10) |
 
@@ -348,7 +350,7 @@ No worker-off claim relies on that first run.
 | Scheduled types on approved shared disposable runtime | **PASS** | Restarted notification-branch worker produced upcoming, overdue, warning800/1000, exceeded1050/1000 and October summary40 for a fresh synthetic member. Repeated all three jobs: inbox16→16 |
 | All eight types, icons and both themes | **PASS** | Actual Android API36 emulator: every type scrolled into view/asserted. Actual MVC at360/768/1280px in light/dark: no horizontal overflow or icon/text overlap after mobile padding correction; screenshots inspected |
 | Mark-all and account switch | **PASS** | Android mark-all → zero unread bell → actual MVC/API zero. A second synthetic member's inbox is empty/count0 in both actual interfaces; API marking another member's ID returns404 |
-| Hosted PR CI | **NOT TESTED** | Local verification complete; final published PR checks are authoritative for hosted results |
+| Hosted CI follow-up | **PASS** | This local continuation preceded publication; final dev-push run46097900708 later passed dotnet/android/sql at `ec73858ef54a7323523f32989942220ca53461b1`. Earlier local runtime rows retain their own scope |
 | Physical device / spoken screen reader | **NOT TESTED** | Dedicated Android API36 emulator only; accessibility semantics asserted |
 | Production runtime / main merge / deployment | **NOT TESTED** | Outside this task |
 
@@ -362,3 +364,19 @@ Room was retained. Its temporary network interruption was restored and device ni
 was restored to its original value. The ordinary API/MVC checkout and other Git worktrees
 were preserved. Private screenshots, logs, fixture credentials, certificates and configuration
 are excluded from Git; only this sanitized evidence is published.
+
+
+## Final development closeout — 28 November 2026
+
+| Item | Final status |
+|---|---|
+| Verified implementation source | **`ec73858ef54a7323523f32989942220ca53461b1`**, latest verified remote dev; PRs #33–#38 merged |
+| Hosted dev-push CI | **PASS**, [run46097900708](https://github.com/andreamaglalang/PersonalFinancePlatform/actions/runs/46097900708), dotnet/android/sql, exact source SHA |
+| Owner testing | Owner reports personally testing the app and website and considers implementation complete. No additional individual test outcomes are invented |
+| Phone follow-up | Manual same-key update, actual validated app HTTPS and owner-confirmed sign-in/Dashboard recorded in [local verification](../runtime/LOCAL_SETUP_VERIFICATION.md) |
+| Development status | Completed for approved scope; prior final/candidate commit markers are historical |
+| Production | Receiving-team responsibility; no production deployment/upgrade certification is inferred |
+
+Use [final handoff](../FINAL_HANDOFF.md) for the current functionality/limitations map,
+package boundary, exact source and single deployment checklist. This documentation closeout
+performs no new application audit or database operation.

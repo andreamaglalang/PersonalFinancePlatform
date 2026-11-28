@@ -1,5 +1,7 @@
 # OWLI Phase 1 — System Audit and Gap Analysis
 
+> **Historical Phase 1 audit.** Later implementation and acceptance supersede the mapped gaps in [final closeout](../FINAL_HANDOFF.md#historical-issues-versus-remaining-limits). Unmapped historical warnings are not silently certified as fixed or re-opened as a new comprehensive audit.
+
 > Status: Phase 1 assessment record, 26 November 2026. Investigation only. No
 > application code, schema, configuration, data or branch history was changed.
 > Expected behavior: [PRODUCT.md](../../PRODUCT.md). Contracts:

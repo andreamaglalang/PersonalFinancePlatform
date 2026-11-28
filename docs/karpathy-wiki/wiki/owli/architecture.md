@@ -1,5 +1,7 @@
 # OWLI architecture and worker decision
 
+> **Current closeout:** implementation `ec73858ef54a7323523f32989942220ca53461b1`; [final handoff](../../../FINAL_HANDOFF.md) records current status/evidence. Earlier API-hosting, future-worker or unverified-everywhere descriptions below are historical; production operations remain separately owned.
+
 > Sources: Project owner, 2026-11-26; OWLI application source, 2026-11-26
 > Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Source snapshot](../../raw/owli/2026-11-26-application-source.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md)
 > Updated: 2026-11-26

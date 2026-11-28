@@ -1,5 +1,7 @@
 # Independent worker architecture and local storage preparation
 
+> **Final status (28 November):** independent worker implementation and recorded lifecycle checks are complete at [the verified release baseline](../FINAL_HANDOFF.md). The Phase 0 target/preparation text below is historical; follow [production guide §9](../../deployment/README.md) for separately approved operational activation.
+
 **Current development startup:** [Persistent setup](../DEVELOPER_SETUP.md). The historical preparation below is superseded where noted by R2 and the current development profiles.
 
 This records the owner-approved target and Phase 0 preparation, 26 November 2026.

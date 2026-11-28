@@ -1,5 +1,7 @@
 # OWLI verification limits and architectural decisions
 
+> **Current closeout:** implementation `ec73858ef54a7323523f32989942220ca53461b1`; [final handoff](../../../FINAL_HANDOFF.md) records current status/evidence. Earlier API-hosting, future-worker or unverified-everywhere descriptions below are historical; production operations remain separately owned.
+
 > Sources: Project owner, 2026-11-26; guarded Phase 0 SQL preparation, 2026-11-26
 > Raw: [Approved requirements](../../raw/owli/2026-11-26-approved-requirements.md); [Storage preparation evidence](../../raw/owli/2026-11-26-storage-preparation.md); [Agent discovery](../../raw/owli/2026-11-26-agent-discovery.md); [CI portability](../../raw/owli/2026-11-26-ci-portability.md); [Hosted CI acceptance](../../raw/owli/2026-11-26-ci-hosted-acceptance.md); [Phase 1 audit](../../raw/owli/2026-11-26-phase1-audit.md); [Persistent local startup](../../raw/owli/2026-11-27-persistent-local-startup.md)
 > Updated: 2026-11-27

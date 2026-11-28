@@ -1,5 +1,7 @@
 # OWLI approved product requirements
 
+> **Phase closeout, 28 November 2026:** approved development is complete at `ec73858ef54a7323523f32989942220ca53461b1`. [Final handoff](docs/FINAL_HANDOFF.md) records implemented coverage, evidence and remaining limits. The original Phase 0 questions/boundaries below are dated requirements history, not instructions to begin another audit or implementation phase.
+
 Authority: project-owner-approved methodology/architecture assessment and Phase 0
 finalization instructions, 26 November 2026. This defines expected behavior,
 not certification that the current implementation satisfies it. Current source,

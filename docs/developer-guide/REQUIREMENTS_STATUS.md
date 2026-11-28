@@ -1,5 +1,7 @@
 # Implementation Status (MOBDEV / ELECT3 Requirements)
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 Status as of the integration branch on 2026-11-21. Categories:
 
 - **Verified working**: demonstrated end to end at runtime during the 2026-11-21 verification. (Nothing qualifies: no runtime

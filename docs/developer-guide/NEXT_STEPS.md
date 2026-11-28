@@ -1,5 +1,7 @@
 # Next Steps (historical priorities)
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 These priorities and test counts describe the earlier integration. Use the
 [current handoff issues](../handoff/ISSUES.md) for current status and the
 [Git workflow](../DEVELOPMENT_WORKFLOW.md) for all new development planning.

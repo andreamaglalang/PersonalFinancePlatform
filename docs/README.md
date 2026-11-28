@@ -1,21 +1,30 @@
 # OWLI documentation index and publication review
 
-Reviewed on 26 November 2026 for `handoff/owli-20261125` in
-`andreamaglalang/PersonalFinancePlatform`.
+Current closeout: 28 November 2026, `dev` `ec73858ef54a7323523f32989942220ca53461b1`.
+The original 26 November publication review for `handoff/owli-20261125` remains historical below.
 
 ## Start here
 
-**Production deployment:** follow only [the deployment handoff guide](../deployment/README.md) and its templates.
-Other setup or deployment descriptions in this repository, such as `docs/handoff/`, `docs/Phase*_*.md`,
-`deployment/VALIDATION.md` and the original-PC notes, are historical records. The latest verification is in
-[the end-to-end acceptance record](audits/OWLI_E2E_Acceptance.md). Academic requirement coverage: [traceability matrix](audits/OWLI_Academic_Traceability.md). Input validation policy and audit: [input validation record](audits/OWLI_Input_Validation_Audit.md). Inbox types, triggers and deduplication: [notifications](NOTIFICATIONS.md).
+**Current closeout:** [Final source, evidence, limitations and one deployment-team checklist](FINAL_HANDOFF.md).
+Development is complete for the approved scope at `ec73858ef54a7323523f32989942220ca53461b1`.
+PRs #33–#38 are merged and its exact dev-push CI is green.
+
+- Local setup/startup and debug phone installation: [developer setup](DEVELOPER_SETUP.md).
+- Production operations/signing: [deployment guide](../deployment/README.md) and its templates.
+- Acceptance: [E2E](audits/OWLI_E2E_Acceptance.md), [academic coverage](audits/OWLI_Academic_Traceability.md),
+  [local/phone verification](runtime/LOCAL_SETUP_VERIFICATION.md).
+- Inbox/manual scenarios: [notifications](NOTIFICATIONS.md), [testing guide](NOTIFICATION_TESTING.md).
+- Current limits versus superseded findings: [final status map](FINAL_HANDOFF.md#historical-issues-versus-remaining-limits).
+
+Dated Phase/Stage reports, original-PC notes, `deployment/VALIDATION.md` and original handoff
+snapshots remain historical evidence. Current sections and links explicitly identified above
+are authoritative for their stated development or production scope.
 
 Approved requirements are in [PRODUCT.md](../PRODUCT.md); current source-backed
 client contracts are in [backend integration](backend-integration.md).
 Use the [single knowledge index](karpathy-wiki/wiki/index.md) for targeted reads
-and [worker/storage preparation](worker-config/README.md) for the approved future
-console architecture and local preparation evidence. These do not certify
-worker or cross-client runtime functionality.
+and [worker/storage preparation](worker-config/README.md) for the implemented independent worker and historical preparation evidence. Current runtime
+verification is recorded in the final closeout; the original preparation notes alone do not certify it.
 
 For AI-assisted work, read [shared AI development standards](AI_DEVELOPMENT.md)
 and the [Phase 0 environment and skill verification](PHASE0_AI_SETUP.md).

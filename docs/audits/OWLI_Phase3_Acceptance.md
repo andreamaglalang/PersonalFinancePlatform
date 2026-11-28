@@ -1,5 +1,7 @@
 # OWLI Phase 3–4 — Implementation, integration and acceptance record
 
+> **Historical Phase3–5 acceptance.** Current verified implementation is `ec73858ef54a7323523f32989942220ca53461b1`; [final closeout](../FINAL_HANDOFF.md) supersedes earlier release-identity markers while retaining the results below at their recorded scope.
+
 > Status: 27 November 2026 (Asia/Manila). Evidence labels: PASS / FAIL / BLOCKED / NOT TESTED.
 > An essential row that is not PASS remains **incomplete**. Nothing is merged into `main`.
 > Final closeout: 27 November 2026; see "Final closeout" below.
@@ -10,8 +12,8 @@
 | --- | --- |
 | Phase 3 start (`dev` with PRs #4–#11) | `0cb05e7` |
 | Combined review candidate (PR #19, closed without merging) | `integration/phase3-candidate` at `4c74878` |
-| Final verified code commit (PRs #12–#25 merged) | `600244d` |
-| Superseded by | `bc652ce` (PRs #28–#29); see [the end-to-end record](OWLI_E2E_Acceptance.md) |
+| Historical verified code milestone (PRs #12–#25 merged) | `600244d` |
+| Current implementation baseline | `ec73858ef54a7323523f32989942220ca53461b1`; later PRs #33–#38 merged. `bc652ce` was an intermediate milestone; see [final handoff](../FINAL_HANDOFF.md) |
 | `dev` head after the record PR #26 | `a5c30d2` (documentation only beyond `600244d`; hosted CI green) |
 | Independent-review gate | **Done.** The owner approved the merges and checked the integration and handoff through GitHub |
 
@@ -137,7 +139,7 @@ Two separate statuses:
 
 | Status | Result |
 | --- | --- |
-| Local release readiness | Candidate verified (sections above). Publish of API, MVC and worker is verified; no forbidden files in the output; the published worker starts disabled (exit 0). The secrets scan of `dev` and the candidate found no passwords, tokens, keys or private configuration. **Final verified `dev` code commit: `600244d`** (all PRs #12–#25 merged with owner approval; see below) |
+| Local release readiness | Candidate verified (sections above). Publish of API, MVC and worker is verified; no forbidden files in the output; the published worker starts disabled (exit 0). The secrets scan of `dev` and the candidate found no passwords, tokens, keys or private configuration. **Verified at this historical phase: `600244d`** (all PRs #12–#25 merged with owner approval; see below) |
 | Production deployment | **Not performed by this team.** Owned by the external deployment team (D10); it is not claimed as verified here |
 
 Handoff: [deployment/README.md](../../deployment/README.md) covers software, pulling `dev`, configuration, backup and migration rehearsal, publish, API/MVC startup, worker supervision, `OWLI_Hangfire` preparation and controlled activation, Cloudflare, Android signing, verification and rollback (PR #25).

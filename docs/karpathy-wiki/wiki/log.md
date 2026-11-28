@@ -128,3 +128,10 @@
 - Raw: raw/owli/2026-11-28-notification-continuation.md
 - Updated: OWLI financial invariants; notification guide; E2E acceptance; academic traceability; deployment handoff
 - Preserved Claude's commit and corrected crossing/race/count/paging/mobile-icon gaps. Fresh HTTPS/API/SQL, worker, actual Android/MVC and offline evidence replaces unsupported historical claims for the changed paths.
+
+
+## [2026-11-28] reconcile | Final development closeout
+- Disposition: Update; documentation only
+- Raw: raw/owli/2026-11-28-final-closeout.md
+- Authority: docs/FINAL_HANDOFF.md; implementation ec73858; exact dev CI run46097900708 PASS
+- Recorded merged PRs33–38 and owner app/website acceptance; separated superseded blockers, current limits and receiving-team production responsibilities. No new functional audit, migration or deployment.

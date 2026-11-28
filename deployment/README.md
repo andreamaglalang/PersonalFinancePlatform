@@ -10,17 +10,19 @@
 - Local release readiness and production deployment are **separate verification statuses**. Nothing in this
   repository claims that production deployment or production runtime verification has passed.
 
-The release commit, test evidence and known limitations are in
-[the end-to-end acceptance record](../docs/audits/OWLI_E2E_Acceptance.md) (earlier phases:
-[Phase 3–5 record](../docs/audits/OWLI_Phase3_Acceptance.md)).
+**Final implementation source:** `ec73858ef54a7323523f32989942220ca53461b1` on `dev`,
+PRs #33–#38 merged; its exact [dev-push CI passed](https://github.com/andreamaglalang/PersonalFinancePlatform/actions/runs/46097900708).
+[Final handoff](../docs/FINAL_HANDOFF.md) holds the single receiving-team checklist, owner acceptance,
+current limitations and the distinction between implementation and documentation/package commits.
+Dated [E2E](../docs/audits/OWLI_E2E_Acceptance.md) and [Phase3–5](../docs/audits/OWLI_Phase3_Acceptance.md)
+records retain the evidence for their original test sessions.
 
-**Current instructions:** this file, `Publish-OWLI.ps1` and the three `*.env.template` files in this folder.
-Every other document that describes setup or deployment is **historical** and must not be followed for
-production, including:
-- `deployment/VALIDATION.md` and `deployment/evidence/`;
-- `docs/handoff/`;
-- the `docs/Phase*_*.md` and `docs/Stage*` reports;
-- the original-PC notes in `docs/developer-guide/DEPLOYMENT.md`.
+**Current authorities:** this production runbook, its publish script and placeholder templates;
+[developer setup](../docs/DEVELOPER_SETUP.md) for local development/phone installation;
+[worker implementation guidance](../docs/worker-config/README.md#implementation-and-verification-r2);
+and the final handoff/checklist. `deployment/VALIDATION.md`, generated `deployment/evidence/`,
+original handoff snapshots, old Phase/Stage reports and original-PC deployment notes are historical.
+A current section is not made historical merely because it links to dated evidence.
 
 ## 1. Components
 
@@ -49,15 +51,21 @@ The API never hosts Hangfire. Jobs run only in the worker.
 ```bash
 git clone https://github.com/andreamaglalang/PersonalFinancePlatform.git
 cd PersonalFinancePlatform
-git checkout dev && git pull --ff-only
-git rev-parse HEAD   # must match the release commit in the acceptance record
+git switch --detach <accepted-handoff-or-package-commit>
+git rev-parse HEAD   # record the full documentation/package SHA
 ```
 
-The verified code commit is the latest one recorded in
-[the end-to-end acceptance record](../docs/audits/OWLI_E2E_Acceptance.md) (earlier: `600244d` in the Phase 5 record).
-Later `dev` commits may change only documentation, configuration templates or opt-in tests. To confirm, run
-`git diff --stat <verified commit> HEAD -- . ':!docs' ':!*.md' ':!android/app/src/androidTest' ':!deployment/*.template'`;
-it must print nothing.
+The final verified **implementation** is `ec73858ef54a7323523f32989942220ca53461b1`.
+The accepted documentation/package commit can be later. Confirm ancestry and inspect its delta:
+
+```bash
+git merge-base --is-ancestor ec73858ef54a7323523f32989942220ca53461b1 HEAD
+git diff --name-only ec73858ef54a7323523f32989942220ca53461b1 HEAD
+```
+
+For this closeout, every changed path must be Markdown. If later changes include code, scripts,
+configuration templates, tests or migration files, do not silently reuse this verification;
+obtain the corresponding reviewed source/evidence. Keep both SHAs in the release record.
 
 `main` is not the release branch until the owner explicitly approves a `dev` → `main` merge.
 
@@ -78,10 +86,30 @@ Rules:
 - Never put SQL credentials or JWT keys into MVC or Android.
 - Leave `OWLI_DEV_CERT_THUMBPRINT` unset.
 - Use a least-privilege SQL login for runtime, and a separate privileged login only for migrations.
+- Arrange an approved production administrator account/access procedure before acceptance. The
+  repository's interactive administrator CLI is **Development-only** and restricted to LocalDB
+  or disposable `OWLI_Runtime_*` targets. It is not a production bootstrap tool; never relabel a
+  production target as Development or remove guards to make it run. For a fresh production DB,
+  owner/DBA-approved Identity provisioning is a receiving-team prerequisite, not an automatic seed.
+
 
 ## 5. Database backup and migration
 
 The schema has 5 EF Core migrations. The applications never migrate on startup.
+
+Choose the target branch **before** running anything:
+
+- **Existing data:** follow backup/restore rehearsal below; verify connected server/catalog and
+  migration history first. Quiesce all application writes for the final backup/cutover (§7).
+- **Fresh production initialization:** the receiving DBA creates an approved empty SQL Server
+  database and least-privilege runtime/separate migration logins on the verified instance.
+  Confirm it is empty and is the intended target, then apply the same reviewed migration bundle
+  below, verify all five history entries and required roles/reference data, and start with no
+  imported development/synthetic records. No LocalDB, sample database, demo seed or owner's
+  private backup is a production prerequisite. Arrange approved administrator access separately (§4).
+
+The commands below are receiving-team instructions, not operations performed by this closeout.
+
 
 1. **Back up** `PersonalFinanceDb`, for example
    `BACKUP DATABASE PersonalFinanceDb TO DISK = N'<path>\PersonalFinanceDb_<date>.bak' WITH COPY_ONLY, CHECKSUM;`,
@@ -108,7 +136,7 @@ The schema has 5 EF Core migrations. The applications never migrate on startup.
    fires, the migration rolls back and changes nothing. Stop, keep the backup, and reconcile the reported
    condition with the development team. Never edit migrations or remove guards.
 5. Apply to production with the same bundle, only after the rehearsal succeeds, inside the maintenance window and
-   with the worker stopped (§7).
+   with the worker stopped and public/API/MVC writes gated (§7).
 6. Verify with `SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;`. The last entry must be
    `20261123100000_UsePhilippineLocalBillPaymentDates`.
 
@@ -135,8 +163,18 @@ dotnet publish PersonalFinance.AdminMvc/PersonalFinance.AdminMvc.csproj -c Relea
 dotnet publish PersonalFinance.Worker/PersonalFinance.Worker.csproj -c Release --self-contained false -p:UseAppHost=false -o out/worker
 ```
 
-The script refuses existing output folders and fails if any development settings or secret-bearing file
-appear in the output. Ship only the publish folders and their checksums.
+The script refuses existing output folders and checks a specific filename/extension denylist
+(for example Development/Local settings, `.env`, keys and SQL backup files), then writes checksums.
+It is **not a complete secret/content scanner**: other filenames, embedded values or copied test
+assets can escape that filter. Manual `dotnet publish` commands bypass even that guard/checksum step.
+
+Use a clean, pinned release workspace. Inspect the exact output contents and configuration with
+the team's approved secret scan; exclude private stores/certificates, machine settings, test
+assemblies/demo seed tools and exported synthetic records. Supply production secrets/certificates
+outside the package. For manual publishing, perform equivalent artifact inspection and generate
+checksums yourself. Ship only the reviewed publish folders, required migration bundle, signed
+release APK and checksums; retain source/test code in the source handoff, not runtime payloads.
+This documentation closeout did not rebuild or certify new compiled production packages.
 
 ## 7. Coordinated release of API, MVC and Android
 
@@ -148,14 +186,21 @@ This release changes the transaction contract between the server and both client
 - The new Android build calls endpoints that only the new API has (notification read state, stored monthly
   summaries). It shows an error for those sections against an older API.
 
-Order inside one maintenance window:
-1. Stop the worker, if it runs.
-2. Back up the database, then rehearse and apply migrations (§5).
-3. Deploy the API and the MVC site together, and restart both (§8).
-4. Run the post-deployment checks (§12) with the new APK build.
-5. Publish the new signed APK (§11) to users, and ask them to update. Older installed APKs can still sign in
-   and record, but cannot edit transactions until they update.
-6. Start the worker last (§9).
+Rehearse the backup upgrade/rollback and prepare artifacts before the maintenance window.
+Order inside the approved window:
+
+1. Gate public write traffic and stop the worker; stop/quiesce API and MVC writes as appropriate
+   so neither clients nor jobs can mutate records during the final backup/migration.
+2. Take/verify the final database backup, then apply only the approved, rehearsed migrations (§5).
+3. Deploy API and MVC together and restart both (§8), keeping public traffic gated for validation.
+4. Run the pre-activation application/TLS/event/offline smoke checks (§12) with the prepared
+   signed APK and verified rollback available; keep public traffic gated.
+5. Activate one independent worker last among the services, after explicit approval and storage
+   checks (§9). Then perform §12's worker/scheduled-notification checks while traffic remains gated.
+6. Record receiving acceptance of both phases, publish the signed APK (§11), and coordinate
+   public reopening/client updates. Old transaction editors may be incompatible; do not open
+   an uncoordinated mix. Retain previous artifacts/backups and reconcile any post-backup writes
+   before considering a database restore.
 
 ## 8. Start and supervise the API and MVC
 
@@ -197,7 +242,7 @@ The supervisor must stop the worker with **SIGTERM** (or a Windows service stop)
 graceful shutdown.
 
 **Controlled activation** happens only when the owner approves the cutover. Do it after the API, MVC and
-migrations are live and checked (§7, §12):
+migrations and pre-activation application checks have passed, with public traffic still gated (§7, §12):
 1. Inspect `OWLI_Hangfire`. It must be empty, or hold only these three jobs:
    ```sql
    SELECT (SELECT COUNT(*) FROM HangFire.Server) AS servers, (SELECT COUNT(*) FROM HangFire.Job) AS jobs;
@@ -218,9 +263,12 @@ migrations are live and checked (§7, §12):
 
 - Publish separate hostnames for the MVC site and the API through the existing remotely managed tunnel, for
   example `www.owli-auf.online` → MVC and an API hostname → API.
-- Each hostname must route to the app's **HTTPS** origin (`https://127.0.0.1:8444` / `:8443`). Use a Cloudflare
-  Origin CA certificate on the origin, or the tunnel's TLS-verification option for a self-signed origin
-  certificate.
+- Each hostname must route to the app's **HTTPS** origin (`https://127.0.0.1:8444` / `:8443`).
+  The certificate chain must be trusted by `cloudflared` and its SAN must match the expected origin
+  name. Set `originServerName` to that certificate hostname when connecting by loopback/IP; for
+  a private CA, provide the verified CA through `caPool`. Keep `noTLSVerify=false` (Disable TLS
+  certificate verification off). Edge TLS does not replace tunnel-to-origin validation. See
+  [Cloudflare origin parameters](https://developers.cloudflare.com/tunnel/reference/origin-parameters/).
 - Do not enable or trust forwarded headers globally. The apps check HTTPS on their own connection.
 - Set `AllowedHosts` and `BackendApi__BaseUrl` to the real hostnames.
 - Allow outbound HTTPS from the API to `api.frankfurter.dev`.
@@ -241,12 +289,14 @@ cd android
 
 | Setting | Rule |
 | --- | --- |
-| `owliVersionCode` | A whole number. It must be **higher** than any build previously installed on users' devices, and must rise with every published update; Android refuses an in-place upgrade otherwise. |
+| `owliVersionCode` | A whole number. Production policy: choose a code **higher** than previously distributed applicable builds and raise it for each published update. Android downgrade protection and store publishing constraints must be respected; manual same-code debug updates are not the release versioning policy. |
 | `owliVersionName` | The version users see, for example `1.0.0`. |
 | Defaults | Without these properties, builds are `versionCode 1` / `0.1.0`, as used in development and testing. |
 
-Suggested first production release: `-PowliVersionCode=2 -PowliVersionName=1.0.0`. Code 2 is above every
-development build, which all carry code 1.
+Select the production code from the actual distribution/installed-build history, not a fixed
+example: the acceptance records include a versionCode3 build. Use a code above the highest
+applicable previously distributed same-key build and record it with the signing certificate.
+The default development code1 is not a safe production versioning policy.
 
 **Signing:**
 - Use **one** release keystore for the life of the app. Android only installs an update signed with the same key.
@@ -267,18 +317,24 @@ development build, which all carry code 1.
 - The output, `app/build/outputs/apk/release/app-release-unsigned.apk`, is **unsigned**. Sign it with the
   deployment team's keystore, which must never be committed:
   ```bash
-  zipalign -p -f 4 app-release-unsigned.apk app-release-aligned.apk
-  apksigner sign --ks <keystore> --out owli-release.apk app-release-aligned.apk
-  apksigner verify --print-certs owli-release.apk      # the certificate digest must match every earlier release
+  zipalign -P 16 -f -v 4 app/build/outputs/apk/release/app-release-unsigned.apk app-release-aligned.apk
+  apksigner sign --ks <private-keystore> --ks-key-alias <alias> --out owli-release.apk app-release-aligned.apk
+  apksigner verify --verbose --print-certs owli-release.apk      # the certificate digest must match every earlier release
+  zipalign -c -P 16 -v 4 owli-release.apk
   aapt2 dump badging owli-release.apk | head -1          # shows versionCode and versionName
   ```
+
+Alignment must precede signing; use the [Android zipalign guidance](https://developer.android.com/tools/zipalign).
 
 ## 12. Post-deployment verification
 
 Use **synthetic accounts** only, and record the results separately from local readiness:
 
-1. **TLS:** both hostnames have valid certificates; plain HTTP to `/api/auth/login` returns 400 "HTTPS is
-   required"; there are no redirect loops.
+1. **TLS:** both public hostnames and tunnel origins validate their certificate chains/names;
+   there are no redirect loops. Use a **credential-free** HTTP probe to confirm the public edge
+   refuses or redirects plain HTTP. An intentionally exposed application HTTP listener must
+   reject auth requests with400; an HTTPS-only origin need not expose one. Never send credentials
+   over HTTP merely to test this distinction.
 2. **Registration and login:**
    - register on MVC, sign in on MVC and on Android;
    - register on Android, sign in on MVC;
@@ -290,6 +346,17 @@ Use **synthetic accounts** only, and record the results separately from local re
 6. **Administrator:** the administrator reaches Dashboard, Categories, Budgets and Reports; a member is denied.
 7. **Worker (after activation):** one server and three jobs. The next hourly `owli-budget-alerts` run succeeds.
 8. **API isolation:** the API logs show no Hangfire server.
+9. **Notifications:** follow [the exact notification guide](../docs/NOTIFICATION_TESTING.md),
+   adjusting sample dates to the actual Manila day. Verify immediate goal/payment/password
+   events before worker activation; then scheduled upcoming/overdue/budget/summary notices,
+   shared unread totals and cross-client read state after approved worker activation.
+10. **Offline/upgrade:** on an approved release-test device and synthetic member, record offline,
+    reconnect, confirm one accepted record/local feedback, and verify the other client. Preserve
+    pending Room data during the same-key upgrade rehearsal; never use real-user data for a destructive test.
+11. **FX/recovery:** verify outbound provider reachability, a supported foreign-currency snapshot,
+    session renewal/logout and the documented rejection/error behavior. Record actual results;
+    local test evidence is not a substitute for this production topology check.
+
 
 ## 13. Rollback (without losing financial data)
 
@@ -305,11 +372,14 @@ Financial data that users record after the cutover must survive any rollback.
   - This release adds no migration beyond the five in §5. If production was already at
     `20261123100000_UsePhilippineLocalBillPaymentDates` before the cutover, the previous applications run on the
     same schema.
-  - Users who already installed the new APK keep working for everything except notification read state and
-    stored summaries, until the API is redeployed.
-- **Schema rollback:** restore the pre-migration backup **only if no user traffic reached the new release**
-  (for example, a guard fired or the post-deployment checks failed before traffic was re-enabled).
-  - Once users have recorded data, do not restore the backup; that would delete their new records.
+  - Rehearse compatibility with the specific previous API/MVC and installed APK versions. Do not
+    assume every new APK works against every old API; keep traffic gated if the tested rollback
+    combination cannot preserve required operations.
+- **Schema rollback:** the owner/DBA must verify and reconcile **all writes since the backup**,
+  including synthetic smoke records and background jobs. Gating public traffic alone does not
+  prove that no writes occurred. Restore the pre-migration backup only under the approved plan
+  when no required new records will be discarded.
+  - Once users/jobs have created required records, do not blindly restore the backup; that would delete them.
   - Keep the migrated database, and roll the application back as above or fix forward with the development team.
   - Never hand-write down-migrations against financial data; that decision belongs with the owner and the DBA.
 - **Worker rollback:**
@@ -320,7 +390,7 @@ Financial data that users record after the cutover must survive any rollback.
 
 ## Notification enhancement release delta
 
-The `feature/financial-notifications` PR into `dev` extends the existing inbox with
+PR #37, merged into `dev`, extends the existing inbox with
 immediate savings/payment/password events and worker-produced overdue notices. Deploy
 compatible API, MVC, Android and independent Worker artifacts together after reviewed
 integration; an old worker cannot produce the new overdue type. There are **no new
@@ -337,3 +407,12 @@ Do not infer worker-off status from old PID files alone. Current candidate evide
 [E2E acceptance](../docs/audits/OWLI_E2E_Acceptance.md#notification-enhancement-continuation--28-november-2026).
 This delta is preparation for release; it does not certify production runtime or authorize
 `main` integration/deployment.
+
+
+## Final release record and checklist
+
+Development closeout is complete at `ec73858ef54a7323523f32989942220ca53461b1`; owner testing
+is recorded at its stated scope. Use the [single receiving-team checklist](../docs/FINAL_HANDOFF.md#final-receiving-team-handoff-checklist).
+Production cutover, administrator access, real-data migration/rollback rehearsal, private secrets,
+Cloudflare routing, release signing and actual production verification still belong to the
+receiving team. No operation in this guide was executed by this documentation closeout.

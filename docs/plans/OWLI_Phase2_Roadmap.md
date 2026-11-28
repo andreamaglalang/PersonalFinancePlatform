@@ -1,5 +1,7 @@
 # OWLI Phase 2 — Prioritized Implementation Roadmap
 
+> **Historical approved implementation plan.** The implementation phase is now complete for the accepted scope; use [final handoff](../FINAL_HANDOFF.md) for current status. This retained roadmap is not a new development assignment.
+
 > Status: **approved with review amendments**, 26 November 2026 (Asia/Manila).
 > Decisions D1–D5, D7–D9, D11 and D12 are approved. D6 and D10 remain owner-confirmation items (§7).
 > Baseline: `dev` at `8083c72` (Phase 1 merge). Inputs: [PRODUCT.md](../../PRODUCT.md),

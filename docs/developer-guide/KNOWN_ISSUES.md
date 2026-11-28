@@ -1,5 +1,7 @@
 # Known Issues, Blockers and Unfinished Work
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 ## Blockers (need an owner decision)
 
 1. **Migration 3 not approved.** Every `/api/savings-goals` endpoint returns 500 on a migrations-1–2 database.

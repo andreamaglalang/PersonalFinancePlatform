@@ -8,7 +8,7 @@ to today and use that day's contribution date; do not change the system clock or
 
 ## Start once, then test both interfaces
 
-1. Check out the notification PR branch (or `dev` after reviewed integration). Follow
+1. Use the verified source/package commit in [final handoff](FINAL_HANDOFF.md); notification PR #37 is merged into `dev`. Follow
    [developer setup](DEVELOPER_SETUP.md) for existing private user secrets, approved test SQL
    catalogs and trusted HTTPS. No migrations or new configuration are needed for this enhancement.
 2. In separate terminals at the repository root, run `dotnet run --project PersonalFinance.Api`

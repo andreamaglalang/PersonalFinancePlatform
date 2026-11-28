@@ -1,5 +1,7 @@
 # Handoff verification — 25 November 2026
 
+> **Current verification:** final implementation `ec73858ef54a7323523f32989942220ca53461b1`; [exact CI and evidence scope](../FINAL_HANDOFF.md#verification-and-owner-acceptance). Results below are dated milestones and are not a claim that runtime work remains unperformed everywhere.
+
 Verified locally with .NET SDK 10.0.402 and JDK 17, using the checked-in Gradle 9.1.0 wrapper and SDK 36 / Build Tools 36.0.0. All results below refer to the consolidated active source, not the archived alternative implementations.
 
 | Check | Result |
