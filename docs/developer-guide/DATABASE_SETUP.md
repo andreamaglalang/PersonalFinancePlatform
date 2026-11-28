@@ -1,5 +1,7 @@
 # Database Setup (SQL Server LocalDB + EF Core 10)
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 > **Read all of this before running any `dotnet ef` command against a server.**
 > Nothing in the 2026-11-21 verification applied a migration or touched the original database.
 

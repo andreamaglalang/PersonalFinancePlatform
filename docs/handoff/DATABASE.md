@@ -1,5 +1,7 @@
 # Initialize a new development database
 
+> **Historical LocalDB procedure.** Current fresh-SQL initialization and existing-data upgrade instructions are in [production guide §5](../../deployment/README.md#5-database-backup-and-migration); local prerequisites are in [developer setup](../DEVELOPER_SETUP.md). Later disposable SQL evidence supersedes the blanket not-verified statements below; production upgrades still require approval/rehearsal.
+
 SQL Server is required for runtime persistence. The offline checks use synthetic models/test doubles and do not prove SQL locking or trigger behavior. This handoff did not connect to, migrate, back up, or seed the existing database.
 
 Use a NEW LocalDB installation on your own computer and an empty `PersonalFinanceDb` database. The name is required only by the administrator provisioning guard. Do not run these instructions on the owner's computer or against a shared server. Starting the API does not automatically migrate or seed the database.

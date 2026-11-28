@@ -99,8 +99,11 @@ public localhost leaf, verified against the server with certificate and hostname
 | Debug trust task guards | **PASS** | Malformed PEM, certificate bundle and CA inputs rejected. Absent certificate produces no generated trust resources; valid leaf resources restored |
 | Artifact boundaries | **PASS** | Debug contains exactly the intended public PEM and generated localhost policy. Release contains neither; no trust-all manager, hostname override or cleartext relaxation |
 | Android unit regressions | **PASS** | Debug683 and release689; zero failures/skips |
-| Physical phone sign-in | **PASS** | Tester signed in on the updated physical phone and confirmed Dashboard opens; app diagnostics recorded LOGIN_SUCCEEDED and GATE_AUTHENTICATED |
+| Physical phone sign-in | **PASS** | Owner confirmed successful sign-in and Dashboard on the updated physical phone; actual app HTTPS probe returned200. No retained auth event is relied on for this owner-confirmed result |
 
 The developer guide now includes the optional per-checkout public-certificate path,
 normal APK build/manual update, credential-free probe and explicit no-private-key rules.
 Production trust/hosting and production deployment remain outside this local correction.
+
+
+Final implementation baseline: `ec73858ef54a7323523f32989942220ca53461b1`; PRs #33–#38 merged. [Final closeout](../FINAL_HANDOFF.md) separates recorded local verification, owner acceptance and production responsibilities. No new runtime tests were performed for this documentation-only closeout.

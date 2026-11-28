@@ -1,5 +1,7 @@
 # Verification Results
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 All checks were **offline**: no API startup, no SQL Server connection, no device, no Hangfire, no migrations.
 
 ## How the offline suites were run (repeat this on the new PC)

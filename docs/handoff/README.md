@@ -1,5 +1,7 @@
 # OWLI project handoff — 25 November 2026
 
+> **Historical handoff (25 November).** The current release identity, status and receiving-team checklist are in [final closeout](../FINAL_HANDOFF.md). Use [developer setup](../DEVELOPER_SETUP.md) for local work and [the production guide](../../deployment/README.md) for deployment; the original instructions below retain their historical scope.
+
 **Current startup procedure:** [Persistent local development setup](../DEVELOPER_SETUP.md). This dated handoff is historical; the API no longer hosts Hangfire.
 
 This was the original setup entry point. It supersedes dated claims in `docs/developer-guide`, `docs/hermes-handoff`, and deployment evidence. Those documents remain useful design/history references, but their old implementation and verification status is not current.

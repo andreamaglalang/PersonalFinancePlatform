@@ -1,4 +1,4 @@
-# OWLI — Academic requirements traceability (27 November 2026)
+# OWLI — Academic requirements traceability (28 November 2026)
 
 **Original requirement — Personal Finance and Budget Monitoring Platform:** track expenses, recurring bills, budgets,
 savings goals and financial reports across web and mobile. Approved additions (PRODUCT.md, Phase 2 roadmap):
@@ -7,7 +7,10 @@ savings goals and financial reports across web and mobile. Approved additions (P
 - bidirectional synchronization;
 - an independent Hangfire console application.
 
-**Code under test:** `dev` `bc652ce` (PRs #28, #29) plus the round-3 corrections (R3-1 to R3-6) on `test/final-functional-regression`.
+**Final implementation source:** `dev` `ec73858ef54a7323523f32989942220ca53461b1` (PRs #33–#38 merged).
+[Final closeout](../FINAL_HANDOFF.md) records exact dev-push CI PASS, owner-confirmed app/website testing,
+remaining limits and receiving-team responsibilities. Matrix scenarios/counts below retain their original
+recorded test-session scope; no comprehensive audit was repeated for documentation closeout.
 
 **Evidence:**
 - **E2E:** [end-to-end record](OWLI_E2E_Acceptance.md).
@@ -69,12 +72,22 @@ These are additions, not original requirements. Policies and triggers are docume
 
 - **Merged in `dev`:** A1–A16 were implemented by PRs up to #27.
 - **Changed after #27:** the fixes in PR #28 (validation) and PR #29 (E1–E7, F1–F4, guide).
-- **Round 3:** the fixes R3-1 to R3-6 (end-to-end record, round 3). The final verified commit is recorded there after merge.
-- **Enhancements N1–N8** (financial notifications): pull request into `dev` from `feature/financial-notifications`.
+- **Round 3:** R3-1 to R3-6 were integrated; their original results remain in the E2E record. Subsequent approved PRs #33–#38 are also merged into the final implementation baseline above.
+- **Enhancements N1–N8:** merged in PR #37. Local startup/physical-phone trust and manual installation are merged in PRs #33/#38.
 
 ## Not claimed
 
 - Production deployment and production runtime: deployment team (D10).
 - D6 (administrator cross-user scope): unresolved.
-- Spoken screen-reader output; physical devices.
+- Spoken screen-reader output; broad physical-device financial/accessibility coverage. PR #38 records limited physical-phone install/HTTPS/sign-in, not a full phone matrix.
 - A populated pre-migration-4 database upgrade: production rehearsal only.
+
+
+## Owner acceptance and remaining responsibilities
+
+On 28 November 2026, the owner reports personally testing the app and website and declares
+implementation complete. This is an owner acceptance statement, not a new scenario-by-scenario
+PASS matrix. D6 and documented input-policy differences remain explicit scope boundaries;
+no additional academic feature or institution approval is inferred. Production cutover,
+private credentials/signing, populated-data upgrade and public release verification remain
+with the receiving team; use the [single final checklist](../FINAL_HANDOFF.md#final-receiving-team-handoff-checklist).

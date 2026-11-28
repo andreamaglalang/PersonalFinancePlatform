@@ -1,5 +1,7 @@
 # Deployment and Cloudflare (optional)
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 **Production deployment is handled by the external deployment team; see the [deployment handoff guide](../../deployment/README.md).** OWLI runs fully locally without Cloudflare. Use this only if the owner asks you to expose the API or MVC site.
 
 ## What exists on the original PC (observed read-only on 2026-11-21; nothing was changed)

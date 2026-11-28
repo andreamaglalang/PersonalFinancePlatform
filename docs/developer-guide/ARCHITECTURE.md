@@ -1,5 +1,7 @@
 # Project Architecture
 
+> **Historical guide / status snapshot.** Do not treat the old blockers or next steps below as current execution instructions. Use [final handoff](../FINAL_HANDOFF.md) for release identity and reconciled limits, [developer setup](../DEVELOPER_SETUP.md) for local startup, and [production deployment](../../deployment/README.md) for receiving-team operations.
+
 ```
  Android app (Kotlin/Compose)            Administrator website (ASP.NET Core MVC)
    Room "owli-local.db" (offline-first)     Cookie session; API tokens kept server-side

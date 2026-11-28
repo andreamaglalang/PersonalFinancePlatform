@@ -1,4 +1,6 @@
 > **Historical record (Phase 2, 20 November 2026).** Superseded by
+
+> **Current release identity and evidence:** see [final closeout](../docs/FINAL_HANDOFF.md). The generated Phase2 manifests/hashes below remain unchanged historical artifacts and do not certify current production packages.
 > [the Phase 3–4 acceptance record](../docs/audits/OWLI_Phase3_Acceptance.md) and the
 > [deployment handoff guide](README.md). Kept for traceability only.
 
